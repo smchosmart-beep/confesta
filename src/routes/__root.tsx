@@ -77,19 +77,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Confesta (콘페스타) — Sweet Conference Platform" },
+      { name: "description", content: "아이스크림 한 콘으로 즐기는 게이미피케이션 컨퍼런스 플랫폼" },
+      { name: "author", content: "Confesta" },
+      { property: "og:title", content: "Confesta (콘페스타)" },
+      { property: "og:description", content: "아이스크림 한 콘으로 즐기는 게이미피케이션 컨퍼런스 플랫폼" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "stylesheet",
+        href: "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css",
       },
     ],
   }),
