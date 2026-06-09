@@ -35,6 +35,10 @@ interface ConfestaState {
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
   redemptionLog: RedemptionLog[];
+  attendanceCounts: Record<string, number>; // sessionId -> attendance count
+  slideIndex: number;
+  slideTotal: number;
+  slidePaused: boolean;
 
   toggleEnroll: (sessionId: string) => void;
   addScoopFromQR: (payload: string) => { ok: boolean; reason?: string; flavor?: string };
@@ -45,6 +49,12 @@ interface ConfestaState {
   toggleAddressedTopping: (id: string) => void;
   rotatePresenterNonce: (sessionId: string) => string;
   redeemReceipt: (token: string) => RedemptionLog;
+  bumpAttendance: (sessionId: string, delta?: number) => void;
+  nextSlide: () => void;
+  prevSlide: () => void;
+  toggleSlidePause: () => void;
+  resetSlides: () => void;
+  setSlideTotal: (n: number) => void;
 }
 
 const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
@@ -64,6 +74,10 @@ export const useConfestaStore = create<ConfestaState>()(
       receiptToken: null,
       receiptRedeemed: null,
       redemptionLog: [],
+      attendanceCounts: {},
+      slideIndex: 0,
+      slideTotal: 30,
+      slidePaused: false,
 
       toggleEnroll: (sessionId) =>
         set((s) => ({
@@ -91,9 +105,35 @@ export const useConfestaStore = create<ConfestaState>()(
           flavor: cat.flavor,
           stackedAt: Date.now(),
         };
-        set({ scoops: [...state.scoops, scoop] });
+        set({
+          scoops: [...state.scoops, scoop],
+          attendanceCounts: {
+            ...state.attendanceCounts,
+            [session.id]: (state.attendanceCounts[session.id] ?? 0) + 1,
+          },
+        });
         return { ok: true, flavor: cat.flavor };
       },
+
+      bumpAttendance: (sessionId, delta = 1) =>
+        set((s) => ({
+          attendanceCounts: {
+            ...s.attendanceCounts,
+            [sessionId]: Math.max(0, (s.attendanceCounts[sessionId] ?? 0) + delta),
+          },
+        })),
+
+      nextSlide: () =>
+        set((s) => ({ slideIndex: Math.min(s.slideTotal - 1, s.slideIndex + 1) })),
+      prevSlide: () =>
+        set((s) => ({ slideIndex: Math.max(0, s.slideIndex - 1) })),
+      toggleSlidePause: () => set((s) => ({ slidePaused: !s.slidePaused })),
+      resetSlides: () => set({ slideIndex: 0, slidePaused: false }),
+      setSlideTotal: (n) =>
+        set((s) => ({
+          slideTotal: Math.max(1, n),
+          slideIndex: Math.min(s.slideIndex, Math.max(0, n - 1)),
+        })),
 
       resetScoops: () =>
         set({ scoops: [], receiptToken: null, receiptRedeemed: null }),

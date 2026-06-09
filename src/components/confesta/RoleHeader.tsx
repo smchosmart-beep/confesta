@@ -5,6 +5,7 @@ interface Props {
   role: string;
   description: string;
   color: "pink" | "blue" | "mint" | "mango";
+  right?: React.ReactNode;
 }
 
 const COLOR_CLASS: Record<Props["color"], string> = {
@@ -14,7 +15,7 @@ const COLOR_CLASS: Record<Props["color"], string> = {
   mango: "bg-scoop-mango text-foreground",
 };
 
-export function RoleHeader({ role, description, color }: Props) {
+export function RoleHeader({ role, description, color, right }: Props) {
   return (
     <header className="px-4 sm:px-6 pt-5 pb-4">
       <Link
@@ -25,14 +26,15 @@ export function RoleHeader({ role, description, color }: Props) {
       </Link>
       <div className="mt-3 flex items-center gap-3">
         <span
-          className={`${COLOR_CLASS[color]} w-12 h-12 rounded-2xl flex items-center justify-center shadow-cream`}
+          className={`${COLOR_CLASS[color]} w-12 h-12 rounded-2xl flex items-center justify-center shadow-cream shrink-0`}
         >
           <IceCream className="w-6 h-6" />
         </span>
-        <div>
-          <h1 className="text-2xl font-extrabold">{role}</h1>
-          <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-extrabold truncate">{role}</h1>
+          <p className="text-sm text-muted-foreground truncate">{description}</p>
         </div>
+        {right && <div className="shrink-0">{right}</div>}
       </div>
     </header>
   );
