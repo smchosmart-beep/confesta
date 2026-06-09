@@ -1,0 +1,89 @@
+import QRCode from "react-qr-code";
+import { IceCreamCone } from "./IceCreamCone";
+import { useConfestaStore } from "@/lib/confesta/store";
+import { Ticket } from "lucide-react";
+
+export function ReceiptCard() {
+  const scoops = useConfestaStore((s) => s.scoops);
+  const token = useConfestaStore((s) => s.receiptToken);
+  const generate = useConfestaStore((s) => s.generateReceipt);
+  const redeemed = useConfestaStore((s) => s.receiptRedeemed);
+  const reset = useConfestaStore((s) => s.resetScoops);
+
+  const ready = scoops.length >= 3;
+
+  if (!ready) {
+    return (
+      <div className="bg-card rounded-3xl p-8 shadow-cream border border-border text-center">
+        <Ticket className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+        <h3 className="font-bold text-lg">아직 영수증을 받을 수 없어요</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          3스쿱을 모두 모으면 디지털 보상 영수증이 자동으로 발급됩니다.
+        </p>
+        <p className="text-sm font-semibold mt-3">현재 {scoops.length} / 3 스쿱</p>
+      </div>
+    );
+  }
+
+  const activeToken = token ?? generate();
+
+  return (
+    <div className="relative mx-auto max-w-sm">
+      <div className="bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
+        <div className="text-center border-b border-dashed border-foreground/20 pb-4 mb-4">
+          <h2 className="font-extrabold text-xl tracking-tight">
+            CONFESTA · Sweet Reward
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">디지털 보상 영수증</p>
+        </div>
+
+        <div className="flex justify-center my-4">
+          <IceCreamCone scoops={scoops} size={150} />
+        </div>
+
+        <div className="text-xs space-y-1 mb-4 font-mono">
+          {scoops.map((s, i) => (
+            <div key={s.id} className="flex justify-between">
+              <span>스쿱 #{i + 1}</span>
+              <span className="capitalize">{s.flavor}</span>
+            </div>
+          ))}
+          <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
+            <span>발급</span>
+            <span>{new Date().toLocaleString("ko-KR")}</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-3 rounded-2xl border border-foreground/10 flex justify-center">
+          {activeToken && (
+            <QRCode value={activeToken} size={140} level="M" />
+          )}
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          {redeemed ? (
+            <span className="px-4 py-1.5 rounded-full bg-muted text-muted-foreground text-xs font-bold">
+              [USED / GOODS COLLECTED]
+            </span>
+          ) : (
+            <span className="px-4 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-bold">
+              [READY FOR REDEMPTION]
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="text-center mt-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("스쿱 기록을 초기화하시겠어요?")) reset();
+          }}
+          className="text-xs text-muted-foreground underline"
+        >
+          데모 초기화
+        </button>
+      </div>
+    </div>
+  );
+}
