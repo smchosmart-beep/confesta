@@ -10,7 +10,7 @@ import { ReceiptCard } from "@/components/confesta/ReceiptCard";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
-import { Camera, Receipt, Sparkles, CalendarDays } from "lucide-react";
+import { Camera, Receipt, Sparkles, CalendarDays, IceCreamCone as IceCreamConeIcon } from "lucide-react";
 
 export const Route = createFileRoute("/audience")({
   head: () => ({
@@ -63,7 +63,7 @@ function AudienceView() {
           onChange={setSection}
           tabs={[
             { value: "explore", label: "주문", icon: <CalendarDays className="w-4 h-4" /> },
-            { value: "live", label: "My 콘", icon: <Camera className="w-4 h-4" /> },
+            { value: "live", label: "My 콘", icon: <IceCreamConeIcon className="w-4 h-4" /> },
             { value: "topping", label: "토핑 추가", icon: <Sparkles className="w-4 h-4" /> },
             { value: "receipt", label: "영수증", icon: <Receipt className="w-4 h-4" /> },
           ]}
