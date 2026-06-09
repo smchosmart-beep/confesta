@@ -57,7 +57,7 @@ function AudienceView() {
         color="pink"
       />
 
-      <div className="px-4 sm:px-6">
+      <div className="px-4 sm:px-6 flex justify-center">
         <PillTabs<Section>
           value={section}
           onChange={setSection}
