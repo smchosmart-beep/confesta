@@ -74,6 +74,10 @@ export const useConfestaStore = create<ConfestaState>()(
       receiptToken: null,
       receiptRedeemed: null,
       redemptionLog: [],
+      attendanceCounts: {},
+      slideIndex: 0,
+      slideTotal: 30,
+      slidePaused: false,
 
       toggleEnroll: (sessionId) =>
         set((s) => ({
