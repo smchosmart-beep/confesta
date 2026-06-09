@@ -1,76 +1,132 @@
 
-# Confesta (콘페스타) — 프론트엔드 구축 계획
+# 발표자 화면 보강 계획
 
-Baskin Robbins 영감의 게이미피케이션 컨퍼런스 플랫폼. 이번 단계는 **프론트엔드 + mock 데이터**만 구현하고, 실제 카메라 QR 스캔은 라이브러리로 동작시킵니다. UI는 한국어 우선.
+`/presenter`를 단순 QR + 피드 화면에서 **실제 발표 현장에서 쓸 수 있는 컨트롤 센터**로 확장합니다.
 
-## 1. 디자인 시스템 (src/styles.css)
+---
 
-`@theme inline` + `:root`에 oklch 토큰 등록:
-- `--background` 바닐라크림 `#FDFBF7`
-- `--primary` BR 핑크 `#FF007A` / `--secondary` BR 블루 `#00A2FF`
-- 스쿱 플레이버 토큰 5종: `--scoop-mint`, `--scoop-strawberry`, `--scoop-mango`, `--scoop-blueberry`, `--scoop-chocolate`
-- `--radius: 1.25rem`, pill용 유틸 `rounded-full`
-- `--shadow-soft-pink`, `--shadow-soft-blue` (컬러드 앰비언트 섀도우)
-- 바운시 transition 유틸 `.bounce-in` (`cubic-bezier(0.175, 0.885, 0.32, 1.275)`)
-- `@keyframes scoopDrop` (낙하 + scaleY(0.9) 압축)
-- `@keyframes toppingFly` (위로 슬라이드 + 가로 드리프트)
-- Pretendard 폰트 로드 (한국어 우선, `<link>` __root.tsx에)
+## 1. 모드 토글 (상단 헤더)
 
-## 2. 라우팅 구조 (src/routes/)
+`PresenterModeToggle` 알약 스위치 3개:
 
-- `index.tsx` — 홈: 4개 역할 카드 (Audience/Presenter/Staff/Admin) — 클릭 시 해당 경로로 이동. 데모 안내 배너.
-- `audience.tsx` — 청중 뷰 (탭으로 4섹션 전환: 세션탐색 / 라이브HUD / 토핑전송 / 디지털영수증)
-- `presenter.tsx` — 발표자 뷰 (좌: QR 브로드캐스터, 우: 질문 그리드)
-- `staff.tsx` — 스태프 뷰 (카메라 스캐너 + 검증 결과 오버레이)
-- `admin.tsx` — 관리자 대시보드 (벤토 그리드 + 깔때기 지표)
+- **🎤 핸드헬드 (Handheld)** — 모바일 우선. 발표자 손에 든 화면.
+- **📺 무대 (Stage)** — 가로 큰 화면. 청중이 멀리서 보는 디스플레이 (QR 거대화, 워드클라우드 강조).
+- **🖼 풀스크린 (Fullscreen)** — `requestFullscreen()` + 키보드 단축키.
 
-각 라우트는 고유한 `head()` 메타 (title/description/og).
+선택 모드는 URL 쿼리 `?mode=handheld|stage` 로 저장 (새로고침/공유 가능).
 
-## 3. 공통 컴포넌트 (src/components/confesta/)
+---
 
-- `IceCreamCone.tsx` — SVG 콘 + 최대 3개 스쿱 스택 (props: scoops 배열, 색상 토큰 매핑)
-- `ScoopDropAnimation.tsx` — `@keyframes scoopDrop` 적용 래퍼
-- `SessionCard.tsx` — 카테고리 배지 / 제목 / 발표자 / 시간 / 좌석 게이지 / Enroll pill 버튼 (토글)
-- `PillTabs.tsx` — Day1/Day2 등 둥근 탭 셀렉터
-- `ToppingInput.tsx` — 입력 후 sprinkle 아이콘이 toppingFly로 날아가는 연출
-- `ReceiptCard.tsx` — 세로 영수증 (지그재그 하단 보더), 바코드/QR (`react-qr-code`), 상태 배지
-- `QRBroadcaster.tsx` — 15초 갱신 QR + 프로그레스 바 (파랑→핑크)
-- `MasonryFeed.tsx` — 캔디 카드 자동 스크롤 그리드
-- `CameraScanner.tsx` — `@yudiel/react-qr-scanner` 라이브러리 (실제 카메라), 수동 입력 폴백, 가이드 박스 오버레이
-- `BentoVenueGrid.tsx` — 룸별 카드 + 깔때기 (등록→출석→수령) 다층 프로그레스
+## 2. 핸드헬드 모드 레이아웃 (모바일 우선)
 
-## 4. Mock 데이터 + 로컬 상태 (src/lib/confesta/)
+세로 스크롤 한 화면, 탭 4개:
 
-- `mockData.ts` — 세션 목록 (Day1/Day2, 카테고리·색상·발표자·정원), 룸 목록, 질문 샘플
-- `useConfestaState.ts` — Zustand 또는 `useState` + Context: enrolled 세션, 스택된 스쿱, 전송된 토핑, 영수증 상태, 스태프 검증 로그
-  - 상태는 `localStorage`에 영속화하여 새로고침 후에도 데모 흐름 유지
-- 가짜 QR 페이로드 규약: `confesta:{sessionId}:{nonce}` — 발표자 뷰가 15초마다 새 nonce 발급, 청중 스캔 시 검증 → 스쿱 추가
+1. **컨트롤** — 작은 QR + 다음 슬라이드 미리보기 + 슬라이드 제어 패널 + 타이머
+2. **질문** — 청중 질문 목록 전용 뷰 (정렬: 최신/핀/미답변 필터, 카드 탭하면 풀스크린으로 띄움)
+3. **워드클라우드** — TOP 토핑 키워드 시각화
+4. **출석** — 라이브 출석 카운터 + 진척도 게이지
 
-## 5. 패키지 추가
+---
 
-- `@yudiel/react-qr-scanner` (카메라 스캐너)
-- `react-qr-code` (영수증 QR / 발표자 QR 렌더)
-- `zustand` (전역 상태 — 4개 뷰 간 데모 연동용)
+## 3. 무대 모드 레이아웃 (가로 큰 화면)
 
-## 6. 인터랙션 흐름 (데모 시나리오)
+좌우 2분할 + 하단 띠:
 
-1. `/presenter`를 한 탭에서 열어두면 15초마다 QR 갱신.
-2. 다른 탭/기기에서 `/audience` 열고 카메라 스캐너로 그 QR을 찍으면 → 스쿱이 콘에 떨어짐 (최대 3개).
-3. 토핑 입력 → sprinkle 애니메이션 (presenter의 질문 그리드에도 등장, zustand로 동기화).
-4. 3스쿱 완성되면 디지털 영수증 활성화 (QR 토큰 생성).
-5. `/staff`에서 그 영수증 QR을 스캔 → 성공/중복 사용 오버레이.
-6. `/admin` 벤토 그리드에 등록/출석/수령 카운터 실시간 반영.
+```text
+┌─────────────────────────┬──────────────────────────┐
+│                         │                          │
+│   거대 QR (480px)       │   TOP 토핑 워드클라우드  │
+│   "지금 스캔하세요"     │   (사탕색 + bounce-in)   │
+│                         │                          │
+│   [출석 87 / 120]       │                          │
+│                         │                          │
+├─────────────────────────┴──────────────────────────┤
+│  최근 질문 마퀴 (가로 무한 스크롤, 핀고정 우선)    │
+└────────────────────────────────────────────────────┘
+```
 
-## 7. 검증
+15초 갱신 프로그레스 바는 QR 아래.
 
-- 각 라우트 빌드 통과 확인.
-- 모바일 뷰포트(`/audience`, `/staff`)에서 카메라 컴포넌트 레이아웃 점검.
-- 4개 뷰 간 zustand 상태 연동 동작 확인 (같은 브라우저 내 다중 탭).
+---
 
-## 8. 범위 외 (이번 단계 X)
+## 4. 슬라이드 컨트롤 패널 (`SlideControlPanel`)
 
-- 실제 인증 / 사용자 계정
-- DB 영속화 (다음 단계에서 Lovable Cloud로)
-- 실제 다중 기기 실시간 동기화 (현재는 localStorage + 동일 브라우저 한정)
+목업/시뮬레이션 (실제 슬라이드 연동 X, 로컬 상태):
 
-승인하시면 바로 구축 시작하겠습니다.
+- 현재 슬라이드 번호 / 총 슬라이드 수 (예: `12 / 30`)
+- ◀ 이전 · ▶ 다음 · ⏸ 일시정지 · ⏹ 종료 알약 버튼
+- 슬라이드 진척 게이지 (핑크→블루 그라데이션)
+- 키보드 단축키: `←/→` 이동, `Space` 다음, `Esc` 풀스크린 해제
+
+zustand 에 `slideIndex`, `slideTotal` 추가, `localStorage` 영속.
+
+---
+
+## 5. 풀스크린 프레젠테이션 모드
+
+- 헤더의 `Fullscreen` 버튼 → `document.documentElement.requestFullscreen()`
+- `fullscreenchange` 이벤트 핸들러로 상태 동기화
+- 풀스크린 시 자동으로 **무대 모드 + 커서 자동 숨김 (3초 무동작)** 로 전환
+- `Esc` 키로 해제
+
+---
+
+## 6. 질문 전용 뷰 (`QuestionStream`)
+
+기존 토핑 피드를 별도 컴포넌트로 분리 + 보강:
+
+- 필터 알약: `전체 / 핀 / 미답변 / 답변완료`
+- 정렬: `최신순 / 좋아요순 (mock)`
+- 카드 탭 → 모달로 **거대 크기 풀스크린 표시** (무대에서 청중에게 질문 공유용)
+- 각 카드에 좋아요 카운트 (mock) 표시
+
+`store.ts` 의 `togglePinTopping`, `toggleAddressedTopping` 재활용.
+
+---
+
+## 7. TOP 토핑 워드클라우드 (`ToppingWordCloud`)
+
+- 토핑 텍스트를 한글 형태소 단순 토크나이저 (공백 + 1글자 이상)로 분해
+- 빈도수 기준 TOP 25 키워드 추출
+- 빈도수 → 폰트 크기 (24px ~ 88px 스케일), 색상 랜덤 (스쿱 플레이버 5종 순환)
+- 화면 중앙 정렬, `flex-wrap` + `bounce-in` 등장 애니메이션
+- 5초마다 자동 재계산 (`setInterval`)
+- 빈 상태: "토핑이 도착하면 키워드가 모입니다 🍒"
+
+---
+
+## 8. 출석 카운터 게이지 (`AttendanceGauge`)
+
+- mock 정원 (세션 capacity) 대비 실제 스캔된 인원
+- 단일 사용자 데모 한계 보완: store 에 `attendanceCount` 추가, 발표자 nonce 갱신 시 또는 청중이 출석할 때마다 카운트 (+ mock 랜덤 증가로 라이브 느낌)
+- 둥근 도넛 게이지 (SVG arc) + 가운데 큰 숫자
+
+---
+
+## 9. 파일 변경
+
+**신규**:
+- `src/components/confesta/PresenterModeToggle.tsx`
+- `src/components/confesta/SlideControlPanel.tsx`
+- `src/components/confesta/QuestionStream.tsx`
+- `src/components/confesta/QuestionSpotlightModal.tsx`
+- `src/components/confesta/ToppingWordCloud.tsx`
+- `src/components/confesta/AttendanceGauge.tsx`
+- `src/components/confesta/StageMarquee.tsx`
+- `src/hooks/use-fullscreen.ts`
+- `src/hooks/use-presenter-shortcuts.ts`
+
+**수정**:
+- `src/routes/presenter.tsx` — 모드 분기, URL 쿼리 (`validateSearch`), 핸드헬드 탭 / 무대 레이아웃 / 풀스크린 래퍼
+- `src/lib/confesta/store.ts` — `slideIndex`, `slideTotal`, `attendanceCount`, `incrementAttendance` 추가
+- `src/components/confesta/RoleHeader.tsx` — 우측 슬롯 prop 추가 (모드 토글 자리)
+
+---
+
+## 10. 범위 외
+
+- 실제 슬라이드 파일 업로드 / 렌더링 (목업만)
+- 멀티 디바이스 실시간 동기화 (zustand + localStorage 한계 유지)
+- 좋아요 실제 집계 (mock 숫자)
+
+승인하시면 구현 시작하겠습니다.
