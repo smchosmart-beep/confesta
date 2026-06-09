@@ -1,24 +1,38 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 import QRCode from "react-qr-code";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { PresenterModeToggle, type PresenterMode } from "@/components/confesta/PresenterModeToggle";
+import { SlideControlPanel } from "@/components/confesta/SlideControlPanel";
+import { QuestionStream } from "@/components/confesta/QuestionStream";
+import { ToppingWordCloud } from "@/components/confesta/ToppingWordCloud";
+import { AttendanceGauge } from "@/components/confesta/AttendanceGauge";
+import { StageMarquee } from "@/components/confesta/StageMarquee";
 import { useConfestaStore, makeAttendanceQR } from "@/lib/confesta/store";
-import { SESSIONS, getCategory } from "@/lib/confesta/mockData";
-import { Pin, Check } from "lucide-react";
+import { SESSIONS } from "@/lib/confesta/mockData";
+import { useFullscreen } from "@/hooks/use-fullscreen";
+import { usePresenterShortcuts } from "@/hooks/use-presenter-shortcuts";
+import { Sparkles, MessageSquareText, Cloud, Users } from "lucide-react";
+
+const searchSchema = z.object({
+  mode: z.enum(["handheld", "stage"]).optional(),
+});
 
 export const Route = createFileRoute("/presenter")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
       { title: "발표자 뷰 — Confesta" },
       {
         name: "description",
         content:
-          "동적 QR을 15초마다 갱신하며 청중의 출석을 인증하고, 라이브 토핑 질문을 한눈에 확인하세요.",
+          "QR 출석 브로드캐스터, 슬라이드 컨트롤, 청중 질문 워드클라우드를 한 화면에서.",
       },
       { property: "og:title", content: "발표자 뷰 — Confesta" },
       {
         property: "og:description",
-        content: "동적 QR 브로드캐스터와 실시간 질문 피드.",
+        content: "발표자를 위한 컨트롤 센터.",
       },
     ],
   }),
@@ -27,20 +41,44 @@ export const Route = createFileRoute("/presenter")({
 
 const QR_INTERVAL_MS = 15_000;
 
+type HandheldTab = "control" | "questions" | "cloud" | "attendance";
+
 function PresenterView() {
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/presenter" });
+  const mode: PresenterMode = search.mode ?? "handheld";
+  const setMode = (m: PresenterMode) =>
+    navigate({ search: { mode: m }, replace: true });
+
   const [sessionId, setSessionId] = useState(SESSIONS[0].id);
   const session = SESSIONS.find((s) => s.id === sessionId)!;
   const rotate = useConfestaStore((s) => s.rotatePresenterNonce);
   const nonce = useConfestaStore((s) => s.presenterNonces[sessionId]);
-  const toppings = useConfestaStore((s) =>
-    s.toppings.filter((t) => t.sessionId === sessionId),
+  const attendanceCount = useConfestaStore(
+    (s) => s.attendanceCounts[sessionId] ?? 0,
   );
-  const togglePin = useConfestaStore((s) => s.togglePinTopping);
-  const toggleAddressed = useConfestaStore((s) => s.toggleAddressedTopping);
+  const bumpAttendance = useConfestaStore((s) => s.bumpAttendance);
+
+  const { isFullscreen, toggle: toggleFullscreen, exit: exitFullscreen } =
+    useFullscreen();
+  const nextSlide = useConfestaStore((s) => s.nextSlide);
+  const prevSlide = useConfestaStore((s) => s.prevSlide);
+
+  usePresenterShortcuts({
+    onNext: nextSlide,
+    onPrev: prevSlide,
+    onEscape: () => {
+      if (isFullscreen) exitFullscreen();
+    },
+  });
 
   const [progress, setProgress] = useState(100);
+  const [tab, setTab] = useState<HandheldTab>("control");
 
-  // Rotate nonce every QR_INTERVAL_MS
+  // Force stage mode while in fullscreen
+  const effectiveMode: PresenterMode = isFullscreen ? "stage" : mode;
+
+  // Rotate nonce
   useEffect(() => {
     rotate(sessionId);
     setProgress(100);
@@ -58,32 +96,144 @@ function PresenterView() {
     };
   }, [sessionId, rotate]);
 
+  // Demo: organic attendance growth — small random ticks while presenting
+  useEffect(() => {
+    if (attendanceCount >= session.capacity) return;
+    const id = window.setInterval(() => {
+      const delta = Math.random() < 0.4 ? 1 : 0;
+      if (delta) bumpAttendance(sessionId, delta);
+    }, 3500);
+    return () => window.clearInterval(id);
+  }, [sessionId, session.capacity, attendanceCount, bumpAttendance]);
+
   const qrValue = nonce ? makeAttendanceQR(sessionId, nonce) : "";
 
-  const barColor = `oklch(${0.7 - (1 - progress / 100) * 0.1} ${0.18 + (1 - progress / 100) * 0.1} ${235 - (1 - progress / 100) * 235})`;
+  const barColor = useMemo(
+    () =>
+      `oklch(${0.72 - (1 - progress / 100) * 0.1} ${0.18 + (1 - progress / 100) * 0.1} ${235 - (1 - progress / 100) * 235})`,
+    [progress],
+  );
 
-  const sortedToppings = [...toppings].sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return b.createdAt - a.createdAt;
-  });
+  const modeToggle = (
+    <PresenterModeToggle
+      mode={mode}
+      onChange={setMode}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={toggleFullscreen}
+    />
+  );
 
-  const CANDY_COLORS = [
-    "var(--scoop-strawberry)",
-    "var(--scoop-mint)",
-    "var(--scoop-mango)",
-    "var(--scoop-blueberry)",
+  // ── STAGE MODE ────────────────────────────────────────────
+  if (effectiveMode === "stage") {
+    return (
+      <main className="min-h-screen flex flex-col bg-background">
+        {!isFullscreen && (
+          <RoleHeader
+            role="발표자 무대 모드"
+            description={`${session.title} · ${session.room}`}
+            color="blue"
+            right={modeToggle}
+          />
+        )}
+
+        <div
+          className={`flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 px-4 sm:px-6 ${
+            isFullscreen ? "pt-6" : ""
+          } pb-4`}
+        >
+          {/* Left: huge QR + attendance */}
+          <div className="lg:col-span-2 flex flex-col gap-4">
+            <div className="bg-card rounded-[2rem] p-6 sm:p-8 shadow-blue border border-border flex-1 flex flex-col">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl sm:text-2xl font-extrabold">
+                  📱 지금 스캔하세요
+                </h2>
+                <span className="text-xs bg-secondary/15 text-secondary font-bold px-2.5 py-1 rounded-full">
+                  15초 갱신
+                </span>
+              </div>
+              <div className="bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center">
+                {qrValue && (
+                  <QRCode
+                    value={qrValue}
+                    size={420}
+                    level="M"
+                    style={{ maxWidth: "100%", height: "auto", width: "100%" }}
+                  />
+                )}
+              </div>
+              <div className="mt-4 h-3 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-[width] duration-100 ease-linear"
+                  style={{ width: `${progress}%`, backgroundColor: barColor }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-card rounded-3xl p-5 shadow-cream border border-border flex items-center gap-5">
+              <AttendanceGauge
+                count={attendanceCount}
+                capacity={session.capacity}
+                size={140}
+              />
+              <div>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                  라이브 출석
+                </p>
+                <p className="text-2xl font-extrabold mt-1">
+                  {Math.round(
+                    (attendanceCount / Math.max(session.capacity, 1)) * 100,
+                  )}
+                  % 충원
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {session.room} · 정원 {session.capacity}명
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: word cloud */}
+          <div className="lg:col-span-3 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-extrabold">
+                TOP 토핑 키워드
+              </h2>
+            </div>
+            <div className="flex-1">
+              <ToppingWordCloud sessionId={sessionId} />
+            </div>
+            <SlideControlPanel />
+          </div>
+        </div>
+
+        {/* Bottom marquee */}
+        <div className="px-4 sm:px-6 pb-4">
+          <StageMarquee sessionId={sessionId} />
+        </div>
+      </main>
+    );
+  }
+
+  // ── HANDHELD MODE ─────────────────────────────────────────
+  const tabs: { value: HandheldTab; label: string; icon: React.ReactNode }[] = [
+    { value: "control", label: "컨트롤", icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { value: "questions", label: "질문", icon: <MessageSquareText className="w-3.5 h-3.5" /> },
+    { value: "cloud", label: "워드", icon: <Cloud className="w-3.5 h-3.5" /> },
+    { value: "attendance", label: "출석", icon: <Users className="w-3.5 h-3.5" /> },
   ];
 
   return (
-    <main className="min-h-screen pb-16">
+    <main className="min-h-screen pb-24">
       <RoleHeader
         role="발표자 (Presenter)"
-        description="QR 갱신 + 실시간 질문 피드"
+        description="컨트롤 센터 · 핸드헬드 모드"
         color="blue"
+        right={modeToggle}
       />
 
-      <section className="px-4 sm:px-6 max-w-6xl mx-auto">
+      <section className="px-4 sm:px-6 max-w-3xl mx-auto">
         <div className="mb-4">
           <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">
             세션 선택
@@ -101,24 +251,39 @@ function PresenterView() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* QR Broadcaster */}
-          <div className="lg:col-span-2">
-            <div className="bg-card rounded-3xl p-6 shadow-blue border border-border">
+        <div className="mb-5 overflow-x-auto -mx-1 px-1">
+          <div className="inline-flex p-1 bg-muted rounded-full shadow-cream">
+            {tabs.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setTab(t.value)}
+                className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap ${
+                  tab === t.value
+                    ? "bg-primary text-primary-foreground shadow-pink"
+                    : "text-foreground/70"
+                }`}
+              >
+                {t.icon}
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === "control" && (
+          <div className="space-y-4 animate-fade-in">
+            <div className="bg-card rounded-3xl p-5 shadow-blue border border-border">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-lg">출석 QR</h3>
+                <h3 className="font-bold">출석 QR</h3>
                 <span className="text-xs bg-secondary/10 text-secondary font-bold px-2.5 py-1 rounded-full">
                   15초마다 갱신
                 </span>
               </div>
-              <p className="text-xs text-muted-foreground mb-4">
-                {session.room} · {session.timeSlot}
-              </p>
-              <div className="bg-white p-6 rounded-2xl flex justify-center">
-                {qrValue && <QRCode value={qrValue} size={240} level="M" />}
+              <div className="bg-white p-5 rounded-2xl flex justify-center">
+                {qrValue && <QRCode value={qrValue} size={200} level="M" />}
               </div>
-
-              <div className="mt-4 h-3 rounded-full bg-muted overflow-hidden">
+              <div className="mt-3 h-2.5 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full transition-[width] duration-100 ease-linear"
                   style={{ width: `${progress}%`, backgroundColor: barColor }}
@@ -128,72 +293,53 @@ function PresenterView() {
                 다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
               </p>
             </div>
-          </div>
 
-          {/* Topping feed */}
-          <div className="lg:col-span-3">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg">토핑 질문 피드</h3>
-              <span className="text-xs text-muted-foreground">
-                {sortedToppings.length}개
-              </span>
-            </div>
-            {sortedToppings.length === 0 ? (
-              <div className="bg-card rounded-3xl p-10 text-center text-muted-foreground border border-border">
-                아직 도착한 토핑이 없습니다.
-              </div>
-            ) : (
-              <div className="columns-1 sm:columns-2 gap-4 [column-fill:_balance]">
-                {sortedToppings.map((t, i) => {
-                  const cat = getCategory(session.category);
-                  const color = CANDY_COLORS[i % CANDY_COLORS.length];
-                  return (
-                    <div
-                      key={t.id}
-                      className={`mb-4 break-inside-avoid rounded-2xl p-4 shadow-cream border-2 ${
-                        t.addressed ? "opacity-60 line-through" : ""
-                      } ${t.pinned ? "ring-4 ring-primary/30" : ""}`}
-                      style={{
-                        backgroundColor: color,
-                        borderColor: "rgba(255,255,255,0.7)",
-                      }}
-                    >
-                      <p className="text-sm text-foreground/90 font-medium">
-                        {t.text}
-                      </p>
-                      <div className="mt-3 flex items-center justify-between text-xs">
-                        <span className="text-foreground/60">
-                          {new Date(t.createdAt).toLocaleTimeString("ko-KR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                          {" · "}
-                          {cat.label}
-                        </span>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => togglePin(t.id)}
-                            className="bounce-press bg-white/70 hover:bg-white rounded-full p-1.5"
-                            aria-label="상단 고정"
-                          >
-                            <Pin className={`w-3.5 h-3.5 ${t.pinned ? "fill-current" : ""}`} />
-                          </button>
-                          <button
-                            onClick={() => toggleAddressed(t.id)}
-                            className="bounce-press bg-white/70 hover:bg-white rounded-full p-1.5"
-                            aria-label="답변 완료"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <SlideControlPanel />
           </div>
-        </div>
+        )}
+
+        {tab === "questions" && (
+          <div className="animate-fade-in">
+            <QuestionStream sessionId={sessionId} />
+          </div>
+        )}
+
+        {tab === "cloud" && (
+          <div className="animate-fade-in space-y-3">
+            <p className="text-sm text-muted-foreground">
+              청중이 보낸 토핑에서 자주 등장한 키워드입니다. 5초마다 갱신.
+            </p>
+            <ToppingWordCloud sessionId={sessionId} compact />
+          </div>
+        )}
+
+        {tab === "attendance" && (
+          <div className="animate-fade-in flex flex-col items-center gap-4 bg-card rounded-3xl p-6 border border-border shadow-cream">
+            <AttendanceGauge
+              count={attendanceCount}
+              capacity={session.capacity}
+              size={220}
+            />
+            <div className="text-center">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                {session.room} · 정원 {session.capacity}명
+              </p>
+              <p className="text-3xl font-extrabold mt-1">
+                {Math.round(
+                  (attendanceCount / Math.max(session.capacity, 1)) * 100,
+                )}
+                %
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => bumpAttendance(sessionId, 1)}
+              className="bounce-press text-xs font-semibold bg-muted rounded-full px-4 py-2"
+            >
+              +1 (데모용)
+            </button>
+          </div>
+        )}
       </section>
     </main>
   );
