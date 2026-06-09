@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useConfestaStore } from "@/lib/confesta/store";
+import { ToppingScatter } from "./ToppingDecor";
 
-const FLAVORS = [
-  "var(--scoop-strawberry)",
-  "var(--scoop-mint)",
-  "var(--scoop-mango)",
-  "var(--scoop-blueberry)",
-  "var(--primary)",
-  "var(--secondary)",
+const FLAVOR_GRADIENTS = [
+  "var(--gradient-strawberry)",
+  "var(--gradient-mint)",
+  "var(--gradient-mango)",
+  "var(--gradient-blueberry)",
+  "var(--gradient-sunset)",
+  "var(--gradient-aurora)",
 ];
 
 // Korean/English-friendly stopword set
