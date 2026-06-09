@@ -144,16 +144,19 @@ function PresenterView() {
         >
           {/* Left: huge QR + attendance */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="bg-card rounded-[2rem] p-6 sm:p-8 shadow-blue border border-border flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl sm:text-2xl font-extrabold">
+            <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 shadow-blue border border-white/60 flex-1 flex flex-col">
+              <div className="absolute inset-0 bg-grad-cream" />
+              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+              <ToppingScatter density="med" seed="stage-qr" />
+              <div className="relative flex items-center justify-between mb-3">
+                <h2 className="text-xl sm:text-2xl font-extrabold bg-clip-text text-transparent bg-grad-sunset">
                   📱 지금 스캔하세요
                 </h2>
-                <span className="text-xs bg-secondary/15 text-secondary font-bold px-2.5 py-1 rounded-full">
+                <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초 갱신
                 </span>
               </div>
-              <div className="bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center">
+              <div className="relative bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center border-2 border-white shadow-cream">
                 {qrValue && (
                   <QRCode
                     value={qrValue}
@@ -163,25 +166,29 @@ function PresenterView() {
                   />
                 )}
               </div>
-              <div className="mt-4 h-3 rounded-full bg-muted overflow-hidden">
+              <div className="relative mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-[width] duration-100 ease-linear"
-                  style={{ width: `${progress}%`, backgroundColor: barColor }}
+                  className="h-full rounded-full transition-[width] duration-100 ease-linear bg-grad-sunset"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
 
-            <div className="bg-card rounded-3xl p-5 shadow-cream border border-border flex items-center gap-5">
-              <AttendanceGauge
-                count={attendanceCount}
-                capacity={session.capacity}
-                size={140}
-              />
-              <div>
+            <div className="relative overflow-hidden rounded-3xl p-5 shadow-cream border border-white/60 flex items-center gap-5">
+              <div className="absolute inset-0 bg-grad-cream" />
+              <ToppingScatter density="low" seed="stage-att" />
+              <div className="relative">
+                <AttendanceGauge
+                  count={attendanceCount}
+                  capacity={session.capacity}
+                  size={140}
+                />
+              </div>
+              <div className="relative">
                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                   라이브 출석
                 </p>
-                <p className="text-2xl font-extrabold mt-1">
+                <p className="text-2xl font-extrabold mt-1 bg-clip-text text-transparent bg-grad-sunset">
                   {Math.round(
                     (attendanceCount / Math.max(session.capacity, 1)) * 100,
                   )}
