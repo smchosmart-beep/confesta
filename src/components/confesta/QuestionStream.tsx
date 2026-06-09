@@ -93,12 +93,15 @@ export function QuestionStream({ sessionId }: Props) {
             return (
               <div
                 key={t.id}
-                className={`bg-card border-2 rounded-2xl p-4 shadow-cream transition ${
+                className={`relative overflow-hidden border-2 rounded-2xl p-4 shadow-cream transition ${
                   t.addressed ? "opacity-60" : ""
-                } ${t.pinned ? "border-primary" : "border-border"}`}
+                } ${t.pinned ? "border-transparent bg-grad-strawberry-soft" : "border-white/60 bg-card"}`}
               >
+                {t.pinned && (
+                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-50 pointer-events-none" />
+                )}
                 <p
-                  className={`text-sm font-medium ${
+                  className={`relative text-sm font-medium ${
                     t.addressed ? "line-through" : ""
                   }`}
                 >
