@@ -14,6 +14,7 @@ import { SESSIONS } from "@/lib/confesta/mockData";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { usePresenterShortcuts } from "@/hooks/use-presenter-shortcuts";
 import { Sparkles, MessageSquareText, Cloud, Users } from "lucide-react";
+import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 
 const searchSchema = z.object({
   mode: z.enum(["handheld", "stage"]).optional(),
