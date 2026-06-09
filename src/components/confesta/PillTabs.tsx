@@ -18,7 +18,7 @@ export function PillTabs<T extends string>({
   size = "md",
 }: Props<T>) {
   return (
-    <div className="inline-flex p-1.5 bg-muted rounded-full shadow-cream">
+    <div className="inline-flex p-1.5 bg-card/80 backdrop-blur rounded-full shadow-cream border border-white/60">
       {tabs.map((t) => {
         const active = value === t.value;
         return (
@@ -30,7 +30,7 @@ export function PillTabs<T extends string>({
               size === "sm" ? "px-3.5 py-1.5 text-xs" : "px-5 py-2 text-sm"
             } ${
               active
-                ? "bg-primary text-primary-foreground shadow-pink"
+                ? "bg-grad-strawberry text-white shadow-pink"
                 : "text-foreground/70 hover:text-foreground"
             }`}
           >

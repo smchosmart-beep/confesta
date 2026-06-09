@@ -52,7 +52,7 @@ export function ToppingInput({ sessionId }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="relative">
-      <div className="flex items-center gap-2 bg-card border border-border rounded-full p-1.5 pl-5 shadow-cream">
+      <div className="flex items-center gap-2 bg-card border border-white/60 rounded-full p-1.5 pl-5 shadow-pink">
         <Sparkles className="w-5 h-5 text-primary shrink-0" />
         <input
           value={text}
@@ -64,7 +64,7 @@ export function ToppingInput({ sessionId }: Props) {
         <button
           type="submit"
           disabled={!text.trim()}
-          className="bounce-press bg-primary text-primary-foreground rounded-full p-2.5 disabled:opacity-40 disabled:hover:scale-100"
+          className="bounce-press bg-grad-strawberry text-white rounded-full p-2.5 shadow-pink disabled:opacity-40 disabled:hover:scale-100"
           aria-label="토핑 전송"
         >
           <Send className="w-4 h-4" />
