@@ -95,7 +95,7 @@ export function QuestionStream({ sessionId }: Props) {
                 key={t.id}
                 className={`relative overflow-hidden border-2 rounded-2xl p-4 shadow-cream transition ${
                   t.addressed ? "opacity-60" : ""
-                } ${t.pinned ? "border-transparent bg-grad-strawberry-soft" : "border-white/60 bg-card"}`}
+                } ${t.pinned ? "border-transparent bg-grad-sunset-soft" : "border-white/60 bg-card"}`}
               >
                 {t.pinned && (
                   <div className="absolute inset-0 bg-grad-sunset-soft opacity-50 pointer-events-none" />
