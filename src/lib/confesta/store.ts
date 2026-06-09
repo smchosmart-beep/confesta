@@ -105,10 +105,6 @@ export const useConfestaStore = create<ConfestaState>()(
           flavor: cat.flavor,
           stackedAt: Date.now(),
         };
-        set({ scoops: [...state.scoops, scoop] });
-        return { ok: true, flavor: cat.flavor };
-      },
-
         set({
           scoops: [...state.scoops, scoop],
           attendanceCounts: {
