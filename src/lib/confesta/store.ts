@@ -35,6 +35,10 @@ interface ConfestaState {
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
   redemptionLog: RedemptionLog[];
+  attendanceCounts: Record<string, number>; // sessionId -> attendance count
+  slideIndex: number;
+  slideTotal: number;
+  slidePaused: boolean;
 
   toggleEnroll: (sessionId: string) => void;
   addScoopFromQR: (payload: string) => { ok: boolean; reason?: string; flavor?: string };
@@ -45,6 +49,12 @@ interface ConfestaState {
   toggleAddressedTopping: (id: string) => void;
   rotatePresenterNonce: (sessionId: string) => string;
   redeemReceipt: (token: string) => RedemptionLog;
+  bumpAttendance: (sessionId: string, delta?: number) => void;
+  nextSlide: () => void;
+  prevSlide: () => void;
+  toggleSlidePause: () => void;
+  resetSlides: () => void;
+  setSlideTotal: (n: number) => void;
 }
 
 const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
