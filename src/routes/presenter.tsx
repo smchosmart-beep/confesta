@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import QRCode from "react-qr-code";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
