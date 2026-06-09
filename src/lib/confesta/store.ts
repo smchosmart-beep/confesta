@@ -61,8 +61,11 @@ const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
   id: `seed-${i}`,
   sessionId: t.sessionId,
   text: t.text,
-  createdAt: Date.now() - (i + 1) * 60_000,
+  createdAt: Date.now() - (t.ageMin ?? i + 1) * 60_000,
+  pinned: t.pinned,
+  addressed: t.addressed,
 }));
+
 
 export const useConfestaStore = create<ConfestaState>()(
   persist(
