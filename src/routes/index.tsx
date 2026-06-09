@@ -72,11 +72,13 @@ function Home() {
         <span className="relative inline-flex items-center gap-1.5 bg-grad-strawberry text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-pink">
           <Sparkles className="w-3.5 h-3.5" /> Sweet Conference Platform
         </span>
-        <h1 className="relative mt-5 text-5xl sm:text-6xl font-extrabold tracking-tight">
-          <span className="text-grad-sunset bg-grad-sunset-anim bg-clip-text">
-            Confesta
-          </span>{" "}
-          <span className="text-grad-strawberry">콘페스타</span>
+        <h1 className="relative mt-5 flex flex-col items-center gap-2 font-extrabold tracking-tight">
+          <span className="text-base sm:text-lg font-bold text-muted-foreground">
+            AI 디지털 컨퍼런스&페스티벌
+          </span>
+          <span className="text-5xl sm:text-6xl text-grad-sunset bg-grad-sunset-anim bg-clip-text">
+            2026 Confesta
+          </span>
         </h1>
         <p className="relative mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
           수강신청부터 출석 인증, 토핑 질문, 굿즈 수령까지 —<br />
