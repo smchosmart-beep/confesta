@@ -51,14 +51,31 @@
   --font-display: "Pretendard", "Pretendard Variable", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Pretendard", "Pretendard Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --shadow-soft-pink: 0 10px 30px rgba(255, 0, 122, 0.12);
-  --shadow-soft-blue: 0 10px 30px rgba(0, 162, 255, 0.12);
+  --shadow-soft-pink: 0 10px 30px rgba(255, 0, 122, 0.18);
+  --shadow-soft-blue: 0 10px 30px rgba(0, 162, 255, 0.18);
   --shadow-soft-cream: 0 6px 20px rgba(120, 80, 40, 0.08);
+  --shadow-soft-glow: 0 14px 40px rgba(255, 122, 182, 0.22);
+
+  /* Gradient tokens — used instead of solid fills everywhere */
+  --gradient-strawberry: linear-gradient(135deg, #FFC1D8 0%, #FF4D9D 60%, #FF007A 100%);
+  --gradient-mint:       linear-gradient(135deg, #DCFBF1 0%, #7EE0C8 60%, #2FB99A 100%);
+  --gradient-mango:      linear-gradient(135deg, #FFE9B5 0%, #FFB85C 60%, #FF8A1F 100%);
+  --gradient-blueberry:  linear-gradient(135deg, #DCDEFF 0%, #8A91FF 60%, #4B53E0 100%);
+  --gradient-chocolate:  linear-gradient(135deg, #D8B894 0%, #8A5A2B 60%, #4F2E12 100%);
+  --gradient-cream:      linear-gradient(180deg, #FFFAF1 0%, #FDE8D6 100%);
+  --gradient-sunset:     linear-gradient(135deg, #FFD27F 0%, #FF7AB6 50%, #6B73FF 100%);
+  --gradient-aurora:     linear-gradient(135deg, #7EE0C8 0%, #8A91FF 50%, #FF7AB6 100%);
+  --gradient-cone:       linear-gradient(180deg, #EBC18A 0%, #B07B3F 60%, #6E4416 100%);
+  --gradient-success:    linear-gradient(135deg, #BDF2C9 0%, #4FD377 60%, #1F9F4A 100%);
+  --gradient-danger:     linear-gradient(135deg, #FFC4B5 0%, #FF7A5B 60%, #D8341A 100%);
+  --gradient-muted:      linear-gradient(135deg, #F4ECDE 0%, #E6D7BD 100%);
 
   --animate-scoop-drop: scoopDrop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   --animate-topping-fly: toppingFly 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   --animate-shake: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
   --animate-pulse-ring: pulseRing 1.8s ease-out infinite;
+  --animate-float-topping: floatTopping 6s ease-in-out infinite;
+  --animate-shimmer: shimmer 14s linear infinite;
 }
 
 :root {
