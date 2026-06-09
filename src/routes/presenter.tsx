@@ -109,11 +109,6 @@ function PresenterView() {
 
   const qrValue = nonce ? makeAttendanceQR(sessionId, nonce) : "";
 
-  const barColor = useMemo(
-    () =>
-      `oklch(${0.72 - (1 - progress / 100) * 0.1} ${0.18 + (1 - progress / 100) * 0.1} ${235 - (1 - progress / 100) * 235})`,
-    [progress],
-  );
 
   const modeToggle = (
     <PresenterModeToggle
