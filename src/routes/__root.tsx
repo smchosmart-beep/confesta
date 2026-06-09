@@ -80,10 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Confesta (콘페스타) — Sweet Conference Platform" },
       { name: "description", content: "아이스크림 한 콘으로 즐기는 게이미피케이션 컨퍼런스 플랫폼" },
       { name: "author", content: "Confesta" },
-      { property: "og:title", content: "Confesta (콘페스타)" },
+      { property: "og:title", content: "Confesta (콘페스타) — Sweet Conference Platform" },
       { property: "og:description", content: "아이스크림 한 콘으로 즐기는 게이미피케이션 컨퍼런스 플랫폼" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Confesta (콘페스타) — Sweet Conference Platform" },
+      { name: "twitter:description", content: "아이스크림 한 콘으로 즐기는 게이미피케이션 컨퍼런스 플랫폼" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/888225dc-b5c4-486b-a918-3766e3634154/id-preview-ba3852d1--c802c819-7a5c-4b9c-8a22-db1462f29010.lovable.app-1780964278801.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/888225dc-b5c4-486b-a918-3766e3634154/id-preview-ba3852d1--c802c819-7a5c-4b9c-8a22-db1462f29010.lovable.app-1780964278801.png" },
     ],
     links: [
       {
