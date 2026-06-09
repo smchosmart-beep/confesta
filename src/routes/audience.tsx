@@ -10,7 +10,7 @@ import { ReceiptCard } from "@/components/confesta/ReceiptCard";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
-import { Camera, Receipt, Sparkles, CalendarDays } from "lucide-react";
+import { Camera, Receipt, Sparkles, CalendarDays, IceCreamCone as IceCreamConeIcon } from "lucide-react";
 
 export const Route = createFileRoute("/audience")({
   head: () => ({
