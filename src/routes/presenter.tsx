@@ -244,7 +244,7 @@ function PresenterView() {
           <select
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
-            className="w-full bg-card border border-border rounded-full px-4 py-2.5 text-sm font-semibold outline-none"
+            className="w-full bg-grad-cream border border-white/70 rounded-full px-4 py-2.5 text-sm font-semibold outline-none shadow-cream"
           >
             {SESSIONS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -255,7 +255,7 @@ function PresenterView() {
         </div>
 
         <div className="mb-5 overflow-x-auto -mx-1 px-1">
-          <div className="inline-flex p-1 bg-muted rounded-full shadow-cream">
+          <div className="inline-flex p-1 bg-grad-muted rounded-full shadow-cream border border-white/60">
             {tabs.map((t) => (
               <button
                 key={t.value}
@@ -263,7 +263,7 @@ function PresenterView() {
                 onClick={() => setTab(t.value)}
                 className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap ${
                   tab === t.value
-                    ? "bg-primary text-primary-foreground shadow-pink"
+                    ? "bg-grad-strawberry text-white shadow-pink"
                     : "text-foreground/70"
                 }`}
               >
