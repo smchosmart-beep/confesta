@@ -109,6 +109,36 @@ export const useConfestaStore = create<ConfestaState>()(
         return { ok: true, flavor: cat.flavor };
       },
 
+        set({
+          scoops: [...state.scoops, scoop],
+          attendanceCounts: {
+            ...state.attendanceCounts,
+            [session.id]: (state.attendanceCounts[session.id] ?? 0) + 1,
+          },
+        });
+        return { ok: true, flavor: cat.flavor };
+      },
+
+      bumpAttendance: (sessionId, delta = 1) =>
+        set((s) => ({
+          attendanceCounts: {
+            ...s.attendanceCounts,
+            [sessionId]: Math.max(0, (s.attendanceCounts[sessionId] ?? 0) + delta),
+          },
+        })),
+
+      nextSlide: () =>
+        set((s) => ({ slideIndex: Math.min(s.slideTotal - 1, s.slideIndex + 1) })),
+      prevSlide: () =>
+        set((s) => ({ slideIndex: Math.max(0, s.slideIndex - 1) })),
+      toggleSlidePause: () => set((s) => ({ slidePaused: !s.slidePaused })),
+      resetSlides: () => set({ slideIndex: 0, slidePaused: false }),
+      setSlideTotal: (n) =>
+        set((s) => ({
+          slideTotal: Math.max(1, n),
+          slideIndex: Math.min(s.slideIndex, Math.max(0, n - 1)),
+        })),
+
       resetScoops: () =>
         set({ scoops: [], receiptToken: null, receiptRedeemed: null }),
 
