@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import type { Topping } from "@/lib/confesta/types";
+import { ToppingScatter } from "./ToppingDecor";
 
 interface Props {
   topping: Topping | null;
@@ -18,22 +19,25 @@ export function QuestionSpotlightModal({ topping, onClose }: Props) {
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 bg-card rounded-full p-2 shadow-cream"
+        className="absolute top-4 right-4 bg-grad-strawberry text-white rounded-full p-2 shadow-pink"
         aria-label="닫기"
       >
         <X className="w-5 h-5" />
       </button>
       <div
-        className="max-w-4xl w-full bg-card rounded-[2rem] p-10 sm:p-16 shadow-pink animate-scale-in"
+        className="relative overflow-hidden max-w-4xl w-full rounded-[2rem] p-10 sm:p-16 shadow-pink animate-scale-in border border-white/60"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-xs uppercase tracking-widest text-primary font-bold mb-4">
+        <div className="absolute inset-0 bg-grad-cream" />
+        <div className="absolute inset-0 bg-grad-sunset-soft opacity-60" />
+        <ToppingScatter density="high" seed={`spot-${topping.id}`} />
+        <p className="relative text-xs uppercase tracking-widest font-bold mb-4 bg-clip-text text-transparent bg-grad-strawberry">
           청중 질문 스포트라이트
         </p>
-        <p className="text-3xl sm:text-5xl font-extrabold leading-tight text-foreground">
+        <p className="relative text-3xl sm:text-5xl font-extrabold leading-tight text-foreground">
           “{topping.text}”
         </p>
-        <p className="mt-6 text-sm text-muted-foreground font-mono">
+        <p className="relative mt-6 text-sm text-muted-foreground font-mono">
           {new Date(topping.createdAt).toLocaleString("ko-KR")}
         </p>
       </div>

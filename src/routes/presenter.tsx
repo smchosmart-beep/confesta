@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import QRCode from "react-qr-code";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
@@ -14,6 +14,7 @@ import { SESSIONS } from "@/lib/confesta/mockData";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { usePresenterShortcuts } from "@/hooks/use-presenter-shortcuts";
 import { Sparkles, MessageSquareText, Cloud, Users } from "lucide-react";
+import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 
 const searchSchema = z.object({
   mode: z.enum(["handheld", "stage"]).optional(),
@@ -108,11 +109,6 @@ function PresenterView() {
 
   const qrValue = nonce ? makeAttendanceQR(sessionId, nonce) : "";
 
-  const barColor = useMemo(
-    () =>
-      `oklch(${0.72 - (1 - progress / 100) * 0.1} ${0.18 + (1 - progress / 100) * 0.1} ${235 - (1 - progress / 100) * 235})`,
-    [progress],
-  );
 
   const modeToggle = (
     <PresenterModeToggle
@@ -143,16 +139,19 @@ function PresenterView() {
         >
           {/* Left: huge QR + attendance */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="bg-card rounded-[2rem] p-6 sm:p-8 shadow-blue border border-border flex-1 flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl sm:text-2xl font-extrabold">
+            <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 shadow-blue border border-white/60 flex-1 flex flex-col">
+              <div className="absolute inset-0 bg-grad-cream" />
+              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+              <ToppingScatter density="med" seed="stage-qr" />
+              <div className="relative flex items-center justify-between mb-3">
+                <h2 className="text-xl sm:text-2xl font-extrabold bg-clip-text text-transparent bg-grad-sunset">
                   📱 지금 스캔하세요
                 </h2>
-                <span className="text-xs bg-secondary/15 text-secondary font-bold px-2.5 py-1 rounded-full">
+                <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초 갱신
                 </span>
               </div>
-              <div className="bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center">
+              <div className="relative bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center border-2 border-white shadow-cream">
                 {qrValue && (
                   <QRCode
                     value={qrValue}
@@ -162,25 +161,29 @@ function PresenterView() {
                   />
                 )}
               </div>
-              <div className="mt-4 h-3 rounded-full bg-muted overflow-hidden">
+              <div className="relative mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-[width] duration-100 ease-linear"
-                  style={{ width: `${progress}%`, backgroundColor: barColor }}
+                  className="h-full rounded-full transition-[width] duration-100 ease-linear bg-grad-sunset"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
 
-            <div className="bg-card rounded-3xl p-5 shadow-cream border border-border flex items-center gap-5">
-              <AttendanceGauge
-                count={attendanceCount}
-                capacity={session.capacity}
-                size={140}
-              />
-              <div>
+            <div className="relative overflow-hidden rounded-3xl p-5 shadow-cream border border-white/60 flex items-center gap-5">
+              <div className="absolute inset-0 bg-grad-cream" />
+              <ToppingScatter density="low" seed="stage-att" />
+              <div className="relative">
+                <AttendanceGauge
+                  count={attendanceCount}
+                  capacity={session.capacity}
+                  size={140}
+                />
+              </div>
+              <div className="relative">
                 <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                   라이브 출석
                 </p>
-                <p className="text-2xl font-extrabold mt-1">
+                <p className="text-2xl font-extrabold mt-1 bg-clip-text text-transparent bg-grad-sunset">
                   {Math.round(
                     (attendanceCount / Math.max(session.capacity, 1)) * 100,
                   )}
@@ -241,7 +244,7 @@ function PresenterView() {
           <select
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
-            className="w-full bg-card border border-border rounded-full px-4 py-2.5 text-sm font-semibold outline-none"
+            className="w-full bg-grad-cream border border-white/70 rounded-full px-4 py-2.5 text-sm font-semibold outline-none shadow-cream"
           >
             {SESSIONS.map((s) => (
               <option key={s.id} value={s.id}>
@@ -252,7 +255,7 @@ function PresenterView() {
         </div>
 
         <div className="mb-5 overflow-x-auto -mx-1 px-1">
-          <div className="inline-flex p-1 bg-muted rounded-full shadow-cream">
+          <div className="inline-flex p-1 bg-grad-muted rounded-full shadow-cream border border-white/60">
             {tabs.map((t) => (
               <button
                 key={t.value}
@@ -260,7 +263,7 @@ function PresenterView() {
                 onClick={() => setTab(t.value)}
                 className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap ${
                   tab === t.value
-                    ? "bg-primary text-primary-foreground shadow-pink"
+                    ? "bg-grad-strawberry text-white shadow-pink"
                     : "text-foreground/70"
                 }`}
               >
@@ -273,23 +276,26 @@ function PresenterView() {
 
         {tab === "control" && (
           <div className="space-y-4 animate-fade-in">
-            <div className="bg-card rounded-3xl p-5 shadow-blue border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold">출석 QR</h3>
-                <span className="text-xs bg-secondary/10 text-secondary font-bold px-2.5 py-1 rounded-full">
+            <div className="relative overflow-hidden rounded-3xl p-5 shadow-blue border border-white/60">
+              <div className="absolute inset-0 bg-grad-cream" />
+              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+              <ToppingScatter density="med" seed="hh-qr" />
+              <div className="relative flex items-center justify-between mb-3">
+                <h3 className="font-bold bg-clip-text text-transparent bg-grad-sunset">출석 QR</h3>
+                <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초마다 갱신
                 </span>
               </div>
-              <div className="bg-white p-5 rounded-2xl flex justify-center">
+              <div className="relative bg-white p-5 rounded-2xl flex justify-center border-2 border-white shadow-cream">
                 {qrValue && <QRCode value={qrValue} size={200} level="M" />}
               </div>
-              <div className="mt-3 h-2.5 rounded-full bg-muted overflow-hidden">
+              <div className="relative mt-3 h-2.5 rounded-full bg-white/60 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-[width] duration-100 ease-linear"
-                  style={{ width: `${progress}%`, backgroundColor: barColor }}
+                  className="h-full rounded-full transition-[width] duration-100 ease-linear bg-grad-sunset"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-center mt-2 text-xs text-muted-foreground font-mono">
+              <p className="relative text-center mt-2 text-xs text-muted-foreground font-mono">
                 다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
               </p>
             </div>
@@ -314,17 +320,22 @@ function PresenterView() {
         )}
 
         {tab === "attendance" && (
-          <div className="animate-fade-in flex flex-col items-center gap-4 bg-card rounded-3xl p-6 border border-border shadow-cream">
-            <AttendanceGauge
-              count={attendanceCount}
-              capacity={session.capacity}
-              size={220}
-            />
-            <div className="text-center">
+          <div className="relative overflow-hidden animate-fade-in flex flex-col items-center gap-4 rounded-3xl p-6 border border-white/60 shadow-cream">
+            <div className="absolute inset-0 bg-grad-cream" />
+            <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+            <ToppingScatter density="med" seed="hh-att" />
+            <div className="relative">
+              <AttendanceGauge
+                count={attendanceCount}
+                capacity={session.capacity}
+                size={220}
+              />
+            </div>
+            <div className="relative text-center">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                 {session.room} · 정원 {session.capacity}명
               </p>
-              <p className="text-3xl font-extrabold mt-1">
+              <p className="text-3xl font-extrabold mt-1 bg-clip-text text-transparent bg-grad-sunset">
                 {Math.round(
                   (attendanceCount / Math.max(session.capacity, 1)) * 100,
                 )}
@@ -334,7 +345,7 @@ function PresenterView() {
             <button
               type="button"
               onClick={() => bumpAttendance(sessionId, 1)}
-              className="bounce-press text-xs font-semibold bg-muted rounded-full px-4 py-2"
+              className="relative bounce-press text-xs font-semibold bg-grad-blueberry text-white rounded-full px-4 py-2 shadow-blue"
             >
               +1 (데모용)
             </button>

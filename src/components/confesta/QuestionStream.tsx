@@ -93,20 +93,23 @@ export function QuestionStream({ sessionId }: Props) {
             return (
               <div
                 key={t.id}
-                className={`bg-card border-2 rounded-2xl p-4 shadow-cream transition ${
+                className={`relative overflow-hidden border-2 rounded-2xl p-4 shadow-cream transition ${
                   t.addressed ? "opacity-60" : ""
-                } ${t.pinned ? "border-primary" : "border-border"}`}
+                } ${t.pinned ? "border-transparent bg-grad-sunset-soft" : "border-white/60 bg-card"}`}
               >
+                {t.pinned && (
+                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-50 pointer-events-none" />
+                )}
                 <p
-                  className={`text-sm font-medium ${
+                  className={`relative text-sm font-medium ${
                     t.addressed ? "line-through" : ""
                   }`}
                 >
                   {t.text}
                 </p>
-                <div className="mt-3 flex items-center justify-between text-xs">
+                <div className="relative mt-3 flex items-center justify-between text-xs">
                   <span className="inline-flex items-center gap-2 text-muted-foreground">
-                    <Heart className="w-3.5 h-3.5 text-primary" />
+                    <Heart className="w-3.5 h-3.5 text-primary fill-current" />
                     <span className="font-mono font-semibold">{likes}</span>
                     <span>·</span>
                     <span>
@@ -120,7 +123,7 @@ export function QuestionStream({ sessionId }: Props) {
                     <button
                       type="button"
                       onClick={() => setSpotlight(t)}
-                      className="bounce-press bg-muted rounded-full p-1.5"
+                      className="bounce-press bg-grad-muted rounded-full p-1.5"
                       aria-label="크게 보기"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
@@ -129,7 +132,9 @@ export function QuestionStream({ sessionId }: Props) {
                       type="button"
                       onClick={() => togglePin(t.id)}
                       className={`bounce-press rounded-full p-1.5 ${
-                        t.pinned ? "bg-primary text-primary-foreground" : "bg-muted"
+                        t.pinned
+                          ? "bg-grad-strawberry text-white shadow-pink"
+                          : "bg-grad-muted"
                       }`}
                       aria-label="상단 고정"
                     >
@@ -142,8 +147,8 @@ export function QuestionStream({ sessionId }: Props) {
                       onClick={() => toggleAddressed(t.id)}
                       className={`bounce-press rounded-full p-1.5 ${
                         t.addressed
-                          ? "bg-success text-success-foreground"
-                          : "bg-muted"
+                          ? "bg-grad-success text-white"
+                          : "bg-grad-muted"
                       }`}
                       aria-label="답변 완료"
                     >
