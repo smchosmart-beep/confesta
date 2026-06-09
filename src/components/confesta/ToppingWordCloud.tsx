@@ -59,7 +59,7 @@ export function ToppingWordCloud({ sessionId, compact = false }: Props) {
       size: compact
         ? 14 + (count / max) * 24
         : 22 + (count / max) * 64,
-      color: FLAVORS[i % FLAVORS.length],
+      gradient: FLAVOR_GRADIENTS[i % FLAVOR_GRADIENTS.length],
     }));
     // include tick to refresh animation
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -68,28 +68,34 @@ export function ToppingWordCloud({ sessionId, compact = false }: Props) {
   if (cloud.length === 0) {
     return (
       <div
-        className={`bg-card border border-border rounded-3xl flex items-center justify-center text-center text-muted-foreground ${
+        className={`relative overflow-hidden bg-card border border-white/60 rounded-3xl flex items-center justify-center text-center text-muted-foreground ${
           compact ? "p-8 text-sm" : "p-16"
         }`}
       >
-        토핑이 도착하면 키워드가 모입니다 🍒
+        <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+        <ToppingScatter density="low" seed="wc-empty" />
+        <span className="relative">토핑이 도착하면 키워드가 모입니다 🍒</span>
       </div>
     );
   }
 
   return (
     <div
-      className={`bg-card border border-border rounded-3xl shadow-cream flex flex-wrap items-center justify-center gap-x-4 gap-y-2 ${
+      className={`relative overflow-hidden border border-white/60 rounded-3xl shadow-cream flex flex-wrap items-center justify-center gap-x-4 gap-y-2 ${
         compact ? "p-5 min-h-[180px]" : "p-10 min-h-[320px]"
       }`}
     >
+      <div className="absolute inset-0 bg-grad-cream" />
+      <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
+      <ToppingScatter density={compact ? "low" : "med"} seed="wc-bg" />
       {cloud.map((w, i) => (
         <span
           key={`${w.word}-${tick}-${i}`}
-          className="font-extrabold leading-none animate-scale-in"
+          className="relative font-extrabold leading-none animate-scale-in bg-clip-text text-transparent"
           style={{
             fontSize: `${w.size}px`,
-            color: w.color,
+            backgroundImage: w.gradient,
+            WebkitBackgroundClip: "text",
             animationDelay: `${i * 30}ms`,
           }}
           title={`${w.count}회`}
