@@ -32,8 +32,10 @@ interface Props {
 }
 
 export function ToppingWordCloud({ sessionId, compact = false }: Props) {
-  const toppings = useConfestaStore((s) =>
-    s.toppings.filter((t) => t.sessionId === sessionId),
+  const allToppings = useConfestaStore((s) => s.toppings);
+  const toppings = useMemo(
+    () => allToppings.filter((t) => t.sessionId === sessionId),
+    [allToppings, sessionId],
   );
   const [tick, setTick] = useState(0);
 
