@@ -213,9 +213,10 @@ export const useConfestaStore = create<ConfestaState>()(
       },
     }),
     {
-      name: "confesta-state-v1",
+      name: "confesta-state-v2",
     },
   ),
 );
+
 
 export const MAX_SCOOPS_CONST = MAX_SCOOPS;
