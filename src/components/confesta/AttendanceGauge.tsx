@@ -39,14 +39,15 @@ export function AttendanceGauge({ count, capacity, size = 160 }: Props) {
         />
         <defs>
           <linearGradient id="gauge-grad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="var(--secondary)" />
-            <stop offset="100%" stopColor="var(--primary)" />
+            <stop offset="0%" stopColor="#FFD27F" />
+            <stop offset="50%" stopColor="#FF7AB6" />
+            <stop offset="100%" stopColor="#6B73FF" />
           </linearGradient>
         </defs>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="font-extrabold tabular-nums leading-none"
+          className="font-extrabold tabular-nums leading-none bg-clip-text text-transparent bg-grad-sunset"
           style={{ fontSize: size * 0.28 }}
         >
           {count}
