@@ -5,17 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Confesta (콘페스타) — Baskin Robbins 영감 디자인 시스템
+ * 모든 색상은 oklch. 토큰을 @theme inline 에 매핑해 Tailwind 유틸리티로 노출.
  */
 
 @theme inline {
@@ -25,7 +16,7 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -42,103 +33,192 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Confesta scoop flavor tokens */
+  --color-scoop-mint: var(--scoop-mint);
+  --color-scoop-strawberry: var(--scoop-strawberry);
+  --color-scoop-mango: var(--scoop-mango);
+  --color-scoop-blueberry: var(--scoop-blueberry);
+  --color-scoop-chocolate: var(--scoop-chocolate);
+  --color-cone: var(--cone);
+
+  --font-display: "Pretendard", "Pretendard Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Pretendard", "Pretendard Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-soft-pink: 0 10px 30px rgba(255, 0, 122, 0.12);
+  --shadow-soft-blue: 0 10px 30px rgba(0, 162, 255, 0.12);
+  --shadow-soft-cream: 0 6px 20px rgba(120, 80, 40, 0.08);
+
+  --animate-scoop-drop: scoopDrop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-topping-fly: toppingFly 1.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  --animate-shake: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  --animate-pulse-ring: pulseRing 1.8s ease-out infinite;
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 1.25rem;
+
+  /* Vanilla cream base */
+  --background: oklch(0.985 0.008 80);
+  --foreground: oklch(0.22 0.03 30);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.22 0.03 30);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: oklch(0.22 0.03 30);
+
+  /* BR Pink #FF007A */
+  --primary: oklch(0.62 0.28 0);
+  --primary-foreground: oklch(0.99 0 0);
+
+  /* BR Blue #00A2FF */
+  --secondary: oklch(0.72 0.18 235);
+  --secondary-foreground: oklch(0.99 0 0);
+
+  --muted: oklch(0.96 0.01 80);
+  --muted-foreground: oklch(0.5 0.03 40);
+  --accent: oklch(0.95 0.04 350);
+  --accent-foreground: oklch(0.3 0.1 0);
+
+  --destructive: oklch(0.62 0.24 25);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --success: oklch(0.7 0.18 150);
+  --success-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.92 0.015 60);
+  --input: oklch(0.92 0.015 60);
+  --ring: oklch(0.62 0.28 0);
+
+  /* Scoop flavor tokens — vivid BR-style */
+  --scoop-mint: oklch(0.86 0.09 175);          /* #A3E5D8 */
+  --scoop-strawberry: oklch(0.82 0.11 0);      /* #FFAEC9 */
+  --scoop-mango: oklch(0.87 0.11 80);          /* #FFD27F */
+  --scoop-blueberry: oklch(0.78 0.09 280);     /* #B5B9FF */
+  --scoop-chocolate: oklch(0.45 0.07 50);      /* #8B5E3C */
+  --cone: oklch(0.7 0.1 60);                   /* waffle tan */
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: oklch(0.18 0.02 30);
+  --foreground: oklch(0.96 0.01 60);
+  --card: oklch(0.22 0.03 30);
+  --card-foreground: oklch(0.96 0.01 60);
+  --popover: oklch(0.22 0.03 30);
+  --popover-foreground: oklch(0.96 0.01 60);
+  --muted: oklch(0.28 0.02 30);
+  --muted-foreground: oklch(0.7 0.02 60);
+  --accent: oklch(0.3 0.06 350);
+  --accent-foreground: oklch(0.96 0.01 60);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 14%);
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
-
-  body {
+  html, body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
   }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+}
+
+/* === Confesta utilities === */
+
+@utility bounce-press {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    box-shadow 0.3s ease, background-color 0.2s ease;
+
+  &:hover {
+    transform: scale(1.03);
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+@utility shadow-pink {
+  box-shadow: var(--shadow-soft-pink);
+}
+@utility shadow-blue {
+  box-shadow: var(--shadow-soft-blue);
+}
+@utility shadow-cream {
+  box-shadow: var(--shadow-soft-cream);
+}
+
+@utility zigzag-bottom {
+  --zig: 10px;
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--zig)) no-repeat,
+    radial-gradient(circle var(--zig) at 50% 0, transparent 98%, #000) bottom / calc(var(--zig) * 2) var(--zig) repeat-x;
+          mask: linear-gradient(#000 0 0) top / 100% calc(100% - var(--zig)) no-repeat,
+    radial-gradient(circle var(--zig) at 50% 0, transparent 98%, #000) bottom / calc(var(--zig) * 2) var(--zig) repeat-x;
+}
+
+@utility zigzag-top {
+  --zig: 10px;
+  -webkit-mask: linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--zig)) no-repeat,
+    radial-gradient(circle var(--zig) at 50% 100%, transparent 98%, #000) top / calc(var(--zig) * 2) var(--zig) repeat-x;
+          mask: linear-gradient(#000 0 0) bottom / 100% calc(100% - var(--zig)) no-repeat,
+    radial-gradient(circle var(--zig) at 50% 100%, transparent 98%, #000) top / calc(var(--zig) * 2) var(--zig) repeat-x;
+}
+
+@keyframes scoopDrop {
+  0% {
+    transform: translateY(-200px) scaleY(1.05) scaleX(0.95);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(0) scaleY(0.85) scaleX(1.12);
+  }
+  88% {
+    transform: translateY(-6px) scaleY(1.05) scaleX(0.95);
+  }
+  100% {
+    transform: translateY(0) scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toppingFly {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--drift, 30px), -260px) rotate(var(--spin, 180deg)) scale(0.5);
+    opacity: 0;
+  }
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-2px, 0, 0); }
+  20%, 80% { transform: translate3d(4px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+  40%, 60% { transform: translate3d(8px, 0, 0); }
+}
+
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 122, 0.5); }
+  100% { box-shadow: 0 0 0 24px rgba(255, 0, 122, 0); }
 }
