@@ -320,17 +320,22 @@ function PresenterView() {
         )}
 
         {tab === "attendance" && (
-          <div className="animate-fade-in flex flex-col items-center gap-4 bg-card rounded-3xl p-6 border border-border shadow-cream">
-            <AttendanceGauge
-              count={attendanceCount}
-              capacity={session.capacity}
-              size={220}
-            />
-            <div className="text-center">
+          <div className="relative overflow-hidden animate-fade-in flex flex-col items-center gap-4 rounded-3xl p-6 border border-white/60 shadow-cream">
+            <div className="absolute inset-0 bg-grad-cream" />
+            <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+            <ToppingScatter density="med" seed="hh-att" />
+            <div className="relative">
+              <AttendanceGauge
+                count={attendanceCount}
+                capacity={session.capacity}
+                size={220}
+              />
+            </div>
+            <div className="relative text-center">
               <p className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
                 {session.room} · 정원 {session.capacity}명
               </p>
-              <p className="text-3xl font-extrabold mt-1">
+              <p className="text-3xl font-extrabold mt-1 bg-clip-text text-transparent bg-grad-sunset">
                 {Math.round(
                   (attendanceCount / Math.max(session.capacity, 1)) * 100,
                 )}
@@ -340,7 +345,7 @@ function PresenterView() {
             <button
               type="button"
               onClick={() => bumpAttendance(sessionId, 1)}
-              className="bounce-press text-xs font-semibold bg-muted rounded-full px-4 py-2"
+              className="relative bounce-press text-xs font-semibold bg-grad-blueberry text-white rounded-full px-4 py-2 shadow-blue"
             >
               +1 (데모용)
             </button>
