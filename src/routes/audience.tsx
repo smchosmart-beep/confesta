@@ -7,6 +7,7 @@ import { IceCreamCone } from "@/components/confesta/IceCreamCone";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingInput } from "@/components/confesta/ToppingInput";
 import { ReceiptCard } from "@/components/confesta/ReceiptCard";
+import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
 import { Camera, Receipt, Sparkles, CalendarDays } from "lucide-react";
@@ -93,13 +94,17 @@ function AudienceView() {
 
         {section === "live" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <div className="bg-card rounded-3xl p-6 shadow-cream border border-border">
-              <h3 className="font-bold text-lg mb-2">나의 콘</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {scoops.length} / {MAX_SCOOPS_CONST} 스쿱 적립
-              </p>
-              <div className="flex justify-center">
-                <IceCreamCone scoops={scoops} size={220} />
+            <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+              <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
+              <ToppingScatter density="med" seed="audience-cone" />
+              <div className="relative">
+                <h3 className="font-bold text-lg mb-2">나의 콘</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {scoops.length} / {MAX_SCOOPS_CONST} 스쿱 적립
+                </p>
+                <div className="flex justify-center">
+                  <IceCreamCone scoops={scoops} size={220} />
+                </div>
               </div>
             </div>
 
@@ -110,10 +115,11 @@ function AudienceView() {
                     setScanOpen(true);
                     setFeedback(null);
                   }}
-                  className="bounce-press w-full bg-primary text-primary-foreground rounded-3xl p-8 shadow-pink font-bold text-lg flex flex-col items-center gap-2"
+                  className="relative overflow-hidden bounce-press w-full bg-grad-strawberry text-white rounded-3xl p-8 shadow-pink font-bold text-lg flex flex-col items-center gap-2"
                 >
-                  <Camera className="w-8 h-8" />
-                  카메라로 QR 스캔하기
+                  <ToppingScatter density="med" seed="audience-scan-cta" />
+                  <Camera className="w-8 h-8 relative" />
+                  <span className="relative">카메라로 QR 스캔하기</span>
                 </button>
               ) : (
                 <div>
@@ -136,10 +142,8 @@ function AudienceView() {
 
               {feedback && (
                 <div
-                  className={`mt-4 p-4 rounded-2xl text-sm font-semibold text-center ${
-                    feedback.ok
-                      ? "bg-success/10 text-success"
-                      : "bg-destructive/10 text-destructive"
+                  className={`mt-4 p-4 rounded-2xl text-sm font-semibold text-center text-white shadow-cream ${
+                    feedback.ok ? "bg-grad-success" : "bg-grad-danger"
                   }`}
                 >
                   {feedback.msg}
@@ -151,15 +155,22 @@ function AudienceView() {
 
         {section === "topping" && (
           <div className="max-w-xl mx-auto">
-            <div className="bg-card rounded-3xl p-6 shadow-cream border border-border">
-              <h3 className="font-bold text-lg mb-1">토핑 보내기</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                현재 세션: <strong>{SESSIONS.find((s) => s.id === activeSessionId)?.title ?? "—"}</strong>
-              </p>
-              <ToppingInput sessionId={activeSessionId} />
-              <p className="text-xs text-muted-foreground mt-4">
-                전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
-              </p>
+            <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+              <ToppingScatter density="med" seed="audience-topping" />
+              <div className="relative">
+                <h3 className="font-bold text-lg mb-1">토핑 보내기</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  현재 세션:{" "}
+                  <strong>
+                    {SESSIONS.find((s) => s.id === activeSessionId)?.title ?? "—"}
+                  </strong>
+                </p>
+                <ToppingInput sessionId={activeSessionId} />
+                <p className="text-xs text-muted-foreground mt-4">
+                  전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
+                </p>
+              </div>
             </div>
           </div>
         )}
