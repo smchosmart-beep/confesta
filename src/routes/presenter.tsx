@@ -276,23 +276,26 @@ function PresenterView() {
 
         {tab === "control" && (
           <div className="space-y-4 animate-fade-in">
-            <div className="bg-card rounded-3xl p-5 shadow-blue border border-border">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold">출석 QR</h3>
-                <span className="text-xs bg-secondary/10 text-secondary font-bold px-2.5 py-1 rounded-full">
+            <div className="relative overflow-hidden rounded-3xl p-5 shadow-blue border border-white/60">
+              <div className="absolute inset-0 bg-grad-cream" />
+              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+              <ToppingScatter density="med" seed="hh-qr" />
+              <div className="relative flex items-center justify-between mb-3">
+                <h3 className="font-bold bg-clip-text text-transparent bg-grad-sunset">출석 QR</h3>
+                <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초마다 갱신
                 </span>
               </div>
-              <div className="bg-white p-5 rounded-2xl flex justify-center">
+              <div className="relative bg-white p-5 rounded-2xl flex justify-center border-2 border-white shadow-cream">
                 {qrValue && <QRCode value={qrValue} size={200} level="M" />}
               </div>
-              <div className="mt-3 h-2.5 rounded-full bg-muted overflow-hidden">
+              <div className="relative mt-3 h-2.5 rounded-full bg-white/60 overflow-hidden">
                 <div
-                  className="h-full rounded-full transition-[width] duration-100 ease-linear"
-                  style={{ width: `${progress}%`, backgroundColor: barColor }}
+                  className="h-full rounded-full transition-[width] duration-100 ease-linear bg-grad-sunset"
+                  style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-center mt-2 text-xs text-muted-foreground font-mono">
+              <p className="relative text-center mt-2 text-xs text-muted-foreground font-mono">
                 다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
               </p>
             </div>
