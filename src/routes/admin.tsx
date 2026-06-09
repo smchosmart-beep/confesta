@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS, ROOMS, getCategory } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
 
@@ -72,9 +73,9 @@ function AdminView() {
       <section className="px-4 sm:px-6 max-w-7xl mx-auto">
         {/* Totals */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
-          <TotalCard label="등록 (신청)" value={totals.registered} color="bg-secondary/15 text-secondary" />
-          <TotalCard label="출석 (스쿱)" value={totals.attended} color="bg-primary/15 text-primary" />
-          <TotalCard label="굿즈 수령" value={totals.claimed} color="bg-success/15 text-success" />
+          <TotalCard label="등록 (신청)" value={totals.registered} grad="bg-grad-blueberry" />
+          <TotalCard label="출석 (스쿱)" value={totals.attended} grad="bg-grad-strawberry" />
+          <TotalCard label="굿즈 수령" value={totals.claimed} grad="bg-grad-success" />
         </div>
 
         {/* Bento grid */}
@@ -82,22 +83,25 @@ function AdminView() {
           {stats.map((room) => (
             <div
               key={room.room}
-              className="bg-card rounded-3xl p-5 shadow-cream border border-border"
+              className="relative overflow-hidden bg-card rounded-3xl p-5 shadow-cream border border-white/60"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
+              <ToppingScatter density="low" seed={`adm-${room.room}`} />
+              <div className="relative flex items-center justify-between mb-4">
                 <h3 className="font-extrabold text-lg">{room.room}</h3>
                 <span className="text-xs text-muted-foreground">
                   {room.sessionStats.length} 세션
                 </span>
               </div>
 
-              <div className="space-y-4">
+              <div className="relative space-y-4">
                 {room.sessionStats.map((s) => {
                   const cat = getCategory(s.session.category);
                   const max = s.session.capacity;
                   const regPct = (s.registered / max) * 100;
                   const attPct = (s.attended / max) * 100;
                   const claimPct = (s.claimed / max) * 100;
+                  const flavorGrad = `bg-grad-${cat.flavor === "strawberry" ? "strawberry" : cat.flavor === "mint" ? "mint" : cat.flavor === "mango" ? "mango" : cat.flavor === "blueberry" ? "blueberry" : "chocolate"}`;
                   return (
                     <div key={s.session.id}>
                       <div className="flex items-start justify-between gap-2 mb-1.5">
@@ -111,35 +115,30 @@ function AdminView() {
                           </p>
                         </div>
                         <span
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
-                          style={{
-                            backgroundColor: `var(--scoop-${cat.flavor})`,
-                            color: "rgba(0,0,0,0.75)",
-                          }}
+                          className={`${flavorGrad} text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 shadow-cream`}
                         >
                           {cat.label}
                         </span>
                       </div>
 
-                      {/* multi-layered funnel bar */}
                       <div className="relative h-3 rounded-full bg-muted overflow-hidden">
                         <div
-                          className="absolute inset-y-0 left-0 bg-secondary/40 rounded-full"
+                          className="absolute inset-y-0 left-0 bg-grad-blueberry opacity-50 rounded-full"
                           style={{ width: `${regPct}%` }}
                         />
                         <div
-                          className="absolute inset-y-0 left-0 bg-primary/70 rounded-full"
+                          className="absolute inset-y-0 left-0 bg-grad-strawberry opacity-80 rounded-full"
                           style={{ width: `${attPct}%` }}
                         />
                         <div
-                          className="absolute inset-y-0 left-0 bg-success rounded-full"
+                          className="absolute inset-y-0 left-0 bg-grad-success rounded-full"
                           style={{ width: `${claimPct}%` }}
                         />
                       </div>
                       <div className="mt-1 grid grid-cols-3 gap-1 text-[11px] font-semibold">
-                        <span className="text-secondary">신청 {s.registered}</span>
-                        <span className="text-primary">출석 {s.attended}</span>
-                        <span className="text-success">수령 {s.claimed}</span>
+                        <span className="text-grad-aurora font-bold">신청 {s.registered}</span>
+                        <span className="text-grad-strawberry font-bold">출석 {s.attended}</span>
+                        <span className="text-grad-aurora font-bold">수령 {s.claimed}</span>
                       </div>
                     </div>
                   );
@@ -161,23 +160,27 @@ function AdminView() {
 function TotalCard({
   label,
   value,
-  color,
+  grad,
 }: {
   label: string;
   value: number;
-  color: string;
+  grad: string;
 }) {
   return (
-    <div className="bg-card rounded-2xl p-4 sm:p-5 shadow-cream border border-border">
-      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-        {label}
-      </p>
-      <p className="text-3xl sm:text-4xl font-extrabold mt-1">{value}</p>
-      <span
-        className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${color}`}
-      >
-        LIVE
-      </span>
+    <div className="relative overflow-hidden bg-card rounded-2xl p-4 sm:p-5 shadow-cream border border-white/60">
+      <div className={`absolute inset-0 ${grad} opacity-15`} />
+      <ToppingScatter density="low" seed={`tot-${label}`} />
+      <div className="relative">
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          {label}
+        </p>
+        <p className="text-3xl sm:text-4xl font-extrabold mt-1">{value}</p>
+        <span
+          className={`inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-cream ${grad}`}
+        >
+          LIVE
+        </span>
+      </div>
     </div>
   );
 }

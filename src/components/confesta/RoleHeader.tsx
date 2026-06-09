@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, IceCream } from "lucide-react";
+import { ToppingScatter } from "./ToppingDecor";
 
 interface Props {
   role: string;
@@ -8,33 +9,36 @@ interface Props {
   right?: React.ReactNode;
 }
 
-const COLOR_CLASS: Record<Props["color"], string> = {
-  pink: "bg-primary text-primary-foreground",
-  blue: "bg-secondary text-secondary-foreground",
-  mint: "bg-scoop-mint text-foreground",
-  mango: "bg-scoop-mango text-foreground",
+const ICON_GRAD: Record<Props["color"], string> = {
+  pink: "bg-grad-strawberry",
+  blue: "bg-grad-blueberry",
+  mint: "bg-grad-mint",
+  mango: "bg-grad-mango",
 };
 
 export function RoleHeader({ role, description, color, right }: Props) {
   return (
-    <header className="px-4 sm:px-6 pt-5 pb-4">
+    <header className="relative px-4 sm:px-6 pt-5 pb-4 overflow-hidden">
+      <ToppingScatter density="low" seed={`hdr-${color}`} />
       <Link
         to="/"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        className="relative inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="w-4 h-4" /> 홈으로
       </Link>
-      <div className="mt-3 flex items-center gap-3">
+      <div className="relative mt-3 flex items-center gap-3">
         <span
-          className={`${COLOR_CLASS[color]} w-12 h-12 rounded-2xl flex items-center justify-center shadow-cream shrink-0`}
+          className={`${ICON_GRAD[color]} text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-pink ring-2 ring-white/60`}
         >
-          <IceCream className="w-6 h-6" />
+          <IceCream className="w-6 h-6 drop-shadow" />
         </span>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-extrabold truncate">{role}</h1>
+          <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
+            {role}
+          </h1>
           <p className="text-sm text-muted-foreground truncate">{description}</p>
         </div>
-        {right && <div className="shrink-0">{right}</div>}
+        {right && <div className="shrink-0 relative">{right}</div>}
       </div>
     </header>
   );

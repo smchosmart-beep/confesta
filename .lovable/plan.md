@@ -1,132 +1,109 @@
 
-# 발표자 화면 보강 계획
+# 그라데이션 + 토핑 데코 전면 적용 계획
 
-`/presenter`를 단순 QR + 피드 화면에서 **실제 발표 현장에서 쓸 수 있는 컨트롤 센터**로 확장합니다.
-
----
-
-## 1. 모드 토글 (상단 헤더)
-
-`PresenterModeToggle` 알약 스위치 3개:
-
-- **🎤 핸드헬드 (Handheld)** — 모바일 우선. 발표자 손에 든 화면.
-- **📺 무대 (Stage)** — 가로 큰 화면. 청중이 멀리서 보는 디스플레이 (QR 거대화, 워드클라우드 강조).
-- **🖼 풀스크린 (Fullscreen)** — `requestFullscreen()` + 키보드 단축키.
-
-선택 모드는 URL 쿼리 `?mode=handheld|stage` 로 저장 (새로고침/공유 가능).
+전체 디자인 시스템을 **단색 → 그라데이션 + 산발적 토핑 데코**로 업그레이드합니다.
 
 ---
 
-## 2. 핸드헬드 모드 레이아웃 (모바일 우선)
+## 1. 그라데이션 토큰 (`src/styles.css`)
 
-세로 스크롤 한 화면, 탭 4개:
+`@theme inline` 에 그라데이션 변수 8종 정의 — 모든 UI에서 단색 fill 대신 이걸 사용:
 
-1. **컨트롤** — 작은 QR + 다음 슬라이드 미리보기 + 슬라이드 제어 패널 + 타이머
-2. **질문** — 청중 질문 목록 전용 뷰 (정렬: 최신/핀/미답변 필터, 카드 탭하면 풀스크린으로 띄움)
-3. **워드클라우드** — TOP 토핑 키워드 시각화
-4. **출석** — 라이브 출석 카운터 + 진척도 게이지
-
----
-
-## 3. 무대 모드 레이아웃 (가로 큰 화면)
-
-좌우 2분할 + 하단 띠:
-
-```text
-┌─────────────────────────┬──────────────────────────┐
-│                         │                          │
-│   거대 QR (480px)       │   TOP 토핑 워드클라우드  │
-│   "지금 스캔하세요"     │   (사탕색 + bounce-in)   │
-│                         │                          │
-│   [출석 87 / 120]       │                          │
-│                         │                          │
-├─────────────────────────┴──────────────────────────┤
-│  최근 질문 마퀴 (가로 무한 스크롤, 핀고정 우선)    │
-└────────────────────────────────────────────────────┘
+```css
+--gradient-strawberry: linear-gradient(135deg, #FFAEC9, #FF007A);
+--gradient-mint:       linear-gradient(135deg, #C7F4EA, #5BD1B8);
+--gradient-mango:      linear-gradient(135deg, #FFE19A, #FFA040);
+--gradient-blueberry:  linear-gradient(135deg, #CFD3FF, #6B73FF);
+--gradient-chocolate:  linear-gradient(135deg, #C49C7C, #6B3F1F);
+--gradient-cream:      linear-gradient(180deg, #FFF8EE, #FDE8D6);
+--gradient-sunset:     linear-gradient(135deg, #FFD27F 0%, #FF7AB6 50%, #6B73FF 100%);  /* primary brand gradient */
+--gradient-cone:       linear-gradient(180deg, #E3B373, #8A5A2B);
 ```
 
-15초 갱신 프로그레스 바는 QR 아래.
+대응 유틸리티 (`@utility bg-grad-strawberry { background: var(--gradient-strawberry); }` …) 8개.
 
----
+추가 유틸:
+- `.text-grad-sunset` — `background-clip: text; color: transparent;` 로 헤딩에 그라데이션 텍스트.
+- `.border-grad-pink` — 1px 그라데이션 보더 (background-image + mask).
+- `.bg-confetti` — 배경에 sprinkle dot 무한 패턴 (radial-gradient).
 
-## 4. 슬라이드 컨트롤 패널 (`SlideControlPanel`)
+## 2. 컬러 사용 규칙 전환
 
-목업/시뮬레이션 (실제 슬라이드 연동 X, 로컬 상태):
+- 모든 `bg-primary`, `bg-secondary`, `bg-scoop-*` 사용 자리를 **그라데이션 유틸리티로 치환**.
+- 단, 텍스트/아이콘 컬러는 단색 유지 (가독성).
+- 카드: `bg-card` → `bg-card relative` + 내부에 토핑 데코 레이어 추가.
+- 큰 헤딩(홈, 역할 헤더, 무대 모드 타이틀)은 `.text-grad-sunset`.
 
-- 현재 슬라이드 번호 / 총 슬라이드 수 (예: `12 / 30`)
-- ◀ 이전 · ▶ 다음 · ⏸ 일시정지 · ⏹ 종료 알약 버튼
-- 슬라이드 진척 게이지 (핑크→블루 그라데이션)
-- 키보드 단축키: `←/→` 이동, `Space` 다음, `Esc` 풀스크린 해제
+대상 파일:
+- `src/routes/index.tsx` (홈)
+- `src/routes/audience.tsx`, `presenter.tsx`, `staff.tsx`, `admin.tsx`
+- `src/components/confesta/RoleHeader.tsx` (아이콘 박스 그라데이션)
+- `SessionCard`, `SlideControlPanel`, `PresenterModeToggle`, `PillTabs`, `AttendanceGauge`(이미 그라데이션, 풍성하게), `ToppingInput`, `ReceiptCard`, `IceCreamCone`
 
-zustand 에 `slideIndex`, `slideTotal` 추가, `localStorage` 영속.
+## 3. 토핑 데코 시스템 (`src/components/confesta/ToppingDecor.tsx`)
 
----
+재사용 가능한 SVG 토핑 컴포넌트 모음:
 
-## 5. 풀스크린 프레젠테이션 모드
+- **`<Sprinkle />`** — 알록달록 막대 (4가지 색상 랜덤, rotate)
+- **`<Cherry />`** — 줄기 달린 빨간 체리
+- **`<ChocChip />`** — 갈색 칩
+- **`<WaferStick />`** — 비스킷 스틱
+- **`<StarSprinkle />`** — 별 모양
+- **`<Heart />`** — 작은 하트
 
-- 헤더의 `Fullscreen` 버튼 → `document.documentElement.requestFullscreen()`
-- `fullscreenchange` 이벤트 핸들러로 상태 동기화
-- 풀스크린 시 자동으로 **무대 모드 + 커서 자동 숨김 (3초 무동작)** 로 전환
-- `Esc` 키로 해제
+각각 size/rotate/color prop, 기본은 토큰에서 가져옴.
 
----
+### 두 가지 사용 모드
 
-## 6. 질문 전용 뷰 (`QuestionStream`)
+(a) **`<ToppingScatter density="low|med|high" />`** — 컨테이너 내부 절대위치로 8~20개 토핑을 시드 기반 의사난수 배치. 카드/섹션에 자식으로 넣으면 데코로 채워짐. `pointer-events: none`, `aria-hidden`. 모션 감소 시 정적.
 
-기존 토핑 피드를 별도 컴포넌트로 분리 + 보강:
+(b) **`<BackgroundToppings />`** — `<body>` 레벨 고정 배경 레이어. `fixed inset-0 -z-10`, 굵은 토핑 20개 + 천천히 떠다니는 `@keyframes float-topping`.
 
-- 필터 알약: `전체 / 핀 / 미답변 / 답변완료`
-- 정렬: `최신순 / 좋아요순 (mock)`
-- 카드 탭 → 모달로 **거대 크기 풀스크린 표시** (무대에서 청중에게 질문 공유용)
-- 각 카드에 좋아요 카운트 (mock) 표시
+## 4. 적용 위치
 
-`store.ts` 의 `togglePinTopping`, `toggleAddressedTopping` 재활용.
+- **`__root.tsx`** — `<BackgroundToppings />` 한 번만 마운트.
+- **모든 `bg-card` 카드** — `relative overflow-hidden` 추가 + 우상단/좌하단에 `<ToppingScatter density="low" />`.
+- **홈 역할 카드 4개** — 각 카드 그라데이션 + density="med" 토핑.
+- **무대 모드 QR 카드** — 큰 체리 1개 + 스프링클 다수 (density="high").
+- **영수증 카드** — 지그재그 영역에 작은 토핑 줄지어.
+- **헤더 아이콘 박스** — 단색 → 그라데이션.
 
----
+## 5. 새 키프레임
 
-## 7. TOP 토핑 워드클라우드 (`ToppingWordCloud`)
+```css
+@keyframes float-topping {
+  0%,100% { transform: translateY(0) rotate(var(--r,0deg)); }
+  50%     { transform: translateY(-12px) rotate(calc(var(--r,0deg) + 8deg)); }
+}
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+```
 
-- 토핑 텍스트를 한글 형태소 단순 토크나이저 (공백 + 1글자 이상)로 분해
-- 빈도수 기준 TOP 25 키워드 추출
-- 빈도수 → 폰트 크기 (24px ~ 88px 스케일), 색상 랜덤 (스쿱 플레이버 5종 순환)
-- 화면 중앙 정렬, `flex-wrap` + `bounce-in` 등장 애니메이션
-- 5초마다 자동 재계산 (`setInterval`)
-- 빈 상태: "토핑이 도착하면 키워드가 모입니다 🍒"
+`.bg-grad-sunset-anim` — sunset 그라데이션이 천천히 좌우 이동 (`background-size: 200% 200%` + `shimmer 12s`).
 
----
+## 6. 접근성/성능
 
-## 8. 출석 카운터 게이지 (`AttendanceGauge`)
+- 모든 데코 `aria-hidden="true"`, `pointer-events-none`.
+- `@media (prefers-reduced-motion: reduce)` 에서 float/shimmer 정지.
+- 토핑은 SVG 인라인 (네트워크 비용 0), `<ToppingScatter />` 는 `useMemo` 로 시드 고정 (재렌더 시 위치 안 흔들림).
 
-- mock 정원 (세션 capacity) 대비 실제 스캔된 인원
-- 단일 사용자 데모 한계 보완: store 에 `attendanceCount` 추가, 발표자 nonce 갱신 시 또는 청중이 출석할 때마다 카운트 (+ mock 랜덤 증가로 라이브 느낌)
-- 둥근 도넛 게이지 (SVG arc) + 가운데 큰 숫자
-
----
-
-## 9. 파일 변경
+## 7. 파일 변경 요약
 
 **신규**:
-- `src/components/confesta/PresenterModeToggle.tsx`
-- `src/components/confesta/SlideControlPanel.tsx`
-- `src/components/confesta/QuestionStream.tsx`
-- `src/components/confesta/QuestionSpotlightModal.tsx`
-- `src/components/confesta/ToppingWordCloud.tsx`
-- `src/components/confesta/AttendanceGauge.tsx`
-- `src/components/confesta/StageMarquee.tsx`
-- `src/hooks/use-fullscreen.ts`
-- `src/hooks/use-presenter-shortcuts.ts`
+- `src/components/confesta/ToppingDecor.tsx` (SVG 6종 + `ToppingScatter`)
+- `src/components/confesta/BackgroundToppings.tsx`
 
 **수정**:
-- `src/routes/presenter.tsx` — 모드 분기, URL 쿼리 (`validateSearch`), 핸드헬드 탭 / 무대 레이아웃 / 풀스크린 래퍼
-- `src/lib/confesta/store.ts` — `slideIndex`, `slideTotal`, `attendanceCount`, `incrementAttendance` 추가
-- `src/components/confesta/RoleHeader.tsx` — 우측 슬롯 prop 추가 (모드 토글 자리)
+- `src/styles.css` — 그라데이션 토큰/유틸, 새 키프레임
+- `src/routes/__root.tsx` — `<BackgroundToppings />` 마운트
+- `src/routes/index.tsx`, `audience.tsx`, `presenter.tsx`, `staff.tsx`, `admin.tsx` — 단색 → 그라데이션 클래스 치환, 카드에 ToppingScatter 추가
+- `RoleHeader`, `SessionCard`, `SlideControlPanel`, `PresenterModeToggle`, `IceCreamCone`(콘에 그라데이션), `ReceiptCard`, `ToppingInput`, `PillTabs` — 그라데이션 적용
 
----
+## 8. 범위 외
 
-## 10. 범위 외
+- 새 기능 추가 없음 (순수 비주얼 업그레이드).
+- 다크모드 토큰 재조정은 이번 범위에 포함하되 라이트 우선으로 튜닝.
 
-- 실제 슬라이드 파일 업로드 / 렌더링 (목업만)
-- 멀티 디바이스 실시간 동기화 (zustand + localStorage 한계 유지)
-- 좋아요 실제 집계 (mock 숫자)
-
-승인하시면 구현 시작하겠습니다.
+승인하시면 바로 적용하겠습니다.

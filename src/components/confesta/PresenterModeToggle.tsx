@@ -17,13 +17,13 @@ export function PresenterModeToggle({
 }: Props) {
   return (
     <div className="flex items-center gap-2">
-      <div className="inline-flex p-1 bg-muted rounded-full shadow-cream">
+      <div className="inline-flex p-1 bg-card/80 backdrop-blur rounded-full shadow-cream border border-white/60">
         <button
           type="button"
           onClick={() => onChange("handheld")}
           className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
             mode === "handheld"
-              ? "bg-primary text-primary-foreground shadow-pink"
+              ? "bg-grad-strawberry text-white shadow-pink"
               : "text-foreground/70"
           }`}
         >
@@ -34,7 +34,7 @@ export function PresenterModeToggle({
           onClick={() => onChange("stage")}
           className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
             mode === "stage"
-              ? "bg-secondary text-secondary-foreground shadow-blue"
+              ? "bg-grad-blueberry text-white shadow-blue"
               : "text-foreground/70"
           }`}
         >
@@ -44,7 +44,7 @@ export function PresenterModeToggle({
       <button
         type="button"
         onClick={onToggleFullscreen}
-        className="bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold bg-foreground text-background"
+        className="bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold bg-grad-sunset text-white shadow-pink"
         aria-label="풀스크린 토글"
       >
         <Maximize2 className="w-3.5 h-3.5" />

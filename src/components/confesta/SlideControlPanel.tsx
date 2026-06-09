@@ -18,11 +18,12 @@ export function SlideControlPanel({ compact = false }: Props) {
 
   return (
     <div
-      className={`bg-card border border-border rounded-3xl shadow-cream ${
+      className={`relative overflow-hidden bg-card border border-white/60 rounded-3xl shadow-cream ${
         compact ? "p-4" : "p-5"
       }`}
     >
-      <div className="flex items-baseline justify-between mb-3">
+      <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
+      <div className="relative flex items-baseline justify-between mb-3">
         <h4 className="font-bold text-sm">슬라이드 컨트롤</h4>
         <span className="font-mono text-lg font-extrabold tabular-nums">
           {String(slideIndex + 1).padStart(2, "0")}{" "}
@@ -32,23 +33,19 @@ export function SlideControlPanel({ compact = false }: Props) {
         </span>
       </div>
 
-      <div className="h-2.5 rounded-full bg-muted overflow-hidden mb-4">
+      <div className="relative h-2.5 rounded-full bg-muted overflow-hidden mb-4">
         <div
-          className="h-full rounded-full transition-[width] duration-300"
-          style={{
-            width: `${progress}%`,
-            background:
-              "linear-gradient(90deg, var(--secondary), var(--primary))",
-          }}
+          className="h-full rounded-full transition-[width] duration-300 bg-grad-sunset"
+          style={{ width: `${progress}%` }}
         />
       </div>
 
-      <div className="grid grid-cols-4 gap-2">
+      <div className="relative grid grid-cols-4 gap-2">
         <button
           type="button"
           onClick={prev}
           disabled={slideIndex === 0}
-          className="bounce-press rounded-full bg-muted text-foreground font-bold py-2.5 flex items-center justify-center disabled:opacity-40"
+          className="bounce-press rounded-full bg-grad-muted text-foreground font-bold py-2.5 flex items-center justify-center disabled:opacity-40"
           aria-label="이전 슬라이드"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -56,7 +53,7 @@ export function SlideControlPanel({ compact = false }: Props) {
         <button
           type="button"
           onClick={togglePause}
-          className="bounce-press rounded-full bg-secondary text-secondary-foreground font-bold py-2.5 flex items-center justify-center shadow-blue"
+          className="bounce-press rounded-full bg-grad-blueberry text-white font-bold py-2.5 flex items-center justify-center shadow-blue"
           aria-label={paused ? "재생" : "일시정지"}
         >
           {paused ? (
@@ -68,7 +65,7 @@ export function SlideControlPanel({ compact = false }: Props) {
         <button
           type="button"
           onClick={reset}
-          className="bounce-press rounded-full bg-muted text-foreground font-bold py-2.5 flex items-center justify-center"
+          className="bounce-press rounded-full bg-grad-muted text-foreground font-bold py-2.5 flex items-center justify-center"
           aria-label="처음으로"
         >
           <Square className="w-4 h-4" />
@@ -77,14 +74,14 @@ export function SlideControlPanel({ compact = false }: Props) {
           type="button"
           onClick={next}
           disabled={slideIndex >= slideTotal - 1}
-          className="bounce-press rounded-full bg-primary text-primary-foreground font-bold py-2.5 flex items-center justify-center shadow-pink disabled:opacity-40"
+          className="bounce-press rounded-full bg-grad-strawberry text-white font-bold py-2.5 flex items-center justify-center shadow-pink disabled:opacity-40"
           aria-label="다음 슬라이드"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground mt-3 text-center font-mono">
+      <p className="relative text-[10px] text-muted-foreground mt-3 text-center font-mono">
         ← / → · Space · Esc
       </p>
     </div>
