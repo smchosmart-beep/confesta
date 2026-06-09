@@ -73,7 +73,7 @@ function AudienceView() {
       <section className="px-4 sm:px-6 mt-6 max-w-5xl mx-auto">
         {section === "explore" && (
           <div>
-            <div className="mb-5">
+            <div className="mb-5 flex justify-end">
               <PillTabs<Day>
                 size="sm"
                 value={day}
