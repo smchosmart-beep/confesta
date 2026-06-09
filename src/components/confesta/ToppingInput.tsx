@@ -57,7 +57,7 @@ export function ToppingInput({ sessionId }: Props) {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="라이브 질문이나 감상을 토핑처럼 보내보세요!"
+          placeholder="궁금한 점을 질문해보세요"
           className="flex-1 bg-transparent outline-none text-sm py-2"
           maxLength={140}
         />
