@@ -62,9 +62,9 @@ function AudienceView() {
           value={section}
           onChange={setSection}
           tabs={[
-            { value: "explore", label: "세션 탐색", icon: <CalendarDays className="w-4 h-4" /> },
-            { value: "live", label: "라이브 HUD", icon: <Camera className="w-4 h-4" /> },
-            { value: "topping", label: "토핑 보내기", icon: <Sparkles className="w-4 h-4" /> },
+            { value: "explore", label: "주문", icon: <CalendarDays className="w-4 h-4" /> },
+            { value: "live", label: "My 콘", icon: <Camera className="w-4 h-4" /> },
+            { value: "topping", label: "토핑 추가", icon: <Sparkles className="w-4 h-4" /> },
             { value: "receipt", label: "영수증", icon: <Receipt className="w-4 h-4" /> },
           ]}
         />
