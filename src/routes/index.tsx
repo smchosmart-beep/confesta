@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { IceCream, Mic, ScanLine, LayoutGrid, Sparkles } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { ScoopCard } from "@/components/confesta/ScoopCard";
