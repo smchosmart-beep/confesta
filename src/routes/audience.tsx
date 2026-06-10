@@ -405,6 +405,7 @@ function AudienceView() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {section === "receipt" && (
