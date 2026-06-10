@@ -567,21 +567,37 @@ function VenueCard({
           const tagText = isHall
             ? sub.code === "A" ? "text-xs" : "text-[10px]"
             : "text-[10px]";
+          const slot = slotsByRoom.get(sub.label);
+          const displayTitle = slot?.title || sub.sessionTitle || "";
           return (
           <div
             key={sub.label}
-            title={sub.sessionTitle}
+            title={displayTitle}
             className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col justify-center min-h-[120px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
-            <div className={`flex items-baseline justify-center gap-1 ${isHall ? 'mb-2' : ''}`}>
+            <div className={`flex items-center justify-between gap-1 ${isHall ? 'mb-2' : 'mb-1'}`}>
               <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
+              <SlotQRControls
+                day={day}
+                period={period}
+                room={sub.label}
+                slot={slot}
+                labelForModal={displayTitle || sub.label}
+                compact
+              />
             </div>
-            <p className={`text-sm text-foreground/80 leading-snug line-clamp-2 text-center ${isHall ? 'mb-4' : 'mb-2'}`}>
-              {sub.sessionTitle ?? "—"}
-            </p>
+            <div className={`${isHall ? 'mb-3' : 'mb-2'}`}>
+              <SlotTitleInput
+                day={day}
+                period={period}
+                room={sub.label}
+                initial={slot?.title ?? ""}
+                placeholder={sub.sessionTitle ?? "행사명"}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center">
               {/* 좌측: 수령률 원그래프 */}
               <div className="flex flex-col items-center gap-1.5">
@@ -625,6 +641,7 @@ function VenueCard({
           </div>
           );
         })}
+
       </div>
         </>
       )}
