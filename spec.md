@@ -162,6 +162,7 @@ status: "success" | "duplicate" | "invalid"
 |---|---|
 | 프레임워크 | TanStack Start v1 (Vite 7 + React 19) |
 | 스타일링 | Tailwind CSS v4 (네이티브 CSS `@import`, `@theme inline`) |
+| UI 컴포넌트 | shadcn/ui (Select 등) |
 | 상태 관리 | Zustand |
 | 라우팅 | TanStack Router (파일 기반) |
 | 아이콘 | Lucide React |
