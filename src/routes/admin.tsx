@@ -334,7 +334,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                     {sub.toppings}
                   </span>
                 </div>
-                <button className="rounded-lg bg-grad-mango px-3 py-1 text-[10px] font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity">
+                <button className="rounded-lg bg-grad-mango px-3 py-1 text-[10px] font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity whitespace-nowrap">
                   토핑확인
                 </button>
               </div>
