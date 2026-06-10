@@ -1,104 +1,28 @@
-## 컨셉
+개선 방향: 아이스크림 스쿱 카드의 텍스트 가독성을 높이기 위해, 흰색 고정 대신 **각 맛(Flavor)에 맞는 진한 텍스트 색상**을 적용하고, 하이라이트와 겹쳐도 읽히도록 텍스트 배경/그림자를 보강합니다.
 
-아이스크림 가게 비유 정렬:
-- **등록 QR** = **주문** (세션 장소 도착 시 스캔 → 주문 카드 생성)
-- **출석 QR** = **수령** (세션 종료 직전 스캔 → 아이스크림 픽업, 스쿱 적립)
+### 1. ScoopCard 텍스트 색상 분리
+ScoopCard에 flavor별 전용 텍스트 색상을 추가합니다. 현재 흰색(`text-white`) 고정에서 벗어나, 각 맛의 중간 톤과 대비되는 진한 색상으로 변경:
 
-청중 화면의 "수강신청"은 외부 시스템으로 분리 → 잔여좌석/신청 UI 삭제.
+| Flavor | 텍스트 색상 | 근거 |
+|--------|-------------|------|
+| Strawberry | `#8B0046` (진한 핑크/버건디) | 분홍 그라데이션 중앙과 대비 |
+| Blueberry | `#2A2E8B` (진한 남색/인디고) | 보라 그라데이션 중앙과 대비 |
+| Mint | `#0F5E4A` (진한 민트/청록) | 밝은 민트 중앙에서 가독성 확보 |
+| Mango | `#8B4500` (진한 주황/갈색) | 밝은 오렌지 중앙에서 가독성 확보 |
 
-## 1. QR 페이로드 / 상태 (`src/lib/confesta/store.ts`)
+### 2. 텍스트 가독성 보강
+- **텍스트 그림자 강화**: `drop-shadow`를 더 진하게(`drop-shadow-lg` 수준 또는 커스텀 `text-shadow`)하여 하이라이트 위에서도 윤곽이 분명하게 보이도록 합니다.
+- **(선택) 미세 배경 오버레이**: 텍스트 블록 뒤에 `bg-black/10` 또는 `backdrop-blur-[2px]` 정도의 매우 얇은 어두운 필름을 추가해, 하이라이트와의 직접적인 대면을 완화합니다. 이는 카드의 아이스크림 질감을 해치지 않는 선에서 적용합니다.
 
-기존 `attend:` 한 종류 → 두 종류로 분리.
+### 3. 디바이스 배지 색상 동기화
+`device` 배지(“모바일 전용”/“데스크톱 권장”)의 `bg-white/90 text-foreground/80`도 각 맛 톤에 맞게 조정하여 시각적 통일감을 유지합니다.
 
-```text
-confesta:order:{sessionId}:{nonce}    ← 주문(도착 시)
-confesta:pickup:{sessionId}:{nonce}   ← 수령(종료 직전)
-```
+### 기술적 상세
+- `ScoopCard.tsx` 내 `FLAVOR_TEXT` 상수를 새로 정의하여 flavor별 색상을 관리합니다.
+- 기존 `text-white`, `text-white/90`, `text-white/95` 클래스를 flavor별 동적 클래스로 교체합니다.
+- `drop-shadow` 클래스는 그대로 유지하되, 필요 시 인라인 `text-shadow` 스타일로 보강합니다.
 
-헬퍼: `makeOrderQR / parseOrderQR`, `makePickupQR / parsePickupQR`, 통합 `parseSessionQR(payload) → { kind: 'order' | 'pickup', sessionId, nonce } | null`.
+### 확인 시각
+아래 스크린샷에서 하이라이트(왼쪽 상단 유광)과 흰 글씨가 겹치는 영역이 문제 지점입니다:
 
-새 모델:
-```ts
-interface Order {
-  id: string;             // `order-${sessionId}`
-  sessionId: string;
-  orderedAt: number;      // 주문 시각
-  pickedUpAt: number | null; // 수령 시각
-}
-```
-
-스토어 변경:
-- 추가: `orders: Order[]`
-- 액션:
-  - `placeOrderFromQR(payload)` — order QR만 처리, 중복 주문이면 reason 반환
-  - `pickupFromQR(payload)` — pickup QR만 처리. 해당 sessionId의 주문이 있고 아직 미수령일 때만 성공. 성공 시 `pickedUpAt` 기록 **+ 기존 스쿱 적립/attendanceCounts++ 로직 수행**
-- `addScoopFromQR`는 내부 전용으로 흡수
-- `enrolledSessionIds`/`toggleEnroll`은 그대로 둠 (UI에서만 미사용)
-- 발표자 nonce 구조 확장: `presenterNonces: Record<sessionId, { order: string; pickup: string }>`, `rotatePresenterNonce(sessionId, kind)`
-
-## 2. 주문 탭 UI (`src/routes/audience.tsx`)
-
-기존 `explore` 섹션 교체 (Day 토글 / SessionCard 그리드 제거).
-
-- **빈 상태(주문 0건)**: 안내 + 큰 그라데이션 CTA `주문 QR 스캔하기`. 누르면 인라인 `CameraScanner`.
-- **주문 1건 이상**: 상단 작은 CTA `+ 주문 추가` + `OrderCard` 리스트(최신순).
-
-스캔 결과 분기:
-- `order` → 신규 주문 생성, 토스트 "주문이 접수됐어요 🍨"
-- `pickup` → "주문 탭에서는 주문 QR을, 수령 QR은 각 주문 카드에서 찍어주세요" 안내
-- 그 외 → 오류
-
-## 3. OrderCard 컴포넌트 신규 (`src/components/confesta/OrderCard.tsx`)
-
-비주얼 톤: ReceiptCard/SessionCard와 일관(둥근 카드 + `bg-grad-sunset-soft` + ToppingScatter).
-
-구성:
-- 상단: 카테고리 플레이버 칩 + 시간/장소
-- 본문: 세션 제목 / 발표자
-- **단계 뱃지(우상단)**:
-  - 1단계 `주문 접수` (`bg-grad-muted`)
-  - 2단계 `수령 완료` (`bg-grad-success`) — `pickedUpAt` 존재 시
-- 액션:
-  - 미수령 → `수령 QR 스캔` 버튼(grad-strawberry). 클릭 시 카드 하단 인라인 `CameraScanner` 펼침
-  - 수령 완료 → "✓ HH:mm 수령 완료" 정적 라벨
-- 스캐너 분기:
-  - 같은 sessionId + pickup → 성공
-  - 다른 sessionId의 pickup → "다른 세션의 수령 QR입니다"
-  - order QR → "이건 주문 QR이에요"
-
-## 4. SessionCard 정리 (`src/components/confesta/SessionCard.tsx`)
-
-- 잔여 좌석 진행바 삭제
-- 신청하기/신청완료 버튼 삭제
-- 관련 imports(`useConfestaStore`, `Check` 등) 정리
-- 정보 전용 카드로 축소 (다른 곳 사용처는 검토 후 유지/정리)
-
-## 5. My 콘 탭
-
-- 카메라 스캐너를 **수령 QR 전용**(`pickupFromQR`)으로 동작 변경. 주문 QR을 비추면 "주문 탭에서 주문 QR을 먼저 스캔하세요" 안내.
-- 스쿱 누적/영수증 로직은 그대로.
-
-## 6. 발표자 QR 출력 (`src/routes/presenter.tsx` 및 관련 QR 컴포넌트)
-
-세션 하나당 **주문 QR**과 **수령 QR** 두 개를 노출:
-- Stage 모드: 좌/우 두 QR을 라벨과 함께(`주문` / `수령`) 나란히
-- Handheld 모드: 토글로 `주문` ↔ `수령` 전환
-- 두 QR 모두 자체 nonce를 가지고 독립적으로 회전
-
-## 7. 운영 스태프 스캐너 (`src/routes/staff.tsx`)
-
-동일 파서 사용. 표시 라벨도 `주문` / `수령` 으로 노출(로직은 기존 흐름 유지, 라벨링만 정리).
-
-## 변경 파일 요약
-
-- 수정: `src/lib/confesta/store.ts` (QR 분리, Order 모델, 액션 추가, presenterNonces 구조)
-- 신규: `src/components/confesta/OrderCard.tsx`
-- 수정: `src/routes/audience.tsx` (주문 탭 재구성, My 콘 스캐너 = 수령 전용)
-- 수정: `src/components/confesta/SessionCard.tsx` (좌석/신청 UI 제거)
-- 수정: `src/routes/presenter.tsx` 및 발표자 QR 렌더링 (두 QR 노출)
-- 수정: `src/routes/staff.tsx` (라벨 정리)
-
-## 호환성
-
-- 구버전 `confesta:attend:...` QR은 더 이상 생성되지 않으며 스캔 시 "유효하지 않은 QR"로 처리.
-- persisted 상태에 `orders` 미존재 시 빈 배열로 hydrate — 별도 버전 키 변경 불필요.
+![현재 메인 페이지 스크린샷](tool-results://screenshots/20260610-025906-479442.png)

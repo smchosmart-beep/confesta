@@ -23,6 +23,19 @@ const FLAVOR_SHADOW: Record<Flavor, string> = {
     "drop-shadow(0 6px 10px rgba(255,138,31,0.22)) drop-shadow(0 22px 36px rgba(255,138,31,0.30))",
 };
 
+const FLAVOR_TEXT: Record<Flavor, string> = {
+  strawberry: "#5A0030",
+  blueberry: "#1A1E6B",
+  mint: "#0A4438",
+  mango: "#6B3300",
+};
+
+// 강한 텍스트 외곽선(흰색 헤일로) — 어떤 하이라이트 위에서도 윤곽 확보
+const TEXT_HALO: React.CSSProperties = {
+  textShadow:
+    "0 1px 0 rgba(255,255,255,0.85), 0 0 6px rgba(255,255,255,0.7), 0 0 12px rgba(255,255,255,0.5)",
+};
+
 
 const MASK_STYLE: React.CSSProperties = {
   WebkitMaskImage: `url(${scoopMask.url})`,
