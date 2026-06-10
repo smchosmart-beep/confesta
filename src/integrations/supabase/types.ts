@@ -14,7 +14,249 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      answer_prompts: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          id: string
+          session_id: string
+          text: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id: string
+          text: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          session_id?: string
+          text?: string
+        }
+        Relationships: []
+      }
+      audience_devices: {
+        Row: {
+          created_at: string
+          device_id: string
+          last_seen: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          last_seen?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          last_seen?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          device_id: string
+          id: string
+          ordered_at: string
+          picked_up_at: string | null
+          session_id: string
+        }
+        Insert: {
+          device_id: string
+          id?: string
+          ordered_at?: string
+          picked_up_at?: string | null
+          session_id: string
+        }
+        Update: {
+          device_id?: string
+          id?: string
+          ordered_at?: string
+          picked_up_at?: string | null
+          session_id?: string
+        }
+        Relationships: []
+      }
+      receipts: {
+        Row: {
+          device_id: string
+          issued_at: string
+          redeemed_at: string | null
+          scoop_ids: string[]
+          status: string
+          token: string
+        }
+        Insert: {
+          device_id: string
+          issued_at?: string
+          redeemed_at?: string | null
+          scoop_ids: string[]
+          status?: string
+          token: string
+        }
+        Update: {
+          device_id?: string
+          issued_at?: string
+          redeemed_at?: string | null
+          scoop_ids?: string[]
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      scoops: {
+        Row: {
+          device_id: string
+          flavor: string
+          id: string
+          session_id: string
+          stacked_at: string
+        }
+        Insert: {
+          device_id: string
+          flavor: string
+          id?: string
+          session_id: string
+          stacked_at?: string
+        }
+        Update: {
+          device_id?: string
+          flavor?: string
+          id?: string
+          session_id?: string
+          stacked_at?: string
+        }
+        Relationships: []
+      }
+      session_nonces: {
+        Row: {
+          kind: string
+          nonce: string
+          rotated_at: string
+          session_id: string
+        }
+        Insert: {
+          kind: string
+          nonce: string
+          rotated_at?: string
+          session_id: string
+        }
+        Update: {
+          kind?: string
+          nonce?: string
+          rotated_at?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
+      slide_state: {
+        Row: {
+          id: string
+          paused: boolean
+          slide_index: number
+          slide_total: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          paused?: boolean
+          slide_index?: number
+          slide_total?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          paused?: boolean
+          slide_index?: number
+          slide_total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      topping_gates: {
+        Row: {
+          active_prompt_id: string | null
+          answers_open: boolean
+          questions_open: boolean
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          active_prompt_id?: string | null
+          answers_open?: boolean
+          questions_open?: boolean
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          active_prompt_id?: string | null
+          answers_open?: boolean
+          questions_open?: boolean
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      topping_likes: {
+        Row: {
+          created_at: string
+          device_id: string
+          topping_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          topping_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          topping_id?: string
+        }
+        Relationships: []
+      }
+      toppings: {
+        Row: {
+          addressed: boolean
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          likes: number
+          pinned: boolean
+          prompt_id: string | null
+          session_id: string
+          text: string
+        }
+        Insert: {
+          addressed?: boolean
+          created_at?: string
+          device_id: string
+          id?: string
+          kind?: string
+          likes?: number
+          pinned?: boolean
+          prompt_id?: string | null
+          session_id: string
+          text: string
+        }
+        Update: {
+          addressed?: boolean
+          created_at?: string
+          device_id?: string
+          id?: string
+          kind?: string
+          likes?: number
+          pinned?: boolean
+          prompt_id?: string | null
+          session_id?: string
+          text?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
