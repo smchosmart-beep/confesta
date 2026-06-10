@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useId, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +14,7 @@ import { useDeviceId } from "./use-device-id";
 
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
+  const channelId = useId();
   const qc = useQueryClient();
   const listFn = useServerFn(listToppings);
   const addFn = useServerFn(addToppingFn);
@@ -35,7 +36,7 @@ export function useSessionToppings(sessionId: string | null) {
   useEffect(() => {
     if (!sessionId) return;
     const channel = supabase
-      .channel(`toppings:${sessionId}`)
+      .channel(`toppings:${sessionId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "toppings", filter: `session_id=eq.${sessionId}` },
@@ -50,7 +51,7 @@ export function useSessionToppings(sessionId: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, qc]);
+  }, [sessionId, qc, channelId]);
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
 

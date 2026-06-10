@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ export function useToppingGate(sessionId: string | null) {
   const qc = useQueryClient();
   const getFn = useServerFn(getToppingGate);
   const setFn = useServerFn(setGateFn);
+  const channelId = useId();
 
   const queryKey = ["gate", sessionId] as const;
   const { data } = useQuery({
@@ -30,7 +31,7 @@ export function useToppingGate(sessionId: string | null) {
   useEffect(() => {
     if (!sessionId) return;
     const channel = supabase
-      .channel(`gate:${sessionId}`)
+      .channel(`gate:${sessionId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "topping_gates", filter: `session_id=eq.${sessionId}` },
@@ -40,7 +41,7 @@ export function useToppingGate(sessionId: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, qc]);
+  }, [sessionId, qc, channelId]);
 
   const update = useMutation({
     mutationFn: (patch: { questionsOpen?: boolean; answersOpen?: boolean }) =>

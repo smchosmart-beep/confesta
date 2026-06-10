@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ export function useSlideState() {
   const qc = useQueryClient();
   const getFn = useServerFn(getSlideState);
   const setFn = useServerFn(setSlideState);
+  const channelId = useId();
 
   const queryKey = ["slide-state"] as const;
   const { data } = useQuery({
@@ -20,7 +21,7 @@ export function useSlideState() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("slide_state")
+      .channel(`slide_state:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "slide_state" },
@@ -30,7 +31,7 @@ export function useSlideState() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [qc, channelId]);
 
   const update = useMutation({
     mutationFn: (patch: { slideIndex?: number; slideTotal?: number; paused?: boolean }) =>
