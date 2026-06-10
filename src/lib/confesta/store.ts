@@ -91,6 +91,21 @@ const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
   addressed: t.addressed,
 }));
 
+const initialOrders: Order[] = [
+  {
+    id: "seed-order-1",
+    sessionId: "s1",
+    orderedAt: Date.now() - 25 * 60_000,
+    pickedUpAt: Date.now() - 5 * 60_000,
+  },
+  {
+    id: "seed-order-2",
+    sessionId: "s2",
+    orderedAt: Date.now() - 12 * 60_000,
+    pickedUpAt: null,
+  },
+];
+
 function makeNonce() {
   return Math.random().toString(36).slice(2, 10);
 }
