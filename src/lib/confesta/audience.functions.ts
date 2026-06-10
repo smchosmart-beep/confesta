@@ -167,6 +167,18 @@ export const pickupFromQR = createServerFn({ method: "POST" })
     await touchDevice(data.deviceId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // verify pickup nonce
+    const { data: nonceRow, error: nonceErr } = await supabaseAdmin
+      .from("session_nonces")
+      .select("nonce")
+      .eq("session_id", parsed.sessionId)
+      .eq("kind", "pickup")
+      .maybeSingle();
+    if (nonceErr) throw nonceErr;
+    if (!nonceRow) return { ok: false, message: "발급되지 않은 수령 QR이에요" };
+    if (nonceRow.nonce !== parsed.nonce)
+      return { ok: false, message: "만료된 수령 QR이에요 (재발급됨)" };
+
     // must have ordered this session
     const { data: order, error: orderErr } = await supabaseAdmin
       .from("orders")
