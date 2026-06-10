@@ -101,6 +101,8 @@ export function ReceiptCard() {
             </span>
           )}
         </div>
+
+        <PersonaBadge persona={derivePersona(scoops)} />
       </div>
 
       <div className="text-center mt-4">
