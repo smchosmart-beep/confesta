@@ -310,29 +310,35 @@ function AudienceView() {
                 <ToppingScatter density="med" seed="audience-topping" />
                 <div className="relative">
                   <h3 className="font-bold text-lg mb-3">토핑 보내기</h3>
-                  <div className="mb-4 -mx-1 overflow-x-auto">
-                    <div className="flex gap-2 px-1 min-w-max">
-                      {mySessionIds.map((id) => {
-                        const s = SESSIONS.find((x) => x.id === id);
-                        if (!s) return null;
-                        const selected = id === activeSessionId;
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            onClick={() => setSelectedSessionId(id)}
-                            aria-pressed={selected}
-                            className={`bounce-press shrink-0 rounded-full px-4 py-1.5 text-xs font-bold border transition-colors ${
-                              selected
-                                ? "bg-grad-strawberry text-white border-transparent shadow-pink"
-                                : "bg-white/70 text-muted-foreground border-white hover:text-pink-600"
-                            }`}
-                          >
-                            {s.title}
-                          </button>
-                        );
-                      })}
-                    </div>
+                  <div className="mb-4">
+                    <label className="flex flex-col gap-1">
+                      <span className="text-[11px] font-bold text-muted-foreground px-1">
+                        세션 선택
+                      </span>
+                      <div className="relative">
+                        <select
+                          value={activeSessionId ?? ""}
+                          onChange={(e) => setSelectedSessionId(e.target.value)}
+                          className="w-full appearance-none rounded-full bg-white/80 border border-white px-4 py-2.5 pr-10 text-sm font-bold text-foreground shadow-cream outline-none focus:border-pink-400"
+                        >
+                          {mySessionIds.map((id) => {
+                            const s = SESSIONS.find((x) => x.id === id);
+                            if (!s) return null;
+                            return (
+                              <option key={id} value={id}>
+                                {s.title}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-pink-500 text-xs"
+                        >
+                          ▼
+                        </span>
+                      </div>
+                    </label>
                   </div>
                   <ToppingInput sessionId={activeSessionId} kind={toppingKind} onKindChange={setToppingKind} disableAnswerSubmit />
                   <p className="text-xs text-muted-foreground mt-4">
