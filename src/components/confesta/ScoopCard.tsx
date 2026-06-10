@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import scoopMask from "@/assets/scoop-mask.png.asset.json";
 
 type Flavor = "strawberry" | "blueberry" | "mint" | "mango";
 
@@ -18,24 +19,16 @@ const FLAVOR_SHADOW: Record<Flavor, string> = {
   mango: "drop-shadow(0 14px 26px rgba(255, 138, 31, 0.28))",
 };
 
-// objectBoundingBox path: near-perfect circular scoop body + thin asymmetric melted skirt.
-const SCOOP_PATH =
-  // body: circle approx cx=0.5, cy=0.44, r=0.43
-  "M 0.07,0.44 " +
-  "C 0.07,0.20 0.26,0.01 0.50,0.01 " +
-  "C 0.74,0.01 0.93,0.20 0.93,0.44 " +
-  "C 0.93,0.62 0.83,0.78 0.68,0.84 " +
-  // skirt: thin, slightly wider than body, asymmetric little waves
-  "L 0.96,0.86 " +
-  "Q 0.90,0.99 0.80,0.90 " +
-  "Q 0.70,0.83 0.60,0.95 " +
-  "Q 0.50,1.00 0.40,0.92 " +
-  "Q 0.30,0.84 0.20,0.96 " +
-  "Q 0.10,1.00 0.04,0.87 " +
-  "L 0.32,0.84 " +
-  "C 0.17,0.78 0.07,0.62 0.07,0.44 Z";
-
-let CLIP_ID_COUNTER = 0;
+const MASK_STYLE: React.CSSProperties = {
+  WebkitMaskImage: `url(${scoopMask.url})`,
+  maskImage: `url(${scoopMask.url})`,
+  WebkitMaskSize: "contain",
+  maskSize: "contain",
+  WebkitMaskRepeat: "no-repeat",
+  maskRepeat: "no-repeat",
+  WebkitMaskPosition: "center",
+  maskPosition: "center",
+};
 
 interface Props {
   to: "/audience" | "/presenter" | "/staff" | "/admin";
@@ -47,7 +40,6 @@ interface Props {
 }
 
 export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
-  const clipId = `scoop-clip-${++CLIP_ID_COUNTER}`;
   return (
     <Link
       to={to}
@@ -55,19 +47,7 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
       className="group bounce-press relative block w-full max-w-[340px] mx-auto"
       style={{ filter: FLAVOR_SHADOW[flavor] }}
     >
-      <svg width="0" height="0" className="absolute" aria-hidden>
-        <defs>
-          <clipPath id={clipId} clipPathUnits="objectBoundingBox">
-            <path d={SCOOP_PATH} />
-          </clipPath>
-        </defs>
-      </svg>
-
-      <div
-        className="relative aspect-[1/1.05] w-full"
-        style={{ clipPath: `url(#${clipId})`, WebkitClipPath: `url(#${clipId})` } as React.CSSProperties}
-      >
-
+      <div className="relative aspect-square w-full" style={MASK_STYLE}>
         {/* base flavor gradient */}
         <div className={`absolute inset-0 ${FLAVOR_GRAD[flavor]}`} />
         {/* soft highlight */}
@@ -75,7 +55,7 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 55%)",
+              "radial-gradient(ellipse at 30% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 55%)",
           }}
         />
         {/* topping decor */}
@@ -83,9 +63,12 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
           <ToppingScatter density="med" seed={`scoop-${to}`} />
         </div>
 
-        {/* content — keep inside the dome */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 pt-4" style={{ paddingBottom: "22%" }}>
-          <span className="w-14 h-14 rounded-full bg-white/80 ring-2 ring-white shadow-cream flex items-center justify-center mb-3">
+        {/* content — sits inside the round body, above the melted skirt */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 pt-5"
+          style={{ paddingBottom: "26%" }}
+        >
+          <span className="w-14 h-14 rounded-full bg-white/85 ring-2 ring-white shadow-cream flex items-center justify-center mb-3">
             <Icon className="w-7 h-7 text-foreground/80" />
           </span>
           <div className="text-[11px] font-bold uppercase tracking-wider text-white/90 drop-shadow-sm">

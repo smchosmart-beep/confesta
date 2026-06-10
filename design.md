@@ -166,11 +166,12 @@ border-2 rounded-2xl p-4 shadow-cream
 - 카드 비율: `aspect-[1/1.05]` (거의 정사각, 살짝 세로로 김), `max-w-[340px]`로 너무 커지지 않게 제한
 
 **구현**
-- SVG `<clipPath clipPathUnits="objectBoundingBox">`로 카드 컨테이너를 마스킹
-
-- 동일한 실루엣 그림자는 부모 `<Link>`에 `filter: drop-shadow(...)`로 부여 (`clipPath`가 `box-shadow`를 잘라먹기 때문)
+- 알파 채널 PNG(`src/assets/scoop-mask.png.asset.json`, 흰색 실루엣 + 투명 배경)를 CSS `mask-image`로 카드 컨테이너(`aspect-square`)에 적용
+- 컨테이너 내부의 그라데이션/하이라이트/토핑/콘텐츠가 마스크된 스쿱 모양으로 잘려 보임
+- 부모 `<Link>`에 `filter: drop-shadow(...)`로 동일 실루엣 그림자 부여 (`mask`는 `box-shadow`를 잘라먹기 때문)
 - 채움: `bg-grad-{flavor}` 전면 + 좌상단 `radial-gradient` 하이라이트로 입체감
-- 토핑 데코는 `ToppingScatter`로 클립 내부에 흩뿌림
+- 토핑 데코는 `ToppingScatter`로 마스크 내부에 흩뿌림
+- 스쿱 모양 변경이 필요하면 PNG 마스크 파일만 교체하면 됨
 
 **색 매핑 (역할)**
 - 청중 → `strawberry`, 발표자 → `blueberry`, 스태프 → `mint`, 관리자 → `mango`

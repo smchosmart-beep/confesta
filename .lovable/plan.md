@@ -1,59 +1,61 @@
-# 스쿱 카드 모양 재작업 — "공 + 얇은 받침"
+# 스쿱 카드: 알파 PNG 마스크로 전환 (깨끗한 흑백 실루엣)
 
-## 현재 문제 (스크린샷 비교)
-| 항목 | 현재 카드 | 목표 (첨부 이미지) |
-|---|---|---|
-| 비율 | 4:3 가로로 넓음 | 거의 1:1 (약간 세로로 김) |
-| 본체 | 가로로 늘어진 낮은 돔 | **거의 완전한 원(공 모양)** |
-| 아랫부분 | 카드 폭 전체에 큰 물결 드립 | 공 바로 아래, 폭의 ~90%로 좁고 **얇은 녹은 받침**(살짝 비대칭) |
+## 1) 마스크 PNG 가공
+- 입력: `/mnt/user-uploads/스쿱.png`
+- Python(PIL)로 처리:
+  1. RGBA로 열어 알파 채널 추출
+  2. 알파 < 30 → 0, 알파 ≥ 30 → 255 로 임계 처리 (안티앨리어싱 가장자리는 살짝 유지하기 위해 가우시안 블러 0.7px 후 임계 적용)
+  3. RGB는 전부 흰색(255,255,255), 알파만 위 값으로 → **흰색 실루엣 + 투명 배경 PNG**
+  4. 정사각형으로 트리밍/패딩하여 컨테이너 비율과 일치
+- 출력: `/tmp/scoop-mask.png`
+- CDN 업로드:
+  ```
+  lovable-assets create --file /tmp/scoop-mask.png --filename scoop-mask.png \
+    > src/assets/scoop-mask.png.asset.json
+  ```
 
-## 새 실루엣
-```text
-       _.--""""--._
-     .'            '.
-    /                \
-   |    (스쿱 본체)    |     ← 거의 원
-    \                /
-     '._          _.'
-       \_/~^~\_/~^\        ← 폭 좁고, 얇고, 비대칭 작은 물결 받침
-```
+## 2) `ScoopCard.tsx` 리팩토링
+- 기존 SVG `<clipPath>` 정의 / `SCOOP_PATH` 상수 / `CLIP_ID_COUNTER` 전부 제거
+- 마스크 에셋 import:
+  ```ts
+  import scoopMask from "@/assets/scoop-mask.png.asset.json";
+  ```
+- 카드 컨테이너:
+  ```tsx
+  <div
+    className="relative aspect-square w-full"
+    style={{
+      WebkitMaskImage: `url(${scoopMask.url})`,
+      maskImage: `url(${scoopMask.url})`,
+      WebkitMaskSize: "contain",
+      maskSize: "contain",
+      WebkitMaskRepeat: "no-repeat",
+      maskRepeat: "no-repeat",
+      WebkitMaskPosition: "center",
+      maskPosition: "center",
+    }}
+  >
+    {/* 기존 그라데이션 + 하이라이트 + 토핑 + 콘텐츠 */}
+  </div>
+  ```
+- 부모 `<Link>`에 동일 PNG로 그림자 부여:
+  ```ts
+  filter: `drop-shadow(0 14px 26px ${shadowColor})`
+  ```
+  (드롭섀도는 마스크된 실루엣 그대로 적용되므로 별도 처리 필요 없음 — 기존 `FLAVOR_SHADOW`를 유지하되 마스크된 자식의 alpha를 따라가도록 부모에 그대로 둠.)
+- 텍스트/아이콘 padding: 본체 원형 영역(상단 ~75%)에 위치하도록 `pt-5 pb-[26%] px-10`로 조정
+- `max-w-[340px] mx-auto`, `aspect-square` 유지
 
-## 구현 변경
-
-### 1) `src/components/confesta/ScoopCard.tsx`
-- **카드 비율**: `aspect-[4/3]` → `aspect-[1/1.05]` (거의 정사각, 살짝 세로)
-- **그리드 크기 제어**: `max-w-[340px] mx-auto` (카드 자체에) 추가해 너무 늘어나지 않게.
-- **SVG clipPath path 재설계** (`objectBoundingBox`, 0~1):
-  - 본체(원): cx=0.5, cy=0.45, r≈0.43 — 큐빅 베지어 4분할로 매끈한 원
-    - M 0.07,0.45
-    - C 0.07,0.21  0.26,0.02  0.50,0.02
-    - C 0.74,0.02  0.93,0.21  0.93,0.45
-    - C 0.93,0.62  0.82,0.78  0.66,0.83  (원 우하단을 받침 시작점까지 살짝 부드럽게)
-  - 받침(좁고 얇은 비대칭 물결): y ≈ 0.83 ~ 0.96, x ≈ 0.10 ~ 0.95
-    - L 0.95,0.86  (우측으로 살짝 삐져나옴)
-    - Q 0.88,0.99  0.78,0.90
-    - Q 0.68,0.82  0.58,0.94
-    - Q 0.48,1.00  0.38,0.90
-    - Q 0.28,0.82  0.18,0.95
-    - Q 0.08,0.99  0.05,0.86
-    - C 0.18,0.80  0.07,0.62  0.07,0.45 Z
-  - (수치는 구현 중 1~2회 미세 조정. 핵심: **본체는 거의 정원**, **받침은 얇고 비대칭**)
-- **콘텐츠 배치**: 받침이 y≥0.83 부근이므로 텍스트/아이콘은 y 5~78% 영역에 배치 (`pt-6 pb-[28%]`로 조정).
-- **그림자**: 동일 path를 `drop-shadow`에 그대로 재사용(이미 반영됨).
-
-### 2) `src/routes/index.tsx`
-- 그리드 `gap-6 sm:gap-8` 유지. 카드가 정사각형이라 줄간격 자연스럽게 늘어남.
-- 추가 수정 없음 (ScoopCard 내부에서 max-w 처리).
-
-### 3) `design.md` 8.5 ScoopCard 섹션 업데이트
-- "형태" 항목 수정:
-  - 본체: **거의 완전한 원(스쿱 공)**, 비율 약 1:1.05
-  - 아래: 공 폭의 약 90%, 높이 ~15%의 **얇고 비대칭인 녹은 받침**(2~3개의 작은 물결, 좌우 길이가 살짝 다름)
-- 잘못된 설명("윗면은 매끈한 반원 돔, 아랫면은 4~5개의 부드러운 물결") 제거.
+## 3) `design.md` 8.5 ScoopCard 갱신
+- "구현" 항목 다시 작성:
+  - 알파 채널 PNG(`src/assets/scoop-mask.png.asset.json`)를 CSS `mask-image`로 적용
+  - 마스크는 흰색 실루엣 + 투명 배경 → 컨테이너 내부의 그라데이션/토핑/콘텐츠를 스쿱 모양으로 잘라냄
+  - 동일 실루엣 그림자는 부모 `<Link>`에 `filter: drop-shadow(...)`로 부여
+  - 마스크 PNG 교체만으로 카드 실루엣을 변경할 수 있음
 
 ## 변경 파일
-- `src/components/confesta/ScoopCard.tsx` (path, aspect, max-w, padding)
-- `design.md` (8.5 설명 갱신)
+- 신규: `src/assets/scoop-mask.png.asset.json`
+- 수정: `src/components/confesta/ScoopCard.tsx`, `design.md`
 
 ## 변경하지 않음
-- 색/그라데이션, 토핑 데코, 아이콘/텍스트 구성, 다른 카드.
+- 색/그라데이션 토큰, ToppingScatter, 다른 카드 컴포넌트, 라우트 코드
