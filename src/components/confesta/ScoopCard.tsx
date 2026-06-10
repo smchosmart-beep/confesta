@@ -76,23 +76,32 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
           }}
         />
 
-        {/* body↔skirt separation band — dark notch + thin bright rim */}
+        {/* body↔skirt separation — curved dark ring along sphere's bottom edge */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.35) 66%, rgba(0,0,0,0.22) 70%, rgba(255,255,255,0.18) 72%, transparent 78%)",
+              "radial-gradient(ellipse 62% 62% at 50% 32%, transparent 0%, transparent 92%, rgba(0,0,0,0.40) 96%, rgba(0,0,0,0.25) 99%, transparent 102%)",
+          }}
+        />
+        {/* thin bright rim just below the curve → step highlight */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 62% 62% at 50% 32%, transparent 0%, transparent 99%, rgba(255,255,255,0.22) 101%, transparent 105%)",
           }}
         />
 
-        {/* skirt shading — slightly darker bottom */}
+        {/* skirt shading — overall tone-down below the curve */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to bottom, transparent 65%, rgba(0,0,0,0.10) 78%, rgba(0,0,0,0.22) 100%)",
+              "linear-gradient(to bottom, transparent 70%, rgba(0,0,0,0.10) 82%, rgba(0,0,0,0.22) 100%)",
           }}
         />
+
 
         {/* edge vignette → rim shading */}
         <div
