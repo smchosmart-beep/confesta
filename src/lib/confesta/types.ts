@@ -39,21 +39,30 @@ export interface Topping {
   text: string;
   createdAt: number;
   kind?: ToppingKind; // default "question"
+  /** For kind === "answer": references AnswerPrompt.id */
+  promptId?: string;
   pinned?: boolean;
   addressed?: boolean;
   likes?: number;
 }
 
+export interface AnswerPrompt {
+  id: string;
+  sessionId: string;
+  text: string;
+  createdAt: number;
+  /** undefined when active; timestamp when closed */
+  closedAt?: number;
+}
+
 export interface ToppingGate {
   questionsOpen: boolean;
   answersOpen: boolean;
-  answerPrompt: string;
 }
 
 export const DEFAULT_TOPPING_GATE: ToppingGate = {
   questionsOpen: true,
   answersOpen: false,
-  answerPrompt: "",
 };
 
 export interface StackedScoop {
