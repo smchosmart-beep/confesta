@@ -2,7 +2,7 @@ import QRCode from "react-qr-code";
 import { IceCreamCone } from "./IceCreamCone";
 import { useConfestaStore } from "@/lib/confesta/store";
 import { Ticket } from "lucide-react";
-import { ToppingScatter } from "./ToppingDecor";
+// Note: floating background toppings are intentionally NOT used on the receipt tab.
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { derivePersona, type Persona } from "@/lib/confesta/persona";
 import type { StackedScoop } from "@/lib/confesta/types";
