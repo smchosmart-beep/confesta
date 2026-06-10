@@ -3,7 +3,11 @@ import { IceCreamCone } from "./IceCreamCone";
 import { useConfestaStore } from "@/lib/confesta/store";
 import { Ticket } from "lucide-react";
 import { ToppingScatter } from "./ToppingDecor";
+import { SESSIONS } from "@/lib/confesta/mockData";
 import type { StackedScoop } from "@/lib/confesta/types";
+
+const sessionTitle = (sessionId: string) =>
+  SESSIONS.find((s) => s.id === sessionId)?.title ?? sessionId;
 
 const SAMPLE_SCOOPS: StackedScoop[] = [
   { id: "sample-1", sessionId: "s1", flavor: "mint", stackedAt: 0 },
