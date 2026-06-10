@@ -159,34 +159,35 @@ function AudienceView() {
           </div>
         )}
 
-        {section === "topping" && (
-          <div className="max-w-xl mx-auto">
-            <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
-              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
-              <ToppingScatter density="med" seed="audience-topping" />
-              <div className="relative">
-                <h3 className="font-bold text-lg mb-1">토핑 보내기</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  현재 세션:{" "}
-                  <strong>
-                    {SESSIONS.find((s) => s.id === activeSessionId)?.title ?? "—"}
-                  </strong>
-                </p>
-                <ToppingInput sessionId={activeSessionId} />
-                <p className="text-xs text-muted-foreground mt-4">
-                  전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
-                </p>
+          {section === "topping" && (
+            <div className="mx-auto">
+              <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+                <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+                <ToppingScatter density="med" seed="audience-topping" />
+                <div className="relative">
+                  <h3 className="font-bold text-lg mb-1">토핑 보내기</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    현재 세션:{" "}
+                    <strong>
+                      {SESSIONS.find((s) => s.id === activeSessionId)?.title ?? "—"}
+                    </strong>
+                  </p>
+                  <ToppingInput sessionId={activeSessionId} />
+                  <p className="text-xs text-muted-foreground mt-4">
+                    전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {section === "receipt" && (
-          <div className="py-4">
-            <ReceiptCard />
-          </div>
-        )}
-      </section>
+          {section === "receipt" && (
+            <div className="py-4">
+              <ReceiptCard />
+            </div>
+          )}
+        </section>
+      </DeviceFrame>
     </main>
   );
 }
