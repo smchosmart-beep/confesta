@@ -29,13 +29,10 @@ function hashStr(s: string) {
 }
 
 export function ToppingTubScene({ sessionId, compact = false }: Props) {
-  const allToppings = useConfestaStore((s) => s.toppings);
+  const { toppings: allToppings } = useSessionToppings(sessionId);
   const toppings = useMemo(
-    () =>
-      allToppings.filter(
-        (t) => t.sessionId === sessionId && t.kind === "answer",
-      ),
-    [allToppings, sessionId],
+    () => allToppings.filter((t) => t.kind === "answer"),
+    [allToppings],
   );
   const [tick, setTick] = useState(0);
 
