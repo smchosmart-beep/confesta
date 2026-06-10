@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
@@ -74,10 +74,33 @@ function AudienceView() {
     () => [...orders].sort((a, b) => b.orderedAt - a.orderedAt),
     [orders],
   );
-  const activeSessionId =
-    scoops[scoops.length - 1]?.sessionId ??
-    orders[0]?.sessionId ??
-    SESSIONS[0].id;
+
+  // 청중이 실제로 스캔(주문/수령)한 세션들. 최신 활동순.
+  const mySessionIds = useMemo(() => {
+    const ids: string[] = [];
+    for (let i = scoops.length - 1; i >= 0; i--) {
+      const id = scoops[i].sessionId;
+      if (id && !ids.includes(id)) ids.push(id);
+    }
+    for (const o of sortedOrders) {
+      if (o.sessionId && !ids.includes(o.sessionId)) ids.push(o.sessionId);
+    }
+    return ids;
+  }, [scoops, sortedOrders]);
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mySessionIds.length === 0) {
+      if (selectedSessionId !== null) setSelectedSessionId(null);
+      return;
+    }
+    if (!selectedSessionId || !mySessionIds.includes(selectedSessionId)) {
+      setSelectedSessionId(mySessionIds[0]);
+    }
+  }, [mySessionIds, selectedSessionId]);
+
+  const activeSessionId = selectedSessionId;
 
   const handleOrderScan = (text: string) => {
     const parsed = parseSessionQR(text);
@@ -253,18 +276,59 @@ function AudienceView() {
           )}
 
           {section === "topping" && (
+            activeSessionId === null ? (
+              <div className="relative overflow-hidden bg-card rounded-3xl p-8 shadow-cream border border-white/60 text-center">
+                <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
+                <ToppingScatter density="low" seed="audience-topping-locked" />
+                <div className="relative flex flex-col items-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-white/80 flex items-center justify-center shadow-cream">
+                    <Camera className="w-7 h-7 text-pink-600" />
+                  </div>
+                  <h3 className="font-bold text-lg">아직 참여 중인 세션이 없어요</h3>
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    주문 QR을 먼저 스캔하면 해당 세션에 토핑을 보낼 수 있어요.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSection("orders")}
+                    className="bounce-press mt-2 inline-flex items-center gap-2 bg-grad-blueberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-blue"
+                  >
+                    <ShoppingBag className="w-4 h-4" />
+                    주문 탭으로 이동
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="mx-auto flex flex-col gap-4">
               <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
                 <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
                 <ToppingScatter density="med" seed="audience-topping" />
                 <div className="relative">
-                  <h3 className="font-bold text-lg mb-1">토핑 보내기</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    현재 세션:{" "}
-                    <strong>
-                      {SESSIONS.find((s) => s.id === activeSessionId)?.title ?? "—"}
-                    </strong>
-                  </p>
+                  <h3 className="font-bold text-lg mb-3">토핑 보내기</h3>
+                  <div className="mb-4 -mx-1 overflow-x-auto">
+                    <div className="flex gap-2 px-1 min-w-max">
+                      {mySessionIds.map((id) => {
+                        const s = SESSIONS.find((x) => x.id === id);
+                        if (!s) return null;
+                        const selected = id === activeSessionId;
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setSelectedSessionId(id)}
+                            aria-pressed={selected}
+                            className={`bounce-press shrink-0 rounded-full px-4 py-1.5 text-xs font-bold border transition-colors ${
+                              selected
+                                ? "bg-grad-strawberry text-white border-transparent shadow-pink"
+                                : "bg-white/70 text-muted-foreground border-white hover:text-pink-600"
+                            }`}
+                          >
+                            {s.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <ToppingInput sessionId={activeSessionId} />
                   <p className="text-xs text-muted-foreground mt-4">
                     전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
@@ -341,6 +405,7 @@ function AudienceView() {
                 </div>
               </div>
             </div>
+            )
           )}
 
           {section === "receipt" && (
