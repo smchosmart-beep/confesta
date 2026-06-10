@@ -192,11 +192,6 @@ function AdminView() {
           합산한 값입니다.
         </div>
 
-        <div className="mt-4 flex justify-center">
-          <button className="rounded-xl bg-grad-mango px-6 py-2.5 text-sm font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity">
-            [토핑확인]
-          </button>
-        </div>
       </section>
     </main>
   );
@@ -330,13 +325,18 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                 </div>
               </div>
               {/* 우측: 토핑(질문) 수 카드 */}
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-8 py-2 h-full">
-                <span className="text-[9px] font-bold text-muted-foreground leading-none mb-1">
-                  토핑 (질문)
-                </span>
-                <span className={`font-extrabold tabular-nums text-grad-mango leading-none ${toppingSize}`}>
-                  {sub.toppings}<span className="text-[0.45em] align-top ml-0.5">개</span>
-                </span>
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-8 py-2 h-full gap-2">
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] font-bold text-muted-foreground leading-none mb-1">
+                    토핑 (질문)
+                  </span>
+                  <span className={`font-extrabold tabular-nums text-grad-mango leading-none ${toppingSize}`}>
+                    {sub.toppings}<span className="text-[0.45em] align-top ml-0.5">개</span>
+                  </span>
+                </div>
+                <button className="rounded-lg bg-grad-mango px-3 py-1 text-[10px] font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity">
+                  토핑확인
+                </button>
               </div>
             </div>
           </div>
