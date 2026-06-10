@@ -1,74 +1,42 @@
-## 목표
-Admin이 **Day × 시간대 분류 안에서 각 공간 그리드 칸에 행사명을 직접 입력**하고, 그 칸 단위로 **독립된 주문 QR을 발급**할 수 있게 합니다. 서버는 `session_nonces`로 발급된 nonce를 보관하고 청중 스캔 시 일치 여부를 검증합니다. 수령 QR도 동일 저장소로 통합합니다.
+# Admin PIN 잠금 해제 실패 수정
 
-## 데이터 모델
+## 증상
+- Admin PIN을 정확히 입력해도 에러는 안 뜨지만 잠금 화면이 그대로 남아 있음.
+- 네트워크 로그: `verifyPin` 은 `ok: true` 를 돌려주는데, 직후의 `checkPin` 이 `ok: false` 를 반환.
 
-기존 `mockData.SESSIONS`(고정 행사명)는 **데모 베이스라인 표시용으로만** 두고, 실제 운영 데이터는 신규 테이블에서 관리합니다.
+## 원인
+Lovable 프리뷰는 `lovable.dev` 안에 `lovableproject.com` iframe 으로 임베드돼 있어서, 앱이 내려보내는 쿠키가 브라우저 입장에서는 **third-party 쿠키**다. 지금 `src/lib/confesta/auth.functions.ts` 에서 쿠키를 다음과 같이 굽고 있다:
 
-### 신규 테이블 `session_slots`
-- 키: `(day, period, room)` UNIQUE — 예: `(1, 'am', '401-A')`.
-- 컬럼: `title text not null default ''`, `capacity int`, `updated_at`.
-- 의미: "Day1 오전 · 401-A 칸의 행사명". Admin이 입력/수정.
+```ts
+setCookie(cookieName(data.role), makeCookieValue(data.role), {
+  httpOnly: true,
+  secure: true,
+  sameSite: "lax",   // ← iframe 3rd-party 컨텍스트에서 막힘
+  path: "/",
+  maxAge: COOKIE_MAX_AGE,
+});
+```
 
-### 기존 `session_nonces` 재사용 + 키 변경
-- 현재 PK 후보가 `session_id`인데, 슬롯 기반으로 가려면 `session_id`를 `"{day}:{period}:{room}"` 형태의 합성 키로 사용 (스키마 변경 없이 운영).
-- `kind` ∈ `{'order','pickup'}`. `(session_id, kind)` UNIQUE 보강 마이그레이션.
+`SameSite=Lax` 는 third-party iframe 의 fetch 응답에 대해서는 쿠키를 저장하지 않거나 다음 요청에 실어주지 않는다. 그래서 `checkPin` 에는 쿠키가 도달하지 않고, 매번 게이트가 다시 뜬다.
 
-## QR 동작
+## 수정 내용
+`src/lib/confesta/auth.functions.ts` 의 3개 serverFn (`verifyPin`, `clearPin`, 필요 시 `checkPin` 갱신) 에서 쿠키 옵션을 iframe 안전 조합으로 바꾼다:
 
-**주문 QR (Order) — 칸당 1개 고정, 영구 유효**
-- Admin이 칸의 [발급] 버튼 → 서버가 `session_nonces` upsert (없으면 생성, 있으면 기존 반환).
-- [재발급] 버튼 → nonce 회전, 이전 QR 즉시 무효.
-- [QR 보기] 모달 → 큰 QR + 칸 라벨(예: "Day1 오전 · 401-A · 〈행사명〉") + 인쇄(window.print).
+- `sameSite: "none"`
+- `secure: true` (이미 설정됨)
+- `partitioned: true` (CHIPS — Chrome 의 partitioned cookie 지원; iframe-별로 격리된 third-party 쿠키 저장 허용)
 
-**수령 QR (Pickup) — 회전식**
-- Presenter 모달 열린 동안 15초마다 서버 호출로 nonce 회전. 직전 nonce는 즉시 무효.
+`deleteCookie` 도 동일 옵션으로 호출해야 브라우저가 같은 쿠키 키로 인식해서 지운다.
 
-**서버 검증**
-- `placeOrderFromQR` / `pickupFromQR`이 nonce 일치 여부 확인 → 불일치 시 "유효하지 않은 QR".
+세 PIN 역할(presenter / staff / admin)이 모두 동일한 쿠키 헬퍼를 쓰므로, 한 곳만 고치면 presenter / staff 측 잠금 화면도 같이 정상화된다.
 
-## 작업 항목
+## 영향 범위 / 변경 파일
+- 편집: `src/lib/confesta/auth.functions.ts` (쿠키 옵션 3곳)
 
-### 1. DB 마이그레이션
-- `session_slots` 신규 테이블 + GRANT + RLS (admin/staff 쓰기는 서버 함수로 service_role 경유, anon SELECT 허용).
-- `session_nonces`에 `UNIQUE(session_id, kind)` 추가.
+게이트 UI(`AdminAuthGate.tsx`), `pin.server.ts` 의 서명/검증 로직, DB 스키마는 손대지 않는다.
 
-### 2. 서버 함수 신규 (`src/lib/confesta/slots.functions.ts`)
-- `listSlots({ day, period })` — 해당 분류의 모든 칸과 nonce 발급 상태를 반환.
-- `upsertSlotTitle({ day, period, room, title })` — Admin PIN 인증.
-- `issueOrderQR({ day, period, room })` — Admin PIN 인증, nonce 발급/반환.
-- `rotateOrderQR({ day, period, room })` — Admin PIN 인증, nonce 회전.
-- `rotatePickupNonce({ day, period, room })` — Presenter PIN 인증.
-
-### 3. 기존 서버 함수 검증 추가 (`audience.functions.ts`)
-- `placeOrderFromQR`, `pickupFromQR`에 nonce 비교 단계 추가.
-- 페이로드 포맷은 `confesta:order:{day}:{period}:{room}:{nonce}`로 확장 (parser/maker 업데이트).
-
-### 4. Admin UI (`src/routes/admin.tsx`)
-- Day/시간대 필터(이미 추가됨) 선택 결과를 각 공간 카드 그리드에 반영.
-- 각 칸(`SubStat` 카드)에 다음 컨트롤 추가:
-  - **행사명 입력란** (인라인 편집, blur 시 `upsertSlotTitle` 호출 / 디바운스).
-  - **[QR 발급]** 버튼 — 미발급 칸에서만 노출.
-  - **[QR 보기]** / **[재발급]** 버튼 — 이미 발급된 칸.
-- QR 보기 모달: 큰 QR, 칸 라벨, 인쇄 버튼.
-- AdminAuthGate(PIN) 신규 컴포넌트로 화면 진입 보호 (`PresenterAuthGate` 패턴 재사용).
-- 데이터는 TanStack Query (`listSlots` per 분류) + mutation invalidate.
-
-### 5. Presenter (`src/routes/presenter.tsx`)
-- 수령 QR 회전을 로컬 store → 서버 `rotatePickupNonce`로 이관.
-- 페이로드는 `confesta:pickup:{day}:{period}:{room}:{nonce}`.
-
-### 6. 정리
-- `store.ts`의 `presenterNonces` 상태/액션 제거.
-- `audience.functions.ts`의 "Strict nonce check is added later" 주석 제거.
-- 기존 mockData SESSIONS는 평면도 베이스라인 숫자(시드)에만 사용, 행사명 표시는 `session_slots.title`이 우선.
-
-## 보안 메모
-- Admin/Presenter PIN으로 발급·회전 보호.
-- Audience 스캔 경로는 nonce 비교만(PIN 불필요).
-- Order QR 유출 시 [재발급]으로 대응. 인쇄용으로 칸 라벨이 함께 보이도록 모달에서 표시.
-
-## 변경 파일
-- 신규: `src/lib/confesta/slots.functions.ts`, `src/components/confesta/AdminAuthGate.tsx`, `src/components/confesta/SlotQRModal.tsx`.
-- 수정: `admin.tsx`, `presenter.tsx`, `audience.functions.ts`, `shared.ts`(parser/maker), `store.ts`.
-- DB: `session_slots` 생성 + `session_nonces` UNIQUE 보강.
+## 검증
+1. 프리뷰 iframe 에서 `/admin` 접속 → PIN 입력 → 잠금 해제 후 그리드 노출 확인.
+2. 새로고침 후에도 잠금 해제 상태 유지(쿠키 12h TTL).
+3. 같은 수정으로 presenter / staff 잠금 화면도 한 번 시도해 정상 동작 확인.
+4. 게시(production) 도메인에서도 동일하게 동작해야 함 — `SameSite=None; Secure; Partitioned` 는 first-party 컨텍스트에서도 안전하게 동작.

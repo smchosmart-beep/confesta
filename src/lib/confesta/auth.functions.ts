@@ -18,10 +18,11 @@ export const verifyPin = createServerFn({ method: "POST" })
     setCookie(cookieName(data.role), makeCookieValue(data.role), {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none",
       path: "/",
       maxAge: COOKIE_MAX_AGE,
-    });
+      partitioned: true,
+    } as Parameters<typeof setCookie>[2]);
     return { ok: true as const };
   });
 
