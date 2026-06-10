@@ -38,6 +38,35 @@ export function ReceiptCard() {
     .slice()
     .sort((a, b) => a.createdAt - b.createdAt);
 
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveImage = async () => {
+    if (!receiptRef.current || saving) return;
+    setSaving(true);
+    try {
+      const dataUrl = await toPng(receiptRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+      });
+      const link = document.createElement("a");
+      const stamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
+      link.download = `confesta-receipt-${stamp}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("영수증 이미지를 저장했어요");
+    } catch (err) {
+      console.error(err);
+      toast.error("이미지 저장에 실패했어요");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const ready = scoops.length >= 3;
 
   if (!ready) {
