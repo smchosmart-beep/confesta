@@ -158,27 +158,39 @@ function PresenterView() {
         >
           {/* Left: huge QR + attendance */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 shadow-blue border border-white/60 flex-1 flex flex-col">
+            <div className="relative overflow-hidden rounded-[2rem] p-5 sm:p-6 shadow-blue border border-white/60 flex-1 flex flex-col">
               <div className="absolute inset-0 bg-grad-cream" />
               <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
               <ToppingScatter density="med" seed="stage-qr" />
               <div className="relative flex items-center justify-between mb-3">
-                <h2 className="text-xl sm:text-2xl font-extrabold bg-clip-text text-transparent bg-grad-sunset">
+                <h2 className="text-lg sm:text-xl font-extrabold bg-clip-text text-transparent bg-grad-sunset">
                   📱 지금 스캔하세요
                 </h2>
                 <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초 갱신
                 </span>
               </div>
-              <div className="relative bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center border-2 border-white shadow-cream">
-                {qrValue && (
-                  <QRCode
-                    value={qrValue}
-                    size={420}
-                    level="M"
-                    style={{ maxWidth: "100%", height: "auto", width: "100%" }}
-                  />
-                )}
+              <div className="relative grid grid-cols-2 gap-3 flex-1">
+                {[
+                  { label: "① 주문 QR", sub: "도착 시 스캔", value: orderQR, grad: "bg-grad-blueberry" },
+                  { label: "② 수령 QR", sub: "종료 직전 스캔", value: pickupQR, grad: "bg-grad-strawberry" },
+                ].map((q) => (
+                  <div key={q.label} className="flex flex-col">
+                    <div className={`${q.grad} text-white text-xs font-extrabold px-3 py-1.5 rounded-t-2xl text-center shadow-cream`}>
+                      {q.label} <span className="opacity-80 font-semibold">· {q.sub}</span>
+                    </div>
+                    <div className="bg-white p-3 sm:p-4 rounded-b-2xl flex justify-center flex-1 items-center border-2 border-t-0 border-white shadow-cream">
+                      {q.value && (
+                        <QRCode
+                          value={q.value}
+                          size={320}
+                          level="M"
+                          style={{ maxWidth: "100%", height: "auto", width: "100%" }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="relative mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
                 <div
@@ -187,6 +199,7 @@ function PresenterView() {
                 />
               </div>
             </div>
+
 
             <div className="relative overflow-hidden rounded-3xl p-5 shadow-cream border border-white/60 flex items-center gap-5">
               <div className="absolute inset-0 bg-grad-cream" />
