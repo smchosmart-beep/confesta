@@ -245,7 +245,7 @@ export const useConfestaStore = create<ConfestaState>()(
         return token;
       },
 
-      addTopping: (sessionId, text) =>
+      addTopping: (sessionId, text, kind = "question") =>
         set((s) => ({
           toppings: [
             {
@@ -253,6 +253,7 @@ export const useConfestaStore = create<ConfestaState>()(
               sessionId,
               text,
               createdAt: Date.now(),
+              kind,
             },
             ...s.toppings,
           ],
