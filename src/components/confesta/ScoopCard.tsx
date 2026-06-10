@@ -55,18 +55,51 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
       <div className="relative aspect-square w-full" style={MASK_STYLE}>
         {/* base flavor gradient */}
         <div className={`absolute inset-0 ${FLAVOR_GRAD[flavor]}`} />
-        {/* soft highlight */}
+        {/* top glossy highlight */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 30% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 55%)",
+              "radial-gradient(ellipse 70% 50% at 32% 18%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 60%)",
+          }}
+        />
+        {/* specular highlight */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle 60px at 28% 20%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%)",
+          }}
+        />
+        {/* bottom inner shadow → spherical volume */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 60% at 50% 98%, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 55%)",
+          }}
+        />
+        {/* edge vignette → rim shading */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.18) 100%)",
+          }}
+        />
+        {/* skirt separation band */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.12) 72%, transparent 82%)",
           }}
         />
         {/* topping decor */}
         <div className="absolute inset-0 opacity-90">
           <ToppingScatter density="med" seed={`scoop-${to}`} />
         </div>
+
 
         {/* content — sits inside the round body, above the melted skirt */}
         <div
