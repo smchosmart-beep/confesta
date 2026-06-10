@@ -6,6 +6,7 @@ import type {
   SessionQRKind,
   StackedScoop,
   Topping,
+  ToppingKind,
 } from "./types";
 import { SESSIONS, getCategory, SAMPLE_TOPPINGS } from "./mockData";
 
@@ -70,7 +71,7 @@ interface ConfestaState {
   pickupFromQR: (payload: string) => ScanResult;
   resetScoops: () => void;
   generateReceipt: () => string | null;
-  addTopping: (sessionId: string, text: string) => void;
+  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => void;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
   toggleLikeTopping: (id: string) => void;
@@ -244,7 +245,7 @@ export const useConfestaStore = create<ConfestaState>()(
         return token;
       },
 
-      addTopping: (sessionId, text) =>
+      addTopping: (sessionId, text, kind = "question") =>
         set((s) => ({
           toppings: [
             {
@@ -252,6 +253,7 @@ export const useConfestaStore = create<ConfestaState>()(
               sessionId,
               text,
               createdAt: Date.now(),
+              kind,
             },
             ...s.toppings,
           ],

@@ -196,10 +196,10 @@ function PresenterView() {
           {/* 토핑 키워드 */}
           <div className="space-y-2 flex flex-col h-full">
             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              토핑 키워드
+              토핑 키워드 (응답)
             </h2>
             <p className="text-sm text-muted-foreground">
-              청중 질문에서 명사 키워드를 골라 토핑처럼 통 위에 쌓입니다. 5초마다 갱신.
+              청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
             </p>
             <div className="flex-1 min-h-0">
               <ToppingTubScene sessionId={sessionId} />
