@@ -139,9 +139,9 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
 
         <div className="relative text-xs space-y-1 mb-4 font-mono">
           {scoops.map((s, i) => (
-            <div key={s.id} className="flex justify-between">
-              <span>스쿱 #{i + 1}</span>
-              <span className="capitalize">{s.flavor}</span>
+            <div key={s.id} className="flex justify-between gap-3">
+              <span className="shrink-0">스쿱 #{i + 1}</span>
+              <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
             </div>
           ))}
           <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
