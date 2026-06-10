@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Camera, Check } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
-import { SESSIONS, getCategory } from "@/lib/confesta/mockData";
-import { parseSessionQR } from "@/lib/confesta/shared";
+import { SESSIONS, getCategory, CATEGORIES } from "@/lib/confesta/mockData";
+import { parseSessionQR, parseSlotKey } from "@/lib/confesta/shared";
 import { useAudience } from "@/hooks/use-audience";
 import { CameraScanner } from "./CameraScanner";
 import { ToppingScatter } from "./ToppingDecor";
@@ -26,17 +26,43 @@ function fmtTime(ts: number) {
   });
 }
 
+// Resolve display info from either legacy SESSIONS id or new slot-key session_id.
+function resolveSessionDisplay(sessionId: string) {
+  const legacy = SESSIONS.find((s) => s.id === sessionId);
+  if (legacy) {
+    return {
+      title: legacy.title,
+      sub: `${legacy.presenter} · ${legacy.room} · ${legacy.timeSlot}`,
+      flavor: getCategory(legacy.category).flavor,
+      catLabel: getCategory(legacy.category).label,
+    };
+  }
+  const slot = parseSlotKey(sessionId);
+  if (slot) {
+    // Stable flavor by hashing room
+    const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
+    const cat = CATEGORIES[hash % CATEGORIES.length];
+    return {
+      title: slot.room,
+      sub: `Day ${slot.day} · ${slot.period === "am" ? "오전" : "오후"} · ${slot.room}`,
+      flavor: cat.flavor,
+      catLabel: cat.label,
+    };
+  }
+  return null;
+}
+
 export function OrderCard({ order }: Props) {
-  const session = SESSIONS.find((s) => s.id === order.sessionId);
+  const display = resolveSessionDisplay(order.sessionId);
   const { pickup } = useAudience();
   const [scanning, setScanning] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(
     null,
   );
 
-  if (!session) return null;
-  const cat = getCategory(session.category);
+  if (!display) return null;
   const picked = !!order.pickedUpAt;
+
 
   const handleScan = async (text: string) => {
     const parsed = parseSessionQR(text);
@@ -69,9 +95,9 @@ export function OrderCard({ order }: Props) {
 
       <div className="relative flex items-start justify-between gap-2">
         <span
-          className={`${FLAVOR_GRAD[cat.flavor]} text-white text-xs font-bold px-3 py-1 rounded-full shadow-cream`}
+          className={`${FLAVOR_GRAD[display.flavor]} text-white text-xs font-bold px-3 py-1 rounded-full shadow-cream`}
         >
-          {cat.label}
+          {display.catLabel}
         </span>
         <span
           className={`text-xs font-extrabold px-3 py-1 rounded-full text-white shadow-cream ${
@@ -83,10 +109,11 @@ export function OrderCard({ order }: Props) {
       </div>
 
       <div className="relative">
-        <h3 className="text-lg font-bold leading-snug">{session.title}</h3>
+        <h3 className="text-lg font-bold leading-snug">{display.title}</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {session.presenter} · {session.room} · {session.timeSlot}
+          {display.sub}
         </p>
+
         <p className="text-xs text-muted-foreground mt-1.5" suppressHydrationWarning>
           주문 {fmtTime(order.orderedAt)}
           {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}

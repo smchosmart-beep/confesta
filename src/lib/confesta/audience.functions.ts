@@ -106,9 +106,6 @@ export const getAudienceState = createServerFn({ method: "POST" })
     return loadState(data.deviceId);
   });
 
-// NOTE: Until presenter is migrated (step 5), we accept any well-formed QR
-// payload without strict nonce validation. Strict server-side nonce check
-// against session_nonces is added with the presenter migration.
 export const placeOrderFromQR = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ deviceId: DeviceIdSchema, payload: z.string().min(1).max(200) }).parse(input),
@@ -121,6 +118,18 @@ export const placeOrderFromQR = createServerFn({ method: "POST" })
 
     await touchDevice(data.deviceId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // verify nonce against session_nonces — block forged / rotated-out QRs
+    const { data: nonceRow, error: nonceErr } = await supabaseAdmin
+      .from("session_nonces")
+      .select("nonce")
+      .eq("session_id", parsed.sessionId)
+      .eq("kind", "order")
+      .maybeSingle();
+    if (nonceErr) throw nonceErr;
+    if (!nonceRow) return { ok: false, message: "발급되지 않은 QR이에요" };
+    if (nonceRow.nonce !== parsed.nonce)
+      return { ok: false, message: "만료된 QR이에요 (재발급됨)" };
 
     // limit 3 orders
     const { count } = await supabaseAdmin
@@ -143,6 +152,7 @@ export const placeOrderFromQR = createServerFn({ method: "POST" })
     }
     return { ok: true, message: "주문이 접수됐어요 🍨", state: await loadState(data.deviceId) };
   });
+
 
 export const pickupFromQR = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>

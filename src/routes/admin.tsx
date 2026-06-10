@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { QrCode, Plus } from "lucide-react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
+import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
+import {
+  listSlots,
+  upsertSlotTitle,
+  issueOrderQR,
+  rotateOrderQR,
+  type SlotDTO,
+} from "@/lib/confesta/slots.functions";
 import {
   Select,
   SelectContent,
@@ -23,6 +35,7 @@ const periodOf = (s: { timeSlot: string }): Period =>
   parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm";
 
 
+
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
@@ -39,8 +52,17 @@ export const Route = createFileRoute("/admin")({
       },
     ],
   }),
-  component: AdminView,
+  component: AdminPage,
 });
+
+function AdminPage() {
+  return (
+    <AdminAuthGate>
+      <AdminView />
+    </AdminAuthGate>
+  );
+}
+
 
 interface SubStat {
   code: string; // "A"/"B"/...
@@ -91,6 +113,19 @@ function AdminView() {
   if (!periodsAvailable.includes(selectedPeriod) && periodsAvailable[0]) {
     queueMicrotask(() => setSelectedPeriod(periodsAvailable[0]));
   }
+
+  // Server-backed slot data for the selected day/period
+  const listSlotsFn = useServerFn(listSlots);
+  const slotsQuery = useQuery({
+    queryKey: ["admin-slots", selectedDay, selectedPeriod],
+    queryFn: () => listSlotsFn({ data: { day: selectedDay, period: selectedPeriod } }),
+  });
+  const slotsByRoom = useMemo(() => {
+    const m = new Map<string, SlotDTO>();
+    for (const s of slotsQuery.data?.slots ?? []) m.set(s.room, s);
+    return m;
+  }, [slotsQuery.data]);
+
 
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
@@ -264,18 +299,18 @@ function AdminView() {
         <div className="hidden md:grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
           {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
           <div className="flex flex-col gap-24 self-stretch">
-            {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} />)}
-            {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} />)}
-            {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
+            {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
+            {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
           </div>
           {/* 중앙 컬럼: LEWEST Hall */}
           <div className="flex flex-col self-stretch pt-[404px]">
-            {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
           </div>
           {/* 우측 컬럼: 403 (위) / 404 (아래) */}
           <div className="flex flex-col gap-24 self-stretch">
-            {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} />)}
-            {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
+            {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
           </div>
         </div>
 
@@ -283,10 +318,11 @@ function AdminView() {
         <div className="md:hidden flex flex-col gap-3">
           {["402", "401", "hall", "403", "404", "400"].flatMap((id) =>
             stats.filter((v) => v.id === id).map((v) => (
-              <MobileVenueCard key={v.id} venue={v} />
+              <MobileVenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />
             )),
           )}
         </div>
+
 
         <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-2xl p-4">
           ※ 카드 위치는 LEWEST 4층 평면도를 기반으로 배치되어 있습니다. 각
@@ -338,7 +374,152 @@ function subGridStyle(venueId: string): React.CSSProperties {
   }
 }
 
-function VenueCard({ venue }: { venue: VenueStat }) {
+// =========================
+// Slot Title Input
+// =========================
+function SlotTitleInput({
+  day,
+  period,
+  room,
+  initial,
+  placeholder,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  initial: string;
+  placeholder?: string;
+}) {
+  const qc = useQueryClient();
+  const upsertFn = useServerFn(upsertSlotTitle);
+  const [value, setValue] = useState(initial);
+  useEffect(() => {
+    setValue(initial);
+  }, [initial]);
+
+  const save = useMutation({
+    mutationFn: (title: string) =>
+      upsertFn({ data: { day, period, room, title } }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] }),
+  });
+
+  return (
+    <input
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        if (value !== initial) save.mutate(value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      placeholder={placeholder ?? "행사명 입력"}
+      className="w-full rounded-md border border-foreground/15 bg-white/80 px-2 py-1 text-sm font-semibold text-foreground/90 leading-tight outline-none focus:border-primary text-center"
+      maxLength={80}
+    />
+  );
+}
+
+// =========================
+// Slot QR Controls (issue / view / rotate)
+// =========================
+function SlotQRControls({
+  day,
+  period,
+  room,
+  slot,
+  labelForModal,
+  compact,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  slot: SlotDTO | undefined;
+  labelForModal: string;
+  compact?: boolean;
+}) {
+  const qc = useQueryClient();
+  const issueFn = useServerFn(issueOrderQR);
+  const rotateFn = useServerFn(rotateOrderQR);
+  const [open, setOpen] = useState(false);
+  const [payload, setPayload] = useState<string | null>(slot?.orderPayload ?? null);
+
+  useEffect(() => {
+    setPayload(slot?.orderPayload ?? null);
+  }, [slot?.orderPayload]);
+
+  const issue = useMutation({
+    mutationFn: () => issueFn({ data: { day, period, room } }),
+    onSuccess: (res) => {
+      setPayload(res.payload);
+      setOpen(true);
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+    },
+  });
+
+  const rotate = useMutation({
+    mutationFn: () => rotateFn({ data: { day, period, room } }),
+    onSuccess: (res) => {
+      setPayload(res.payload);
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+    },
+  });
+
+  const hasQR = !!slot?.hasOrderQR;
+  const btnSize = compact ? "text-[10px] px-2 py-0.5" : "text-[11px] px-2.5 py-1";
+
+  return (
+    <>
+      {hasQR ? (
+        <button
+          onClick={() => setOpen(true)}
+          className={`inline-flex items-center gap-1 rounded-md bg-grad-blueberry text-white font-extrabold shadow-cream whitespace-nowrap ${btnSize}`}
+        >
+          <QrCode className="w-3 h-3" />
+          QR 보기
+        </button>
+      ) : (
+        <button
+          onClick={() => issue.mutate()}
+          disabled={issue.isPending}
+          className={`inline-flex items-center gap-1 rounded-md bg-foreground/10 hover:bg-foreground/15 text-foreground font-extrabold whitespace-nowrap disabled:opacity-40 ${btnSize}`}
+        >
+          <Plus className="w-3 h-3" />
+          {issue.isPending ? "발급 중…" : "QR 발급"}
+        </button>
+      )}
+
+      <SlotQRModal
+        open={open && !!payload}
+        onClose={() => setOpen(false)}
+        title={labelForModal}
+        subtitle={`Day ${day} · ${period === "am" ? "오전" : "오후"} · ${room}`}
+        payload={payload ?? ""}
+        onRotate={() => {
+          if (confirm("기존 QR을 무효화하고 새로 발급합니다. 계속할까요?")) {
+            rotate.mutate();
+          }
+        }}
+        rotating={rotate.isPending}
+      />
+    </>
+  );
+}
+
+
+
+function VenueCard({
+  venue,
+  day,
+  period,
+  slotsByRoom,
+}: {
+  venue: VenueStat;
+  day: number;
+  period: Period;
+  slotsByRoom: Map<string, SlotDTO>;
+}) {
   return (
     <div
       className="relative overflow-hidden bg-card rounded-2xl p-3 shadow-cream border border-white/70 flex flex-col"
@@ -386,21 +567,37 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           const tagText = isHall
             ? sub.code === "A" ? "text-xs" : "text-[10px]"
             : "text-[10px]";
+          const slot = slotsByRoom.get(sub.label);
+          const displayTitle = slot?.title || sub.sessionTitle || "";
           return (
           <div
             key={sub.label}
-            title={sub.sessionTitle}
+            title={displayTitle}
             className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col justify-center min-h-[120px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
-            <div className={`flex items-baseline justify-center gap-1 ${isHall ? 'mb-2' : ''}`}>
+            <div className={`flex items-center justify-between gap-1 ${isHall ? 'mb-2' : 'mb-1'}`}>
               <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
+              <SlotQRControls
+                day={day}
+                period={period}
+                room={sub.label}
+                slot={slot}
+                labelForModal={displayTitle || sub.label}
+                compact
+              />
             </div>
-            <p className={`text-sm text-foreground/80 leading-snug line-clamp-2 text-center ${isHall ? 'mb-4' : 'mb-2'}`}>
-              {sub.sessionTitle ?? "—"}
-            </p>
+            <div className={`${isHall ? 'mb-3' : 'mb-2'}`}>
+              <SlotTitleInput
+                day={day}
+                period={period}
+                room={sub.label}
+                initial={slot?.title ?? ""}
+                placeholder={sub.sessionTitle ?? "행사명"}
+              />
+            </div>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center">
               {/* 좌측: 수령률 원그래프 */}
               <div className="flex flex-col items-center gap-1.5">
@@ -444,6 +641,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           </div>
           );
         })}
+
       </div>
         </>
       )}
@@ -513,7 +711,17 @@ function MiniMetric({
   );
 }
 
-function MobileVenueCard({ venue }: { venue: VenueStat }) {
+function MobileVenueCard({
+  venue,
+  day,
+  period,
+  slotsByRoom,
+}: {
+  venue: VenueStat;
+  day: number;
+  period: Period;
+  slotsByRoom: Map<string, SlotDTO>;
+}) {
   return (
     <div className="relative overflow-hidden bg-card rounded-2xl p-3 shadow-cream border border-white/70">
       <ToppingScatter density="low" seed={`mv-${venue.id}`} />
@@ -538,6 +746,8 @@ function MobileVenueCard({ venue }: { venue: VenueStat }) {
             const pct = sub.orders > 0
               ? Math.min(100, Math.round((sub.pickups / sub.orders) * 100))
               : 0;
+            const slot = slotsByRoom.get(sub.label);
+            const displayTitle = slot?.title || sub.sessionTitle || "";
             return (
               <div
                 key={sub.label}
@@ -565,20 +775,33 @@ function MobileVenueCard({ venue }: { venue: VenueStat }) {
                   </div>
                 </div>
 
-                {/* 가운데: 세션 + 주문/수령 */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground/90 line-clamp-2 leading-snug">
-                    {sub.sessionTitle ?? "—"}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                {/* 가운데: 행사명 입력 + 주문/수령 + QR 발급 */}
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <SlotTitleInput
+                    day={day}
+                    period={period}
+                    room={sub.label}
+                    initial={slot?.title ?? ""}
+                    placeholder={sub.sessionTitle ?? "행사명"}
+                  />
+                  <div className="flex flex-wrap items-center gap-1">
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
                       주문 <span className="tabular-nums">{sub.orders}</span>
                     </span>
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-strawberry">
                       수령 <span className="tabular-nums">{sub.pickups}</span>
                     </span>
+                    <SlotQRControls
+                      day={day}
+                      period={period}
+                      room={sub.label}
+                      slot={slot}
+                      labelForModal={displayTitle || sub.label}
+                      compact
+                    />
                   </div>
                 </div>
+
 
                 {/* 우측: 토핑 카운트 + 버튼 */}
                 <div className="flex flex-col items-center justify-center rounded-lg border border-grad-mango/30 bg-grad-mango/10 px-2 py-1.5 shrink-0 gap-1 min-w-[64px]">
