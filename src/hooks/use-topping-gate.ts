@@ -31,7 +31,7 @@ export function useToppingGate(sessionId: string | null) {
   useEffect(() => {
     if (!sessionId) return;
     const channel = supabase
-      .channel(`gate:${sessionId}`)
+      .channel(`gate:${sessionId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "topping_gates", filter: `session_id=eq.${sessionId}` },
