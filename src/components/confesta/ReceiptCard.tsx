@@ -90,7 +90,21 @@ export function ReceiptCard() {
               <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
             </div>
           ))}
-          <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
+
+          {myToppings.length > 0 && (
+            <div className="pt-2 mt-2 border-t border-dashed border-foreground/20 space-y-1">
+              {myToppings.map((t, i) => (
+                <div key={t.id} className="flex justify-between gap-3 items-start">
+                  <span className="shrink-0">토핑 #{i + 1}</span>
+                  <span className="text-right break-keep leading-snug">
+                    {t.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between pt-2 mt-2 border-t border-dashed border-foreground/20">
             <span>발급</span>
             <span>{new Date().toLocaleString("ko-KR")}</span>
           </div>
