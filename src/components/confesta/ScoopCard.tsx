@@ -114,15 +114,15 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon, device }: P
           style={{ paddingBottom: "42%" }}
         >
 
-          <span className="w-14 h-14 rounded-full bg-white/85 ring-2 ring-white shadow-cream flex items-center justify-center mb-3">
-            <Icon className="w-7 h-7 text-foreground/80" />
-          </span>
           <div className="text-[11px] font-bold uppercase tracking-wider text-white/90 drop-shadow-sm">
             {label}
           </div>
-          <h2 className="text-2xl font-extrabold text-white drop-shadow mt-0.5">
-            {ko}
-          </h2>
+          <div className="flex items-center gap-2 mt-0.5">
+            <Icon className="w-6 h-6 text-white drop-shadow" />
+            <h2 className="text-2xl font-extrabold text-white drop-shadow">
+              {ko}
+            </h2>
+          </div>
           <p className="text-xs sm:text-sm text-white/95 mt-1.5 max-w-[18ch] leading-snug drop-shadow-sm">
             {desc}
           </p>
