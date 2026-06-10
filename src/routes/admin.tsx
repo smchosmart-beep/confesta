@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
-import { SESSIONS, ROOMS, getCategory } from "@/lib/confesta/mockData";
+import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
 
 export const Route = createFileRoute("/admin")({
@@ -12,51 +12,99 @@ export const Route = createFileRoute("/admin")({
       {
         name: "description",
         content:
-          "행사 장소별 주문(등록) QR과 수령(출석) QR 스캔 수를 실시간으로 확인하는 운영 대시보드.",
+          "LEWEST 4층 행사 공간별 주문(등록) QR · 수령(출석) QR 스캔 수를 평면도 형태로 한눈에 보여주는 운영 대시보드.",
       },
       { property: "og:title", content: "관리자 대시보드 — Confesta" },
       {
         property: "og:description",
-        content: "장소별 주문 QR · 수령 QR 스캔 집계.",
+        content: "장소별 주문 QR · 수령 QR 스캔 집계 (평면도 배치).",
       },
     ],
   }),
   component: AdminView,
 });
 
+interface SubStat {
+  code: string; // "A"/"B"/...
+  label: string; // e.g. "401-A"
+  orders: number;
+  pickups: number;
+  capacity: number;
+  sessionTitle?: string;
+}
+
+interface VenueStat {
+  id: string;
+  name: string;
+  area: string;
+  subs: SubStat[];
+  totalOrders: number;
+  totalPickups: number;
+}
+
 function AdminView() {
   const orders = useConfestaStore((s) => s.orders);
   const scoops = useConfestaStore((s) => s.scoops);
 
-  // 세션 단위 집계: 주문(등록) QR 스캔 수, 수령(출석) QR 스캔 수
-  const stats = useMemo(() => {
-    return ROOMS.map((room) => {
-      const sessions = SESSIONS.filter((s) => s.room === room);
-      const sessionStats = sessions.map((s) => {
-        // demo baseline so empty rooms still read meaningfully
-        const seed = parseInt(s.id.replace(/\D/g, "")) || 1;
-        const baseOrders = ((seed * 11) % (s.capacity - 5)) + 5;
-        const basePickups = Math.floor(baseOrders * 0.72);
+  const stats: VenueStat[] = useMemo(() => {
+    return VENUES.map((v) => {
+      const codes = v.subspaces.length ? v.subspaces : [""];
+      const subs: SubStat[] = codes.map((code) => {
+        const roomLabel = v.id.startsWith("hall")
+          ? `LEWEST Hall${code ? " " + code : ""}`
+          : code
+            ? `${v.id}-${code}`
+            : v.id;
+        const session = SESSIONS.find((s) => s.room === roomLabel);
 
-        const liveOrders = orders.filter((o) => o.sessionId === s.id).length;
-        const livePickups = scoops.filter((sc) => sc.sessionId === s.id).length;
+        // demo baseline + live signals
+        const seed =
+          [...roomLabel].reduce((a, c) => a + c.charCodeAt(0), 0) % 47;
+        const capacity = session?.capacity ?? 30;
+        const baseOrders = session ? 8 + (seed % (capacity - 8)) : seed % 12;
+        const basePickups = Math.floor(baseOrders * 0.7);
 
-        const orderCount = baseOrders + liveOrders;
-        const pickupCount = Math.min(basePickups + livePickups, orderCount);
-        return { session: s, orderCount, pickupCount };
+        const liveOrders = session
+          ? orders.filter((o) => o.sessionId === session.id).length
+          : 0;
+        const livePickups = session
+          ? scoops.filter((sc) => sc.sessionId === session.id).length
+          : 0;
+
+        const ord = baseOrders + liveOrders;
+        const pick = Math.min(basePickups + livePickups, ord);
+
+        return {
+          code: code || "—",
+          label: roomLabel,
+          orders: ord,
+          pickups: pick,
+          capacity,
+          sessionTitle: session?.title,
+        };
       });
-      const roomOrders = sessionStats.reduce((a, b) => a + b.orderCount, 0);
-      const roomPickups = sessionStats.reduce((a, b) => a + b.pickupCount, 0);
-      return { room, sessionStats, roomOrders, roomPickups };
+
+      // VIP 보드룸 등 데이터 없는 공간은 비어있는 카운트로
+      const totalOrders = subs.reduce((a, b) => a + b.orders, 0);
+      const totalPickups = subs.reduce((a, b) => a + b.pickups, 0);
+      return {
+        id: v.id,
+        name: v.name,
+        area: v.area,
+        subs,
+        totalOrders,
+        totalPickups,
+      };
     });
   }, [orders, scoops]);
+
 
   const totals = useMemo(
     () =>
       stats.reduce(
-        (acc, r) => ({
-          orders: acc.orders + r.roomOrders,
-          pickups: acc.pickups + r.roomPickups,
+        (acc, v) => ({
+          orders: acc.orders + v.totalOrders,
+          pickups: acc.pickups + v.totalPickups,
         }),
         { orders: 0, pickups: 0 },
       ),
@@ -67,12 +115,12 @@ function AdminView() {
     <main className="min-h-screen pb-16">
       <RoleHeader
         role="관리자 (Admin)"
-        description="행사 장소별 주문(등록) QR · 수령(출석) QR 실시간 집계"
+        description="LEWEST 4층 평면도 · 공간별 주문(등록) QR · 수령(출석) QR 실시간 집계"
         color="mango"
       />
 
-      <section className="px-4 sm:px-6 max-w-[1400px] mx-auto">
-        {/* 전체 합계 — 핵심 두 지표 */}
+      <section className="px-4 sm:px-6 max-w-[1500px] mx-auto">
+        {/* 전체 합계 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
           <TotalCard
             label="주문 (등록) QR 스캔"
@@ -88,133 +136,121 @@ function AdminView() {
           />
         </div>
 
-        {/* 장소별 카드 */}
-        <h2 className="text-sm font-extrabold text-muted-foreground uppercase tracking-wider mb-3">
-          행사 장소별 현황
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-          {stats.map((room) => {
-            const rate =
-              room.roomOrders > 0
-                ? Math.round((room.roomPickups / room.roomOrders) * 100)
-                : 0;
-            return (
-              <div
-                key={room.room}
-                className="relative overflow-hidden bg-card rounded-3xl p-5 shadow-cream border border-white/60"
-              >
-                <div className="absolute inset-0 bg-grad-aurora-soft opacity-30" />
-                <ToppingScatter density="low" seed={`adm-${room.room}`} />
+        {/* 평면도 배치 */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-extrabold text-muted-foreground uppercase tracking-wider">
+            행사 공간 배치도 (LEWEST 4F)
+          </h2>
+          <div className="flex items-center gap-3 text-[11px] font-bold">
+            <Legend color="bg-grad-blueberry" label="주문 QR" />
+            <Legend color="bg-grad-strawberry" label="수령 QR" />
+          </div>
+        </div>
 
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-extrabold text-lg">{room.room}</h3>
-                    <span className="text-xs text-muted-foreground">
-                      {room.sessionStats.length} 세션
-                    </span>
-                  </div>
-
-                  {/* 장소 합계: 두 카운트 + 수령률 */}
-                  <div className="grid grid-cols-2 gap-2 mb-4">
-                    <RoomMetric
-                      label="주문 QR"
-                      value={room.roomOrders}
-                      grad="bg-grad-blueberry"
-                    />
-                    <RoomMetric
-                      label="수령 QR"
-                      value={room.roomPickups}
-                      grad="bg-grad-strawberry"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground mb-1">
-                      <span>수령률 (수령/주문)</span>
-                      <span className="text-foreground">{rate}%</span>
-                    </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div
-                        className="h-full bg-grad-success rounded-full transition-all"
-                        style={{ width: `${rate}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* 세션별 분해 */}
-                  <div className="space-y-3">
-                    {room.sessionStats.map((s) => {
-                      const cat = getCategory(s.session.category);
-                      const orderPct =
-                        (s.orderCount / s.session.capacity) * 100;
-                      const pickupPct =
-                        (s.pickupCount / s.session.capacity) * 100;
-                      const flavorGrad = `bg-grad-${
-                        cat.flavor === "strawberry"
-                          ? "strawberry"
-                          : cat.flavor === "mint"
-                            ? "mint"
-                            : cat.flavor === "mango"
-                              ? "mango"
-                              : cat.flavor === "blueberry"
-                                ? "blueberry"
-                                : "chocolate"
-                      }`;
-                      return (
-                        <div key={s.session.id}>
-                          <div className="flex items-start justify-between gap-2 mb-1.5">
-                            <div className="min-w-0">
-                              <p className="text-sm font-bold truncate">
-                                {s.session.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                Day {s.session.day} · {s.session.timeSlot} ·{" "}
-                                {s.session.presenter}
-                              </p>
-                            </div>
-                            <span
-                              className={`${flavorGrad} text-white text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 shadow-cream`}
-                            >
-                              {cat.label}
-                            </span>
-                          </div>
-
-                          <div className="relative h-3 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className="absolute inset-y-0 left-0 bg-grad-blueberry opacity-60 rounded-full"
-                              style={{ width: `${orderPct}%` }}
-                            />
-                            <div
-                              className="absolute inset-y-0 left-0 bg-grad-strawberry rounded-full"
-                              style={{ width: `${pickupPct}%` }}
-                            />
-                          </div>
-                          <div className="mt-1 flex items-center justify-between text-[11px] font-semibold">
-                            <span className="text-grad-aurora font-bold">
-                              주문 {s.orderCount}
-                            </span>
-                            <span className="text-grad-strawberry font-bold">
-                              수령 {s.pickupCount}
-                            </span>
-                            <span className="text-muted-foreground">
-                              정원 {s.session.capacity}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div
+          className="grid gap-3 sm:gap-4 p-3 sm:p-4 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream"
+          style={{
+            gridTemplateColumns: "1.1fr 1.6fr 1.1fr",
+            gridTemplateAreas: `
+              "v402  hallC  v403"
+              "v401  hallAB v404"
+              "v400  hallAB ."
+            `,
+          }}
+        >
+          {stats.map((v) => (
+            <VenueCard key={v.id} venue={v} />
+          ))}
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-2xl p-4">
-          ※ 데모 데이터에 현재 브라우저의 스캔 활동이 실시간으로 합산됩니다.
-          파란색 = 주문(등록) QR, 분홍색 = 수령(출석) QR.
+          ※ 카드 위치는 LEWEST 4층 평면도를 기반으로 배치되어 있습니다. 각
+          카드의 숫자는 데모 베이스라인 + 현재 브라우저의 실시간 스캔 활동을
+          합산한 값입니다.
         </div>
       </section>
     </main>
+  );
+}
+
+function VenueCard({ venue }: { venue: VenueStat }) {
+  const rate =
+    venue.totalOrders > 0
+      ? Math.round((venue.totalPickups / venue.totalOrders) * 100)
+      : 0;
+  return (
+    <div
+      className="relative overflow-hidden bg-card rounded-2xl p-4 shadow-cream border border-white/70 flex flex-col"
+      style={{ gridArea: venue.area }}
+    >
+      <ToppingScatter density="low" seed={`v-${venue.id}`} />
+      <div className="relative flex items-baseline justify-between mb-2">
+        <h3 className="font-extrabold text-base sm:text-lg leading-none">
+          {venue.name}
+        </h3>
+        <span className="text-[10px] font-bold text-muted-foreground">
+          {venue.subs.length} 공간
+        </span>
+      </div>
+
+      {/* 합계 두 카운트 + 수령률 */}
+      <div className="relative grid grid-cols-2 gap-2 mb-2">
+        <MiniMetric label="주문" value={venue.totalOrders} grad="bg-grad-blueberry" />
+        <MiniMetric label="수령" value={venue.totalPickups} grad="bg-grad-strawberry" />
+      </div>
+      <div className="relative mb-3">
+        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground mb-1">
+          <span>수령률</span>
+          <span className="text-foreground">{rate}%</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full bg-grad-success rounded-full transition-all"
+            style={{ width: `${rate}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 서브 공간 분해 */}
+      <div className="relative space-y-1.5 mt-auto">
+        {venue.subs.map((sub) => {
+          const cap = sub.capacity || 30;
+          const orderPct = Math.min(100, (sub.orders / cap) * 100);
+          const pickupPct = Math.min(100, (sub.pickups / cap) * 100);
+          const session = sub.sessionTitle;
+          return (
+            <div
+              key={sub.label}
+              className="rounded-xl border border-white/70 bg-white/60 px-2 py-1.5"
+            >
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-[11px] font-extrabold">
+                  {sub.label}
+                </span>
+                <span className="text-[10px] font-bold text-grad-aurora">
+                  주문 {sub.orders} · 수령 {sub.pickups}
+                </span>
+              </div>
+              {session && (
+                <p className="text-[10px] text-muted-foreground truncate mb-1">
+                  {session}
+                </p>
+              )}
+              <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-grad-blueberry opacity-60 rounded-full"
+                  style={{ width: `${orderPct}%` }}
+                />
+                <div
+                  className="absolute inset-y-0 left-0 bg-grad-strawberry rounded-full"
+                  style={{ width: `${pickupPct}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -257,7 +293,7 @@ function TotalCard({
   );
 }
 
-function RoomMetric({
+function MiniMetric({
   label,
   value,
   grad,
@@ -267,14 +303,23 @@ function RoomMetric({
   grad: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/70 bg-white/70 p-3">
+    <div className="relative overflow-hidden rounded-xl border border-white/70 bg-white/70 px-2.5 py-1.5">
       <div className={`absolute inset-0 ${grad} opacity-15`} />
       <div className="relative">
-        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
           {label}
         </p>
-        <p className="text-2xl font-extrabold leading-tight">{value}</p>
+        <p className="text-xl font-extrabold leading-tight">{value}</p>
       </div>
     </div>
+  );
+}
+
+function Legend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`inline-block w-3 h-3 rounded-full ${color}`} />
+      <span className="text-muted-foreground">{label}</span>
+    </span>
   );
 }
