@@ -19,6 +19,18 @@ import {
 } from "@/lib/confesta/store";
 import type { ToppingKind } from "@/lib/confesta/types";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  selectTriggerCls,
+  selectContentCls,
+  selectItemCls,
+} from "@/lib/confesta/selectStyles";
+import {
   Camera,
   Plus,
   Receipt,
@@ -310,35 +322,29 @@ function AudienceView() {
                 <ToppingScatter density="med" seed="audience-topping" />
                 <div className="relative">
                   <h3 className="font-bold text-lg mb-3">토핑 보내기</h3>
-                  <div className="mb-4">
-                    <label className="flex flex-col gap-1">
-                      <span className="text-[11px] font-bold text-muted-foreground px-1">
-                        세션 선택
-                      </span>
-                      <div className="relative">
-                        <select
-                          value={activeSessionId ?? ""}
-                          onChange={(e) => setSelectedSessionId(e.target.value)}
-                          className="w-full appearance-none rounded-full bg-white/80 border border-white px-4 py-2.5 pr-10 text-sm font-bold text-foreground shadow-cream outline-none focus:border-pink-400"
-                        >
-                          {mySessionIds.map((id) => {
-                            const s = SESSIONS.find((x) => x.id === id);
-                            if (!s) return null;
-                            return (
-                              <option key={id} value={id}>
-                                {s.title}
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <span
-                          aria-hidden
-                          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-pink-500 text-xs"
-                        >
-                          ▼
-                        </span>
-                      </div>
-                    </label>
+                  <div className="mb-4 flex flex-col gap-1">
+                    <span className="text-[11px] font-bold text-muted-foreground px-1">
+                      세션 선택
+                    </span>
+                    <Select
+                      value={activeSessionId ?? undefined}
+                      onValueChange={(v) => setSelectedSessionId(v)}
+                    >
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue placeholder="세션을 선택하세요" />
+                      </SelectTrigger>
+                      <SelectContent className={selectContentCls}>
+                        {mySessionIds.map((id) => {
+                          const s = SESSIONS.find((x) => x.id === id);
+                          if (!s) return null;
+                          return (
+                            <SelectItem key={id} value={id} className={selectItemCls}>
+                              {s.title}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <ToppingInput sessionId={activeSessionId} kind={toppingKind} onKindChange={setToppingKind} disableAnswerSubmit />
                   <p className="text-xs text-muted-foreground mt-4">
