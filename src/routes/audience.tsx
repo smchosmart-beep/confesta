@@ -50,6 +50,7 @@ function AudienceView() {
 
   // Orders tab state
   const orders = useConfestaStore((s) => s.orders);
+  const toppings = useConfestaStore((s) => s.toppings);
   const placeOrder = useConfestaStore((s) => s.placeOrderFromQR);
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<{
