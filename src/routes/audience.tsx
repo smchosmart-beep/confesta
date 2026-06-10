@@ -11,6 +11,7 @@ import { ToppingInput } from "@/components/confesta/ToppingInput";
 import { ReceiptCard } from "@/components/confesta/ReceiptCard";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
+import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import {
   useConfestaStore,
@@ -435,16 +436,24 @@ function AudienceView() {
                       });
                     if (sessionPrompts.length === 0) {
                       return (
-                        <div className="relative overflow-hidden bg-card rounded-3xl p-8 shadow-cream border border-white/60 text-center">
-                          <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
-                          <ToppingScatter density="low" seed="audience-topping-empty-prompts" />
-                          <div className="relative flex flex-col items-center gap-2">
-                            <h3 className="font-bold text-base">아직 키워드 질문이 없어요</h3>
-                            <p className="text-sm text-muted-foreground max-w-xs">
-                              발표자가 질문을 열어드리면 여기에 카드로 표시돼요.
-                            </p>
+                        <>
+                          <div className="relative overflow-hidden bg-card rounded-3xl p-8 shadow-cream border border-white/60 text-center">
+                            <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
+                            <ToppingScatter density="low" seed="audience-topping-empty-prompts" />
+                            <div className="relative flex flex-col items-center gap-2">
+                              <h3 className="font-bold text-base">아직 키워드 질문이 없어요</h3>
+                              <p className="text-sm text-muted-foreground max-w-xs">
+                                발표자가 질문을 열어드리면 여기에 카드로 표시돼요.
+                              </p>
+                            </div>
                           </div>
-                        </div>
+                          <div className="text-center">
+                            <span className="inline-block px-3 py-1 rounded-full bg-grad-mango/20 text-grad-mango text-xs font-bold">
+                              🍒 미리보기 — 응답이 들어오면 이렇게 보여요
+                            </span>
+                          </div>
+                          <SampleAnswerPromptCard />
+                        </>
                       );
                     }
                     return sessionPrompts.map((p) => (
