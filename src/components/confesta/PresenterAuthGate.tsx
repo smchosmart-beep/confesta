@@ -36,9 +36,8 @@ export function PresenterAuthGate({ session, onUnlock, onPickAnother }: Props) {
   return (
     <div className="mt-6 flex justify-center">
       <div
-        className={`relative w-full max-w-md overflow-hidden rounded-3xl border border-white/60 bg-card shadow-cream ${
-          shake ? "animate-shake" : ""
-        }`}
+        className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/60 bg-card shadow-cream"
+        style={shake ? { animation: "var(--animate-shake)" } : undefined}
       >
         <div className="absolute inset-0 bg-grad-aurora-soft opacity-50 pointer-events-none" />
         <div className="relative p-6 sm:p-8 flex flex-col gap-5">
