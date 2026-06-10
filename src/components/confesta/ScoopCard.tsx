@@ -74,9 +74,22 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
           }}
         />
 
-
-
-
+        {/* dome bottom inner shadow — aligned with mask cut curve */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M 3,52 Q 50,79 97,52"
+            stroke="rgba(0,0,0,0.30)"
+            strokeWidth="4"
+            fill="none"
+            strokeLinecap="round"
+            style={{ filter: "blur(2.5px)" }}
+          />
+        </svg>
 
         {/* edge vignette → rim shading */}
         <div
