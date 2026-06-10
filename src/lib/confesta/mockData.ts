@@ -21,6 +21,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "10:00 - 10:50",
     category: "ai-math",
     capacity: 40,
+    presenterPassword: "math01",
   },
   {
     id: "s2",
@@ -31,6 +32,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "11:00 - 11:50",
     category: "edutech",
     capacity: 60,
+    presenterPassword: "edu02",
   },
   {
     id: "s3",
@@ -41,6 +43,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "13:00 - 13:50",
     category: "pedagogy",
     capacity: 120,
+    presenterPassword: "ped03",
   },
   {
     id: "s4",
@@ -51,6 +54,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "14:00 - 14:50",
     category: "research",
     capacity: 40,
+    presenterPassword: "res04",
   },
   {
     id: "s5",
@@ -61,6 +65,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "10:00 - 10:50",
     category: "policy",
     capacity: 120,
+    presenterPassword: "pol05",
   },
   {
     id: "s6",
@@ -71,6 +76,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "11:00 - 11:50",
     category: "ai-math",
     capacity: 60,
+    presenterPassword: "math06",
   },
   {
     id: "s7",
@@ -81,6 +87,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "13:00 - 13:50",
     category: "edutech",
     capacity: 40,
+    presenterPassword: "edu07",
   },
   {
     id: "s8",
@@ -91,6 +98,7 @@ export const SESSIONS: Session[] = [
     timeSlot: "14:00 - 14:50",
     category: "pedagogy",
     capacity: 120,
+    presenterPassword: "ped08",
   },
 ];
 
