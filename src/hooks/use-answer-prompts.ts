@@ -33,7 +33,7 @@ export function useAnswerPrompts(sessionId: string | null) {
   useEffect(() => {
     if (!sessionId) return;
     const channel = supabase
-      .channel(`prompts:${sessionId}`)
+      .channel(`prompts:${sessionId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "answer_prompts", filter: `session_id=eq.${sessionId}` },
