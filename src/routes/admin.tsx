@@ -162,7 +162,7 @@ function AdminView() {
         </div>
 
         <div
-          className="grid gap-3 sm:gap-4 p-3 sm:p-4 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream"
+          className="grid gap-2 sm:gap-3 p-2 sm:p-3 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream"
           style={{
             gridTemplateColumns: "1.1fr 1.6fr 1.1fr",
             gridTemplateAreas: `
@@ -228,7 +228,7 @@ function subGridStyle(venueId: string): React.CSSProperties {
 function VenueCard({ venue }: { venue: VenueStat }) {
   return (
     <div
-      className="relative overflow-hidden bg-card rounded-2xl p-4 shadow-cream border border-white/70 flex flex-col"
+      className="relative overflow-hidden bg-card rounded-2xl p-3 shadow-cream border border-white/70 flex flex-col"
       style={{ gridArea: venue.area }}
     >
       <ToppingScatter density="low" seed={`v-${venue.id}`} />
@@ -252,7 +252,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
 
       {/* 서브 공간 그리드 (평면도 실제 배치 반영) */}
       <div
-        className="relative grid gap-2 mt-auto flex-1 p-2 rounded-xl bg-muted/40 border border-dashed border-foreground/15"
+        className="relative grid gap-1.5 mt-auto flex-1 p-1.5 rounded-xl bg-muted/40 border border-dashed border-foreground/15"
         style={subGridStyle(venue.id)}
       >
         {venue.subs.map((sub) => {
@@ -261,29 +261,29 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           <div
             key={sub.label}
             title={sub.sessionTitle}
-            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-3 py-2.5 flex flex-col min-h-[88px] shadow-sm"
+            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col min-h-[68px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
-            <div className="flex items-baseline gap-1.5 mb-1">
-              <span className="text-xl font-extrabold leading-none">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
             </div>
-            <p className="text-sm text-foreground/80 leading-snug line-clamp-2 mb-2 flex-1">
+            <p className="text-xs text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex flex-col items-center gap-2">
+            <div className="mt-auto flex flex-col items-center gap-1">
               <div
                 className="relative shrink-0 rounded-full grid place-items-center"
                 style={{
-                  width: 56,
-                  height: 56,
+                  width: 40,
+                  height: 40,
                   background: `conic-gradient(#ec4899 ${pct * 3.6}deg, #d1d5db 0)`,
                 }}
                 aria-label={`수령률 ${pct}%`}
               >
-                <div className="absolute inset-1.5 rounded-full bg-white grid place-items-center">
-                  <span className="text-xs font-extrabold tabular-nums text-foreground">{pct}%</span>
+                <div className="absolute inset-1 rounded-full bg-white grid place-items-center">
+                  <span className="text-[10px] font-extrabold tabular-nums text-foreground">{pct}%</span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 flex-wrap justify-center w-14">
