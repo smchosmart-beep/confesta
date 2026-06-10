@@ -32,6 +32,7 @@ interface SubStat {
   pickups: number;
   capacity: number;
   sessionTitle?: string;
+  toppings: number;
 }
 
 interface VenueStat {
