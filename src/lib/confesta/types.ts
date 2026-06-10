@@ -29,11 +29,14 @@ export interface Session {
   capacity: number;
 }
 
+export type ToppingKind = "question" | "answer";
+
 export interface Topping {
   id: string;
   sessionId: string;
   text: string;
   createdAt: number;
+  kind?: ToppingKind; // default "question"
   pinned?: boolean;
   addressed?: boolean;
   likes?: number;
