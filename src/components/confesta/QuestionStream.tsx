@@ -21,7 +21,10 @@ function mockLikes(id: string) {
 export function QuestionStream({ sessionId }: Props) {
   const allToppings = useConfestaStore((s) => s.toppings);
   const toppings = useMemo(
-    () => allToppings.filter((t) => t.sessionId === sessionId),
+    () =>
+      allToppings.filter(
+        (t) => t.sessionId === sessionId && t.kind !== "answer",
+      ),
     [allToppings, sessionId],
   );
   const togglePin = useConfestaStore((s) => s.togglePinTopping);
