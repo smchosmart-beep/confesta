@@ -1,64 +1,104 @@
-## 목표
+## 컨셉
 
-역할별 사용 환경에 맞춰 각 뷰의 레이아웃·기본값·디바이스 힌트를 정리합니다. 데이터/기능 변경 없음, 표현 레이어만 손봅니다.
+아이스크림 가게 비유 정렬:
+- **등록 QR** = **주문** (세션 장소 도착 시 스캔 → 주문 카드 생성)
+- **출석 QR** = **수령** (세션 종료 직전 스캔 → 아이스크림 픽업, 스쿱 적립)
 
-| 역할 | 사용 환경 | 기본 방향 |
-|---|---|---|
-| 청중 | 모바일 전용 | 모바일 폭 고정, 데스크톱에서도 폰 프레임처럼 보임 |
-| 운영 스태프 | 모바일 전용 | 동일 |
-| 발표자 | PC 위주 | 무대 모드를 기본, 핸드헬드는 보조 |
-| 관리자 | PC 위주 | 와이드 벤토 그리드, 좁은 화면엔 안내 배너 |
+청중 화면의 "수강신청"은 외부 시스템으로 분리 → 잔여좌석/신청 UI 삭제.
 
-## 공용: DeviceFrame 컴포넌트 (신규)
+## 1. QR 페이로드 / 상태 (`src/lib/confesta/store.ts`)
 
-`src/components/confesta/DeviceFrame.tsx`
-- `<DeviceFrame device="mobile" | "desktop">{children}</DeviceFrame>`
-- `device="mobile"`: 데스크톱 뷰포트(>= md)에서는 `max-w-[420px]` + 좌우 그라데이션 캔버스 + 라운드 코너·섀도로 **폰 목업** 안에 자식을 가둠. 모바일 뷰포트에서는 그냥 풀폭(`max-w-none`)으로 패스스루.
-- `device="desktop"`: 모바일 뷰포트(< lg)일 때 상단에 "데스크톱 화면에 최적화되어 있어요" 노란 배너 1개를 띄움. 그 외에는 패스스루.
+기존 `attend:` 한 종류 → 두 종류로 분리.
 
-상단 배너/프레임은 `RoleHeader` 아래, 콘텐츠 영역 위에 삽입.
+```text
+confesta:order:{sessionId}:{nonce}    ← 주문(도착 시)
+confesta:pickup:{sessionId}:{nonce}   ← 수령(종료 직전)
+```
 
-## 라우트별 변경
+헬퍼: `makeOrderQR / parseOrderQR`, `makePickupQR / parsePickupQR`, 통합 `parseSessionQR(payload) → { kind: 'order' | 'pickup', sessionId, nonce } | null`.
 
-### `src/routes/audience.tsx` — 모바일 전용
-- 최상위 콘텐츠를 `<DeviceFrame device="mobile">`로 감쌈.
-- 내부 `max-w-5xl mx-auto` → `max-w-none` (프레임이 폭을 제한).
-- `explore` 섹션의 세션 그리드 `sm:grid-cols-2 lg:grid-cols-3` → `grid-cols-1`만.
-- `live` 섹션 `md:grid-cols-2` → `grid-cols-1` (콘 카드 위, 스캔 CTA 아래로 세로 배치).
-- `PillTabs`가 좁은 폭에서 줄바꿈 없이 흐르도록 `overflow-x-auto` 래퍼 추가.
+새 모델:
+```ts
+interface Order {
+  id: string;             // `order-${sessionId}`
+  sessionId: string;
+  orderedAt: number;      // 주문 시각
+  pickedUpAt: number | null; // 수령 시각
+}
+```
 
-### `src/routes/staff.tsx` — 모바일 전용
-- `<DeviceFrame device="mobile">`로 감쌈.
-- 기존 `max-w-md mx-auto`는 유지(프레임 내부에서도 자연스러움).
-- 결과 오버레이는 그대로 — 이미 모달이라 OK.
+스토어 변경:
+- 추가: `orders: Order[]`
+- 액션:
+  - `placeOrderFromQR(payload)` — order QR만 처리, 중복 주문이면 reason 반환
+  - `pickupFromQR(payload)` — pickup QR만 처리. 해당 sessionId의 주문이 있고 아직 미수령일 때만 성공. 성공 시 `pickedUpAt` 기록 **+ 기존 스쿱 적립/attendanceCounts++ 로직 수행**
+- `addScoopFromQR`는 내부 전용으로 흡수
+- `enrolledSessionIds`/`toggleEnroll`은 그대로 둠 (UI에서만 미사용)
+- 발표자 nonce 구조 확장: `presenterNonces: Record<sessionId, { order: string; pickup: string }>`, `rotatePresenterNonce(sessionId, kind)`
 
-### `src/routes/presenter.tsx` — PC 위주
-- 검색 파라미터 `mode` 미지정일 때 **기본값을 `"stage"`로 변경** (현재는 `"handheld"`).
-- 좁은 뷰포트(< lg)에서 무대 모드 진입 시 `<DeviceFrame device="desktop">`의 안내 배너 노출.
-- 무대 모드 그리드 `lg:grid-cols-5`는 유지, 큰 화면 패딩을 약간 키움(`xl:px-10`).
-- 핸드헬드 모드는 그대로 보조 옵션으로 유지(모드 토글로 접근).
+## 2. 주문 탭 UI (`src/routes/audience.tsx`)
 
-### `src/routes/admin.tsx` — PC 위주
-- 최상위에 `<DeviceFrame device="desktop">` 적용(안내 배너만 추가).
-- 벤토 그리드 `md:grid-cols-2 xl:grid-cols-3` → `md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4`.
-- 컨테이너 `max-w-7xl` → `max-w-[1400px]`.
-- 합계 카드 row도 lg 이상에서 폰트/패딩을 키움.
+기존 `explore` 섹션 교체 (Day 토글 / SessionCard 그리드 제거).
 
-### `src/routes/index.tsx` — 역할 카드에 디바이스 뱃지
-- 각 역할에 `device: "mobile" | "desktop"` 추가하고 `ScoopCard`에 작은 칩으로 표시(예: 📱 모바일 / 🖥 데스크톱). 카드 구조는 그대로, 텍스트만 한 줄 추가.
+- **빈 상태(주문 0건)**: 안내 + 큰 그라데이션 CTA `주문 QR 스캔하기`. 누르면 인라인 `CameraScanner`.
+- **주문 1건 이상**: 상단 작은 CTA `+ 주문 추가` + `OrderCard` 리스트(최신순).
+
+스캔 결과 분기:
+- `order` → 신규 주문 생성, 토스트 "주문이 접수됐어요 🍨"
+- `pickup` → "주문 탭에서는 주문 QR을, 수령 QR은 각 주문 카드에서 찍어주세요" 안내
+- 그 외 → 오류
+
+## 3. OrderCard 컴포넌트 신규 (`src/components/confesta/OrderCard.tsx`)
+
+비주얼 톤: ReceiptCard/SessionCard와 일관(둥근 카드 + `bg-grad-sunset-soft` + ToppingScatter).
+
+구성:
+- 상단: 카테고리 플레이버 칩 + 시간/장소
+- 본문: 세션 제목 / 발표자
+- **단계 뱃지(우상단)**:
+  - 1단계 `주문 접수` (`bg-grad-muted`)
+  - 2단계 `수령 완료` (`bg-grad-success`) — `pickedUpAt` 존재 시
+- 액션:
+  - 미수령 → `수령 QR 스캔` 버튼(grad-strawberry). 클릭 시 카드 하단 인라인 `CameraScanner` 펼침
+  - 수령 완료 → "✓ HH:mm 수령 완료" 정적 라벨
+- 스캐너 분기:
+  - 같은 sessionId + pickup → 성공
+  - 다른 sessionId의 pickup → "다른 세션의 수령 QR입니다"
+  - order QR → "이건 주문 QR이에요"
+
+## 4. SessionCard 정리 (`src/components/confesta/SessionCard.tsx`)
+
+- 잔여 좌석 진행바 삭제
+- 신청하기/신청완료 버튼 삭제
+- 관련 imports(`useConfestaStore`, `Check` 등) 정리
+- 정보 전용 카드로 축소 (다른 곳 사용처는 검토 후 유지/정리)
+
+## 5. My 콘 탭
+
+- 카메라 스캐너를 **수령 QR 전용**(`pickupFromQR`)으로 동작 변경. 주문 QR을 비추면 "주문 탭에서 주문 QR을 먼저 스캔하세요" 안내.
+- 스쿱 누적/영수증 로직은 그대로.
+
+## 6. 발표자 QR 출력 (`src/routes/presenter.tsx` 및 관련 QR 컴포넌트)
+
+세션 하나당 **주문 QR**과 **수령 QR** 두 개를 노출:
+- Stage 모드: 좌/우 두 QR을 라벨과 함께(`주문` / `수령`) 나란히
+- Handheld 모드: 토글로 `주문` ↔ `수령` 전환
+- 두 QR 모두 자체 nonce를 가지고 독립적으로 회전
+
+## 7. 운영 스태프 스캐너 (`src/routes/staff.tsx`)
+
+동일 파서 사용. 표시 라벨도 `주문` / `수령` 으로 노출(로직은 기존 흐름 유지, 라벨링만 정리).
 
 ## 변경 파일 요약
 
-- 신규: `src/components/confesta/DeviceFrame.tsx`
-- 수정: `src/routes/audience.tsx`, `src/routes/staff.tsx`, `src/routes/presenter.tsx`, `src/routes/admin.tsx`, `src/routes/index.tsx`, `src/components/confesta/ScoopCard.tsx`(디바이스 칩 prop만 추가)
+- 수정: `src/lib/confesta/store.ts` (QR 분리, Order 모델, 액션 추가, presenterNonces 구조)
+- 신규: `src/components/confesta/OrderCard.tsx`
+- 수정: `src/routes/audience.tsx` (주문 탭 재구성, My 콘 스캐너 = 수령 전용)
+- 수정: `src/components/confesta/SessionCard.tsx` (좌석/신청 UI 제거)
+- 수정: `src/routes/presenter.tsx` 및 발표자 QR 렌더링 (두 QR 노출)
+- 수정: `src/routes/staff.tsx` (라벨 정리)
 
-## 검증
+## 호환성
 
-- 데스크톱(1440)에서 청중/스태프가 폰 프레임 안에 들어오는지.
-- 모바일(390)에서 발표자/관리자에 안내 배너가 뜨는지.
-- 발표자 첫 진입 URL `/presenter`에서 무대 모드가 바로 뜨는지.
-- 빌드 통과 + 콘솔 에러 없음.
-
-## 범위 외
-
-- 데이터/상태/QR 로직 변경 없음. 텍스트 카피·아이콘 외 새 색 토큰 추가 없음.
+- 구버전 `confesta:attend:...` QR은 더 이상 생성되지 않으며 스캔 시 "유효하지 않은 QR"로 처리.
+- persisted 상태에 `orders` 미존재 시 빈 배열로 hydrate — 별도 버전 키 변경 불필요.
