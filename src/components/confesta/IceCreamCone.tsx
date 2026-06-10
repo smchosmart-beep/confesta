@@ -41,65 +41,64 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
   const domeBox = w * 0.86; // square that contains a single dome scoop
   const domeVisible = domeBox * 0.5; // visible dome height inside the square
   const coneW = w * 0.78;
-  const coneH = coneW; // svg is square viewBox
-  const coneTuck = coneW * 0.1; // how much scoops sit into the cone rim
+  const coneH = coneW * 0.95;
+  const coneTuck = coneH * 0.12;
 
   const count = Math.max(scoops.length, 1);
   const totalHeight =
-    domeVisible * count + (coneH - coneTuck) + domeBox * 0.04; // breathing room
+    domeVisible * count + (coneH - coneTuck) + domeBox * 0.04;
+
+  const CONE_CLIP = "polygon(0% 6%, 100% 6%, 50% 100%)";
 
   return (
     <div
       className="relative mx-auto"
       style={{ width: w, height: totalHeight }}
     >
-      {/* Cone (back layer) */}
-      <svg
-        viewBox="0 0 100 100"
+      {/* Cone (back layer) — pure CSS, no SVG defs */}
+      <div
         className="absolute left-1/2 -translate-x-1/2"
         style={{
           width: coneW,
           height: coneH,
           bottom: 0,
           zIndex: 5,
+          filter: "drop-shadow(0 6px 10px rgba(110,68,22,0.25))",
         }}
         aria-hidden
       >
-        <defs>
-          <linearGradient id="cone-grad" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#EBC18A" />
-            <stop offset="60%" stopColor="#B07B3F" />
-            <stop offset="100%" stopColor="#6E4416" />
-          </linearGradient>
-          <linearGradient id="cone-rim" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#F4D9A8" />
-            <stop offset="100%" stopColor="#B07B3F" />
-          </linearGradient>
-          <pattern
-            id="waffle"
-            patternUnits="userSpaceOnUse"
-            width="10"
-            height="10"
-            patternTransform="rotate(45)"
-          >
-            <path
-              d="M0 0 L10 0 M0 5 L10 5"
-              stroke="rgba(0,0,0,0.18)"
-              strokeWidth="0.6"
-              fill="none"
-            />
-            <path
-              d="M0 0 L0 10 M5 0 L5 10"
-              stroke="rgba(0,0,0,0.18)"
-              strokeWidth="0.6"
-              fill="none"
-            />
-          </pattern>
-        </defs>
-        <polygon points="10,5 90,5 50,95" fill="url(#cone-grad)" />
-        <polygon points="10,5 90,5 50,95" fill="url(#waffle)" />
-        <rect x="8" y="2" width="84" height="8" rx="3" fill="url(#cone-rim)" />
-      </svg>
+        {/* cone body */}
+        <div
+          className="absolute inset-0"
+          style={{
+            clipPath: CONE_CLIP,
+            WebkitClipPath: CONE_CLIP,
+            background:
+              "linear-gradient(180deg, #EBC18A 0%, #B07B3F 60%, #6E4416 100%)",
+          }}
+        />
+        {/* waffle pattern */}
+        <div
+          className="absolute inset-0"
+          style={{
+            clipPath: CONE_CLIP,
+            WebkitClipPath: CONE_CLIP,
+            backgroundImage:
+              "repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.20) 6px 7px), repeating-linear-gradient(-45deg, transparent 0 6px, rgba(0,0,0,0.20) 6px 7px)",
+          }}
+        />
+        {/* rim */}
+        <div
+          className="absolute left-0 right-0"
+          style={{
+            top: 0,
+            height: coneH * 0.08,
+            background:
+              "linear-gradient(180deg, #F4D9A8 0%, #B07B3F 100%)",
+            borderRadius: 6,
+          }}
+        />
+      </div>
 
       {/* Empty state */}
       {scoops.length === 0 && (
@@ -114,6 +113,7 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
           QR 스캔하면 스쿱이 쌓여요
         </div>
       )}
+
 
       {/* Scoops (i=0 is bottom) */}
       {scoops.map((scoop, i) => {
