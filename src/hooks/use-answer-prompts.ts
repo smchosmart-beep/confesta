@@ -20,6 +20,7 @@ export function useAnswerPrompts(sessionId: string | null) {
   const closeSrv = useServerFn(closeFn);
   const reopenSrv = useServerFn(reopenFn);
   const deleteSrv = useServerFn(deleteFnSrv);
+  const channelId = useId();
 
   const queryKey = ["prompts", sessionId] as const;
   const { data } = useQuery({
