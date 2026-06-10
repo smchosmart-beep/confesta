@@ -3,15 +3,26 @@ import { useMemo, useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
-import { SessionCard } from "@/components/confesta/SessionCard";
+import { OrderCard } from "@/components/confesta/OrderCard";
 import { IceCreamCone } from "@/components/confesta/IceCreamCone";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingInput } from "@/components/confesta/ToppingInput";
 import { ReceiptCard } from "@/components/confesta/ReceiptCard";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
-import { Camera, Receipt, Sparkles, CalendarDays, IceCreamCone as IceCreamConeIcon } from "lucide-react";
+import {
+  useConfestaStore,
+  MAX_SCOOPS_CONST,
+  parseSessionQR,
+} from "@/lib/confesta/store";
+import {
+  Camera,
+  Plus,
+  Receipt,
+  Sparkles,
+  ShoppingBag,
+  IceCreamCone as IceCreamConeIcon,
+} from "lucide-react";
 
 export const Route = createFileRoute("/audience")({
   head: () => ({
@@ -20,41 +31,91 @@ export const Route = createFileRoute("/audience")({
       {
         name: "description",
         content:
-          "수강신청, 출석 스쿱 적립, 라이브 토핑 질문, 디지털 보상 영수증을 한 곳에서.",
+          "세션 장소에서 주문 QR을 찍어 주문하고, 종료 직전 수령 QR로 스쿱을 적립하세요.",
       },
       { property: "og:title", content: "청중 뷰 — Confesta" },
       {
         property: "og:description",
-        content: "수강신청 · 스쿱 · 토핑 · 영수증을 한 곳에서.",
+        content: "주문 · 수령 · 토핑 · 영수증을 한 곳에서.",
       },
     ],
   }),
   component: AudienceView,
 });
 
-type Section = "explore" | "live" | "topping" | "receipt";
-type Day = "1" | "2";
+type Section = "orders" | "live" | "topping" | "receipt";
 
 function AudienceView() {
-  const [section, setSection] = useState<Section>("explore");
-  const [day, setDay] = useState<Day>("1");
-  const [scanOpen, setScanOpen] = useState(false);
-  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [section, setSection] = useState<Section>("orders");
 
+  // Orders tab state
+  const orders = useConfestaStore((s) => s.orders);
+  const placeOrder = useConfestaStore((s) => s.placeOrderFromQR);
+  const [orderScanOpen, setOrderScanOpen] = useState(false);
+  const [orderFeedback, setOrderFeedback] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
+
+  // My cone tab state
   const scoops = useConfestaStore((s) => s.scoops);
-  const addScoop = useConfestaStore((s) => s.addScoopFromQR);
+  const pickup = useConfestaStore((s) => s.pickupFromQR);
+  const [coneScanOpen, setConeScanOpen] = useState(false);
+  const [coneFeedback, setConeFeedback] = useState<{
+    ok: boolean;
+    msg: string;
+  } | null>(null);
 
-  const sessionsForDay = useMemo(
-    () => SESSIONS.filter((s) => s.day === Number(day)),
-    [day],
+  const sortedOrders = useMemo(
+    () => [...orders].sort((a, b) => b.orderedAt - a.orderedAt),
+    [orders],
   );
-  const activeSessionId = scoops[scoops.length - 1]?.sessionId ?? SESSIONS[0].id;
+  const activeSessionId =
+    scoops[scoops.length - 1]?.sessionId ??
+    orders[0]?.sessionId ??
+    SESSIONS[0].id;
+
+  const handleOrderScan = (text: string) => {
+    const parsed = parseSessionQR(text);
+    if (parsed?.kind === "pickup") {
+      setOrderFeedback({
+        ok: false,
+        msg: "수령 QR은 해당 주문 카드의 '수령 QR 스캔' 버튼에서 찍어주세요",
+      });
+      return;
+    }
+    const result = placeOrder(text);
+    if (result.ok) {
+      setOrderFeedback({ ok: true, msg: "주문이 접수됐어요 🍨" });
+      setOrderScanOpen(false);
+    } else {
+      setOrderFeedback({ ok: false, msg: result.reason });
+    }
+  };
+
+  const handleConeScan = (text: string) => {
+    const parsed = parseSessionQR(text);
+    if (parsed?.kind === "order") {
+      setConeFeedback({
+        ok: false,
+        msg: "주문 QR은 '주문' 탭에서 먼저 스캔하세요",
+      });
+      return;
+    }
+    const result = pickup(text);
+    if (result.ok) {
+      setConeFeedback({ ok: true, msg: "수령 완료! 스쿱이 쌓였어요 🍦" });
+      setConeScanOpen(false);
+    } else {
+      setConeFeedback({ ok: false, msg: result.reason });
+    }
+  };
 
   return (
     <main className="min-h-screen pb-32">
       <RoleHeader
         role="청중 (Audience)"
-        description="수강신청부터 영수증까지 — 콘에 스쿱을 차곡차곡"
+        description="세션 장소에서 주문 QR → 종료 직전 수령 QR — 콘에 스쿱을 차곡차곡"
         color="pink"
       />
 
@@ -66,7 +127,7 @@ function AudienceView() {
                 value={section}
                 onChange={setSection}
                 tabs={[
-                  { value: "explore", label: "주문", icon: <CalendarDays className="w-4 h-4" /> },
+                  { value: "orders", label: "주문", icon: <ShoppingBag className="w-4 h-4" /> },
                   { value: "live", label: "My 콘", icon: <IceCreamConeIcon className="w-4 h-4" /> },
                   { value: "topping", label: "토핑 추가", icon: <Sparkles className="w-4 h-4" /> },
                   { value: "receipt", label: "영수증", icon: <Receipt className="w-4 h-4" /> },
@@ -77,87 +138,130 @@ function AudienceView() {
         </div>
 
         <section className="px-4 mt-6">
-          {section === "explore" && (
-            <div>
-              <div className="mb-5 flex justify-end">
-                <PillTabs<Day>
-                  size="sm"
-                  value={day}
-                  onChange={setDay}
-                  tabs={[
-                    { value: "1", label: "Day 1 (Fri)" },
-                    { value: "2", label: "Day 2 (Sat)" },
-                  ]}
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {sessionsForDay.map((s) => (
-                  <SessionCard key={s.id} session={s} />
-                ))}
-              </div>
+          {section === "orders" && (
+            <div className="flex flex-col gap-4">
+              {sortedOrders.length === 0 ? (
+                <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
+                  <ToppingScatter density="med" seed="orders-empty" />
+                  <div className="relative">
+                    <h3 className="font-bold text-lg mb-1">아직 주문이 없어요</h3>
+                    <p className="text-sm text-muted-foreground mb-5">
+                      세션 장소에 도착하면 발표자 화면의{" "}
+                      <strong>주문 QR</strong>을 스캔해 주문 카드를 만들어요.
+                      세션 종료 직전 <strong>수령 QR</strong>을 찍으면 스쿱이
+                      쌓입니다.
+                    </p>
+                    {!orderScanOpen ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOrderScanOpen(true);
+                          setOrderFeedback(null);
+                        }}
+                        className="bounce-press w-full bg-grad-strawberry text-white rounded-3xl p-6 shadow-pink font-bold text-base flex flex-col items-center gap-2"
+                      >
+                        <Camera className="w-7 h-7" />
+                        주문 QR 스캔하기
+                      </button>
+                    ) : (
+                      <CameraScanner
+                        onScan={handleOrderScan}
+                        onClose={() => setOrderScanOpen(false)}
+                        hintLine="세션 장소의 주문 QR을 비추세요"
+                      />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {!orderScanOpen ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOrderScanOpen(true);
+                        setOrderFeedback(null);
+                      }}
+                      className="bounce-press w-full inline-flex items-center justify-center gap-2 bg-grad-blueberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-blue"
+                    >
+                      <Plus className="w-4 h-4" />
+                      주문 QR 스캔 (새 주문 추가)
+                    </button>
+                  ) : (
+                    <CameraScanner
+                      onScan={handleOrderScan}
+                      onClose={() => setOrderScanOpen(false)}
+                      hintLine="세션 장소의 주문 QR을 비추세요"
+                    />
+                  )}
+
+                  {sortedOrders.map((o) => (
+                    <OrderCard key={o.id} order={o} />
+                  ))}
+                </>
+              )}
+
+              {orderFeedback && (
+                <div
+                  className={`p-3 rounded-2xl text-sm font-semibold text-center text-white shadow-cream ${
+                    orderFeedback.ok ? "bg-grad-success" : "bg-grad-danger"
+                  }`}
+                >
+                  {orderFeedback.msg}
+                </div>
+              )}
             </div>
           )}
 
           {section === "live" && (
             <div className="grid grid-cols-1 gap-6 items-start">
-            <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
-              <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
-              <ToppingScatter density="med" seed="audience-cone" />
-              <div className="relative">
-                <h3 className="font-bold text-lg mb-2">나의 콘</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {scoops.length} / {MAX_SCOOPS_CONST} 스쿱 적립
-                </p>
-                <div className="flex justify-center">
-                  <IceCreamCone scoops={scoops} size={220} />
+              <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+                <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
+                <ToppingScatter density="med" seed="audience-cone" />
+                <div className="relative">
+                  <h3 className="font-bold text-lg mb-2">나의 콘</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {scoops.length} / {MAX_SCOOPS_CONST} 스쿱 적립
+                  </p>
+                  <div className="flex justify-center">
+                    <IceCreamCone scoops={scoops} size={220} />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div>
-              {!scanOpen ? (
-                <button
-                  onClick={() => {
-                    setScanOpen(true);
-                    setFeedback(null);
-                  }}
-                  className="relative overflow-hidden bounce-press w-full bg-grad-strawberry text-white rounded-3xl p-8 shadow-pink font-bold text-lg flex flex-col items-center gap-2"
-                >
-                  <ToppingScatter density="med" seed="audience-scan-cta" />
-                  <Camera className="w-8 h-8 relative" />
-                  <span className="relative">카메라로 QR 스캔하기</span>
-                </button>
-              ) : (
-                <div>
-                  <CameraScanner
-                    onScan={(text) => {
-                      const result = addScoop(text);
-                      setFeedback({
-                        ok: result.ok,
-                        msg: result.ok
-                          ? "스쿱이 콘에 쌓였어요! 🍦"
-                          : result.reason ?? "오류",
-                      });
-                      if (result.ok) setScanOpen(false);
+              <div>
+                {!coneScanOpen ? (
+                  <button
+                    onClick={() => {
+                      setConeScanOpen(true);
+                      setConeFeedback(null);
                     }}
-                    onClose={() => setScanOpen(false)}
-                    hintLine="발표자 화면의 QR을 비추세요 (15초마다 갱신됩니다)"
+                    className="relative overflow-hidden bounce-press w-full bg-grad-strawberry text-white rounded-3xl p-8 shadow-pink font-bold text-lg flex flex-col items-center gap-2"
+                  >
+                    <ToppingScatter density="med" seed="audience-scan-cta" />
+                    <Camera className="w-8 h-8 relative" />
+                    <span className="relative">수령 QR 스캔하기</span>
+                  </button>
+                ) : (
+                  <CameraScanner
+                    onScan={handleConeScan}
+                    onClose={() => setConeScanOpen(false)}
+                    hintLine="세션 종료 직전 발표자 화면의 수령 QR을 비추세요"
                   />
-                </div>
-              )}
+                )}
 
-              {feedback && (
-                <div
-                  className={`mt-4 p-4 rounded-2xl text-sm font-semibold text-center text-white shadow-cream ${
-                    feedback.ok ? "bg-grad-success" : "bg-grad-danger"
-                  }`}
-                >
-                  {feedback.msg}
-                </div>
-              )}
+                {coneFeedback && (
+                  <div
+                    className={`mt-4 p-4 rounded-2xl text-sm font-semibold text-center text-white shadow-cream ${
+                      coneFeedback.ok ? "bg-grad-success" : "bg-grad-danger"
+                    }`}
+                  >
+                    {coneFeedback.msg}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
           {section === "topping" && (
             <div className="mx-auto">

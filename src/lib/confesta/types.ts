@@ -50,3 +50,12 @@ export interface RedemptionLog {
   redeemedAt: number;
   status: "success" | "duplicate" | "invalid";
 }
+
+export interface Order {
+  id: string;
+  sessionId: string;
+  orderedAt: number;
+  pickedUpAt: number | null;
+}
+
+export type SessionQRKind = "order" | "pickup";
