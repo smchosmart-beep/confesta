@@ -393,7 +393,7 @@ function AudienceView() {
                       return (
                         <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
                           {list.map((t) => {
-                            const liked = likedToppingIds.includes(t.id);
+                            const liked = t.likedByMe;
                             const likeCount = t.likes ?? 0;
                             return (
                               <li
