@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Pin, Check, Heart, Maximize2 } from "lucide-react";
-import { useConfestaStore } from "@/lib/confesta/store";
-import type { Topping } from "@/lib/confesta/types";
+import { useSessionToppings } from "@/hooks/use-toppings";
+import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
 import { QuestionSpotlightModal } from "./QuestionSpotlightModal";
 
 type Filter = "all" | "pinned" | "unaddressed" | "addressed";
@@ -11,28 +11,16 @@ interface Props {
   sessionId: string;
 }
 
-// Stable mock likes — derived from id hash so they don't flicker on rerender
-function mockLikes(id: string) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return Math.abs(h) % 47;
-}
-
 export function QuestionStream({ sessionId }: Props) {
-  const allToppings = useConfestaStore((s) => s.toppings);
+  const { toppings: allToppings, togglePin, toggleAddressed } = useSessionToppings(sessionId);
   const toppings = useMemo(
-    () =>
-      allToppings.filter(
-        (t) => t.sessionId === sessionId && t.kind !== "answer",
-      ),
-    [allToppings, sessionId],
+    () => allToppings.filter((t) => t.kind !== "answer"),
+    [allToppings],
   );
-  const togglePin = useConfestaStore((s) => s.togglePinTopping);
-  const toggleAddressed = useConfestaStore((s) => s.toggleAddressedTopping);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("recent");
-  const [spotlight, setSpotlight] = useState<Topping | null>(null);
+  const [spotlight, setSpotlight] = useState<ToppingDTO | null>(null);
 
   const filtered = useMemo(() => {
     let list = [...toppings];
