@@ -7,6 +7,7 @@ import { PresenterModeToggle, type PresenterMode } from "@/components/confesta/P
 import { SlideControlPanel } from "@/components/confesta/SlideControlPanel";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingWordCloud } from "@/components/confesta/ToppingWordCloud";
+import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { AttendanceGauge } from "@/components/confesta/AttendanceGauge";
 import { StageMarquee } from "@/components/confesta/StageMarquee";
 import { useConfestaStore, makeAttendanceQR } from "@/lib/confesta/store";
@@ -205,7 +206,7 @@ function PresenterView() {
               </h2>
             </div>
             <div className="flex-1">
-              <ToppingWordCloud sessionId={sessionId} />
+              <ToppingTubScene sessionId={sessionId} />
             </div>
             <SlideControlPanel />
           </div>
@@ -313,9 +314,9 @@ function PresenterView() {
         {tab === "cloud" && (
           <div className="animate-fade-in space-y-3">
             <p className="text-sm text-muted-foreground">
-              청중이 보낸 토핑에서 자주 등장한 키워드입니다. 5초마다 갱신.
+              청중 질문에서 명사 키워드만 골라 토핑처럼 통 위에 쌓입니다. 5초마다 갱신.
             </p>
-            <ToppingWordCloud sessionId={sessionId} compact />
+            <ToppingTubScene sessionId={sessionId} compact />
           </div>
         )}
 
