@@ -279,26 +279,41 @@ function VenueCard({ venue }: { venue: VenueStat }) {
             <p className="text-xs text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex flex-col items-center gap-2">
-              <div
-                className="relative shrink-0 rounded-full grid place-items-center"
-                style={{
-                  width: 72,
-                  height: 72,
-                  background: `conic-gradient(#ec4899 ${pct * 3.6}deg, #d1d5db 0)`,
-                }}
-                aria-label={`수령률 ${pct}%`}
-              >
-                <div className="absolute inset-2 rounded-full bg-white grid place-items-center">
-                  <span className="text-sm font-extrabold tabular-nums text-foreground">{pct}%</span>
+            <div className="mt-auto grid grid-cols-2 gap-1.5 items-center">
+              {/* 좌측: 수령률 원그래프 */}
+              <div className="flex flex-col items-center gap-1.5">
+                <div
+                  className="relative shrink-0 rounded-full grid place-items-center"
+                  style={{
+                    width: 64,
+                    height: 64,
+                    background: `conic-gradient(#ec4899 ${pct * 3.6}deg, #d1d5db 0)`,
+                  }}
+                  aria-label={`수령률 ${pct}%`}
+                >
+                  <div className="absolute inset-1.5 rounded-full bg-white grid place-items-center">
+                    <span className="text-xs font-extrabold tabular-nums text-foreground">{pct}%</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-wrap justify-center">
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
+                    주문 <span className="tabular-nums">{sub.orders}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-strawberry">
+                    수령 <span className="tabular-nums">{sub.pickups}</span>
+                  </span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap justify-center w-20">
-                <span className="inline-flex items-center gap-1 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-2 py-0.5 text-xs font-extrabold text-grad-blueberry">
-                  주문 <span className="tabular-nums">{sub.orders}</span>
+              {/* 우측: 토핑(질문) 수 카드 */}
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-1.5 py-2 h-full">
+                <span className="text-[9px] font-bold text-muted-foreground leading-none mb-1">
+                  토핑 (질문)
                 </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-2 py-0.5 text-xs font-extrabold text-grad-strawberry">
-                  수령 <span className="tabular-nums">{sub.pickups}</span>
+                <span className="text-2xl font-extrabold tabular-nums text-grad-mango leading-none">
+                  {sub.toppings}
+                </span>
+                <span className="text-[9px] font-bold text-muted-foreground leading-none mt-1">
+                  개
                 </span>
               </div>
             </div>
