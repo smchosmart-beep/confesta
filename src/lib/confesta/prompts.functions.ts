@@ -45,7 +45,12 @@ export const listAnswerPrompts = createServerFn({ method: "POST" })
 
 async function setActivePrompt(sessionId: string, promptId: string | null, answersOpen?: boolean) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const patch: Record<string, unknown> = {
+  const patch: {
+    session_id: string;
+    active_prompt_id: string | null;
+    updated_at: string;
+    answers_open?: boolean;
+  } = {
     session_id: sessionId,
     active_prompt_id: promptId,
     updated_at: new Date().toISOString(),
