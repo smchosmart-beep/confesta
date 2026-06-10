@@ -30,7 +30,9 @@ const QR_INTERVAL_MS = 15_000;
 
 function PresenterView() {
   const [sessionId, setSessionId] = useState(SESSIONS[0].id);
+  const [unlockedSessionId, setUnlockedSessionId] = useState<string | null>(null);
   const session = SESSIONS.find((s) => s.id === sessionId)!;
+  const isUnlocked = unlockedSessionId === sessionId;
   const [pickupOpen, setPickupOpen] = useState(false);
 
   const rotate = useConfestaStore((s) => s.rotatePresenterNonce);
