@@ -161,7 +161,16 @@ export function ReceiptCard() {
         <PersonaBadge persona={derivePersona(scoops)} />
       </div>
 
-      <div className="text-center mt-4">
+      <div className="mt-5 flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSaveImage}
+          disabled={saving}
+          className="bounce-press inline-flex items-center gap-2 rounded-full bg-grad-strawberry text-white px-5 py-2.5 text-sm font-bold shadow-pink disabled:opacity-60"
+        >
+          <Download className="w-4 h-4" />
+          {saving ? "저장 중..." : "이미지로 저장"}
+        </button>
         <button
           type="button"
           onClick={() => {
