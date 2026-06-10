@@ -29,6 +29,9 @@ export type SlotDTO = {
   hasOrderQR: boolean;
   orderPayload: string | null;
   orderRotatedAt: number | null;
+  hasPickupQR: boolean;
+  pickupPayload: string | null;
+  pickupRotatedAt: number | null;
 };
 
 async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
@@ -42,27 +45,31 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
     supabaseAdmin
       .from("session_nonces")
       .select("session_id, kind, nonce, rotated_at")
-      .eq("kind", "order"),
+      .in("kind", ["order", "pickup"]),
   ]);
   if (slotsRes.error) throw slotsRes.error;
   if (noncesRes.error) throw noncesRes.error;
 
   const nonceMap = new Map<string, { nonce: string; rotated_at: string }>();
   for (const n of noncesRes.data ?? []) {
-    nonceMap.set(n.session_id, { nonce: n.nonce, rotated_at: n.rotated_at });
+    nonceMap.set(`${n.kind}:${n.session_id}`, { nonce: n.nonce, rotated_at: n.rotated_at });
   }
 
   return (slotsRes.data ?? []).map((s) => {
     const key = makeSlotKey(s.day, s.period as Period, s.room);
-    const hit = nonceMap.get(key);
+    const order = nonceMap.get(`order:${key}`);
+    const pickup = nonceMap.get(`pickup:${key}`);
     return {
       day: s.day,
       period: s.period as Period,
       room: s.room,
       title: s.title ?? "",
-      hasOrderQR: !!hit,
-      orderPayload: hit ? makeOrderQR(key, hit.nonce) : null,
-      orderRotatedAt: hit ? new Date(hit.rotated_at).getTime() : null,
+      hasOrderQR: !!order,
+      orderPayload: order ? makeOrderQR(key, order.nonce) : null,
+      orderRotatedAt: order ? new Date(order.rotated_at).getTime() : null,
+      hasPickupQR: !!pickup,
+      pickupPayload: pickup ? makePickupQR(key, pickup.nonce) : null,
+      pickupRotatedAt: pickup ? new Date(pickup.rotated_at).getTime() : null,
     };
   });
 }
