@@ -52,8 +52,17 @@ export const Route = createFileRoute("/admin")({
       },
     ],
   }),
-  component: AdminView,
+  component: AdminPage,
 });
+
+function AdminPage() {
+  return (
+    <AdminAuthGate>
+      <AdminView />
+    </AdminAuthGate>
+  );
+}
+
 
 interface SubStat {
   code: string; // "A"/"B"/...
