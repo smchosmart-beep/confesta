@@ -31,7 +31,7 @@ export function useSlideState() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, [qc, channelId]);
 
   const update = useMutation({
     mutationFn: (patch: { slideIndex?: number; slideTotal?: number; paused?: boolean }) =>
