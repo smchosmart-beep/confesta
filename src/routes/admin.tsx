@@ -299,18 +299,18 @@ function AdminView() {
         <div className="hidden md:grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
           {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
           <div className="flex flex-col gap-24 self-stretch">
-            {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} />)}
-            {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} />)}
-            {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
+            {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
+            {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
           </div>
           {/* 중앙 컬럼: LEWEST Hall */}
           <div className="flex flex-col self-stretch pt-[404px]">
-            {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
           </div>
           {/* 우측 컬럼: 403 (위) / 404 (아래) */}
           <div className="flex flex-col gap-24 self-stretch">
-            {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} />)}
-            {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
+            {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />)}
           </div>
         </div>
 
@@ -318,10 +318,11 @@ function AdminView() {
         <div className="md:hidden flex flex-col gap-3">
           {["402", "401", "hall", "403", "404", "400"].flatMap((id) =>
             stats.filter((v) => v.id === id).map((v) => (
-              <MobileVenueCard key={v.id} venue={v} />
+              <MobileVenueCard key={v.id} venue={v} day={selectedDay} period={selectedPeriod} slotsByRoom={slotsByRoom} />
             )),
           )}
         </div>
+
 
         <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-2xl p-4">
           ※ 카드 위치는 LEWEST 4층 평면도를 기반으로 배치되어 있습니다. 각
