@@ -114,7 +114,7 @@ export function QuestionStream({ sessionId }: Props) {
                     <Heart className="w-3.5 h-3.5 text-primary fill-current" />
                     <span className="font-mono font-semibold">{likes}</span>
                     <span>·</span>
-                    <span>
+                    <span suppressHydrationWarning>
                       {new Date(t.createdAt).toLocaleTimeString("ko-KR", {
                         hour: "2-digit",
                         minute: "2-digit",

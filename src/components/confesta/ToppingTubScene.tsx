@@ -79,7 +79,7 @@ export function ToppingTubScene({ sessionId, compact = false }: Props) {
     });
   }, [keywords, maxCount, compact, tick]);
 
-  const containerH = compact ? "h-[360px]" : "h-[460px] sm:h-[560px]";
+  const containerH = compact ? "h-[360px]" : "h-[460px] sm:h-[560px] xl:h-[720px]";
 
   return (
     <div
