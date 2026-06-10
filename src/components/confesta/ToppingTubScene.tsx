@@ -49,33 +49,40 @@ export function ToppingTubScene({ sessionId, compact = false }: Props) {
 
   const maxCount = keywords[0]?.count ?? 1;
 
-  // Stable positions piled over the ice cream mound.
-  // Rank 0 -> center-top of mound. Larger ranks fan out & higher.
+  // Snow-fall placement: high-frequency words → bigger, fall near center column.
+  // Low-frequency → smaller, spread further toward edges.
   const placed = useMemo(() => {
     return keywords.map((kw, i) => {
-      // size px
-      const ratio = kw.count / maxCount;
+      const ratio = kw.count / maxCount; // 0..1
       const size = compact
-        ? 13 + ratio * 17 // 13–30
-        : 18 + ratio * 30; // 18–48
+        ? 13 + ratio * 19 // 13–32
+        : 18 + ratio * 38; // 18–56
 
-      // pile placement: spiral fan
-      // x: alternating around center, drifting outward
-      const lane = Math.ceil(i / 2);
-      const side = i === 0 ? 0 : i % 2 === 1 ? -1 : 1;
       const hash = hashStr(kw.word);
-      const jitterX = ((hash % 100) / 100 - 0.5) * 8; // ±4%
-      const jitterY = (((hash >> 7) % 100) / 100) * 6;
-      // x centered at 50%, fan ±36%
-      const x = 50 + side * Math.min(lane * 10, 38) + jitterX;
-      // y: 0 = top of pile area, higher rank => lower (closer to mound surface)
-      // rank 0 highest on mound (smallest y in pile area = bottom)
-      // We want rank 0 visually largest, sitting near top-of-mound center
-      const y = 78 - Math.min(i, 10) * 6 - jitterY; // % from top of pile area
+      // Horizontal: high-freq tight to center, low-freq wider spread.
+      // spread half-width in %: 6% (top word) up to 44% (rare words)
+      const spreadHalf = 6 + (1 - ratio) * 38;
+      const xOffset = (((hash % 1000) / 1000) - 0.5) * 2 * spreadHalf;
+      const x = 50 + xOffset;
+
+      // Fall duration: heavier (bigger) falls a touch slower; add per-word jitter.
+      const baseDur = compact ? 7 : 9;
+      const dur = baseDur + ratio * 3 + ((hash >> 5) % 100) / 25; // ~7–16s
+      // Negative delay so each starts at different point on the loop.
+      const delay = -((hash >> 11) % 1000) / 1000 * dur;
+      const swayDur = 2.6 + ((hash >> 17) % 100) / 40; // 2.6–5.1s
+      const swayDelay = -((hash >> 3) % 1000) / 1000 * swayDur;
+
       const rot = ((hash >> 3) % 30) - 15;
       const gradient = PILL_GRADS[i % PILL_GRADS.length];
       const Icon = ICONS[hash % ICONS.length];
-      return { kw, size, x, y, rot, gradient, Icon, key: `${kw.word}-${tick}` };
+      // z-index: bigger (more frequent) in front
+      const z = 10 + Math.round(ratio * 90);
+      return {
+        kw, size, x, rot, gradient, Icon,
+        dur, delay, swayDur, swayDelay, z,
+        key: `${kw.word}-${tick}`,
+      };
     });
   }, [keywords, maxCount, compact, tick]);
 
@@ -88,34 +95,37 @@ export function ToppingTubScene({ sessionId, compact = false }: Props) {
       <div className="absolute inset-0 bg-grad-cream" />
       <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
 
-      {/* Topping pile layer — upper 62% of the scene, sitting on the mound */}
-      <div className="absolute inset-x-0 top-0 h-[62%]">
+      {/* Falling topping layer — upper 62% of the scene (lands on the ice cream mound) */}
+      <div className="absolute inset-x-0 top-0 h-[62%] overflow-hidden pointer-events-none">
         {placed.length === 0 ? (
-          <div className="absolute inset-0 flex items-center justify-center text-center px-6 text-muted-foreground">
-            토핑이 도착하면 키워드가 통 위로 쌓입니다 🍒
+          <div className="absolute inset-0 flex items-center justify-center text-center px-6 text-muted-foreground pointer-events-auto">
+            토핑이 도착하면 키워드가 눈처럼 내려옵니다 🍒
           </div>
         ) : (
-          placed.map((p, i) => (
+          placed.map((p) => (
             <div
               key={p.key}
-              className="topping-drop absolute -translate-x-1/2 -translate-y-1/2"
+              className="absolute"
               style={{
                 left: `${p.x}%`,
-                top: `${p.y}%`,
+                top: "-10%",
+                zIndex: p.z,
                 ["--rot" as string]: `${p.rot}deg`,
-                animationDelay: `${Math.min(i * 60, 900)}ms`,
-                zIndex: 100 - i,
+                animation: `toppingSnow ${p.dur}s linear ${p.delay}s infinite`,
+                willChange: "top, transform",
               }}
               title={`${p.kw.count}회`}
             >
               <span
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-extrabold text-white whitespace-nowrap shadow-pink border border-white/70"
+                className="inline-flex items-center gap-1.5 rounded-full font-extrabold text-white whitespace-nowrap shadow-pink border border-white/70"
                 style={{
                   fontSize: `${p.size}px`,
                   lineHeight: 1,
                   backgroundImage: p.gradient,
                   paddingInline: `${Math.max(8, p.size * 0.45)}px`,
                   paddingBlock: `${Math.max(4, p.size * 0.25)}px`,
+                  animation: `toppingSway ${p.swayDur}s ease-in-out ${p.swayDelay}s infinite`,
+                  display: "inline-flex",
                 }}
               >
                 <p.Icon size={Math.max(12, p.size * 0.7)} />
@@ -130,6 +140,7 @@ export function ToppingTubScene({ sessionId, compact = false }: Props) {
           ))
         )}
       </div>
+
 
       {/* Ice cream tub — bottom 50% */}
       <IceCreamTub compact={compact} sessionId={sessionId} />
