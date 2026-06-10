@@ -103,7 +103,7 @@ function PresenterView() {
           return (
             <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
               <div className="flex items-start justify-between gap-3">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_2fr] gap-4 flex-1">
                   {/* 1단계 */}
                   <div className="flex flex-col gap-2">
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
