@@ -1,25 +1,43 @@
-## 문제
-컨텐츠 영역이 정사각 컨테이너 기준 `pt-5 pb-[18%]`라 중심이 y≈41% 부근. 돔 바닥이 y≈65%(가장자리는 y≈52%)인데 컨텐츠가 중앙 아래로 내려가 있어 텍스트/설명 일부가 경계선에 닿거나 밖으로 보인다.
-
 ## 목표
-모든 컨텐츠(아이콘 + label + 제목 + desc)가 돔 실루엣 안에 들어오도록 위치 조정. 컨텐츠 중심을 y≈32%로 올리고, 좁아지는 가장자리에 맞춰 가로 패딩도 살짝 조정.
+발표자 뷰의 "워드" 탭(핸드헬드)과 무대 모드 워드클라우드 영역을, **아이스크림 통(파인트/하프갤런) 위로 단어가 토핑처럼 떨어져 쌓이는** 시각화로 교체합니다. 빈도가 높은 단어는 큰 토핑, 낮은 단어는 작은 토핑으로 표현하고, 청중 질문 문장에서 조사·어미를 걸러낸 **명사 위주 키워드**만 토핑화합니다.
 
-## 파일
-- `src/components/confesta/ScoopCard.tsx` (컨텐츠 컨테이너 한 줄)
+## 새 컴포넌트
+`src/components/confesta/ToppingTubScene.tsx`
 
-## 수정
-```jsx
-// before
-className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 pt-5"
-style={{ paddingBottom: "18%" }}
+구성:
+1. **아이스크림 통(SVG)** — 화면 하단에 고정 배치된 원통형 통. 라벨(예: "CONFESTA PINT" / 세션명), 윗부분에는 둥글게 부푼 아이스크림(스트로베리·민트·바닐라 스월). `compact` prop으로 파인트(작게, 핸드헬드용) / 하프갤런(크게, 무대 모드용) 두 사이즈 지원.
+2. **낙하 토핑 레이어** — 통 위쪽 영역에서 단어가 떨어져 아이스크림 표면에 살짝 튕긴 뒤 자리잡는 애니메이션. 각 단어는 알약형 캡슐 위에 텍스트 + 옆에 작은 토핑 아이콘(체리/별/초코칩 — 빈도 따라 결정). 빈도 높은 단어일수록 큰 캡슐.
+3. **빈 상태** — 통 위에 "토핑이 도착하면 쌓입니다 🍒" 안내.
 
-// after
-className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 pt-4"
-style={{ paddingBottom: "42%" }}
-```
+Props: `{ sessionId: string; compact?: boolean }` (기존 `ToppingWordCloud`와 동일 시그니처라 교체가 쉬움).
 
-- `paddingBottom: 42%` → 컨텐츠 영역 0..58%, 중심 y≈29% → 돔 안쪽 상단~중앙
-- `pt-4` → 아이콘이 너무 위로 붙지 않게 살짝 여유
-- `px-8` (40→32px) → 가로는 여유. 돔 가장 넓은 부분이 y≈30%라 여기서는 거의 100% 폭 사용 가능
+## 단어 추출(한국어 휴리스틱)
+별도 라이브러리 없이 `src/lib/confesta/keywords.ts` 신설:
 
-요소 간격은 그대로 유지 (`mb-3`, `mt-0.5`, `mt-1.5`).
+- 토큰화: 공백/문장부호 split (기존 로직 재사용).
+- **조사 스트립**: 토큰 끝에서 다음 접미사를 반복 제거 — `은/는/이/가/을/를/의/에/에서/에게/께/한테/도/만/과/와/로/으로/까지/부터/요/이라/이라고/라고/이며/이며/이고/이고/입니다/입니까/이다/예요/에요/네요/구요/까`.
+- **서술어/어미 필터**: 토큰이 `하다/한다/했다/합니다/할까요/해요/되다/된다/됩니다/있다/없다/같다/싶다`로 끝나면 제외. `하는/되는/있는/없는/같은`도 제외.
+- **불용어**: 기존 `STOP` 세트 확장(그/이/저/것/거/때문/관련/통해/대해 등).
+- 길이 ≥ 2자, 숫자/영문 단독 토큰은 길이 ≥ 3.
+- 결과: `[{ word, count }]` 빈도 내림차순.
+
+빈도 → 크기 매핑: 최소 14px, 최대 38px(compact) / 22px–60px(stage). 동률은 최신 토핑 우선.
+
+## 통합
+`src/routes/presenter.tsx`:
+- 핸드헬드 `tab === "cloud"` 영역의 `<ToppingWordCloud sessionId compact />` → `<ToppingTubScene sessionId compact />`.
+- 무대 모드 우측 "TOP 토핑 키워드" 영역의 `<ToppingWordCloud sessionId />` → `<ToppingTubScene sessionId />`.
+- 탭 라벨/아이콘은 그대로 유지("워드", `Cloud` 아이콘).
+
+`ToppingWordCloud.tsx`는 다른 곳에서 쓰이지 않으면 그대로 두되 import만 제거(추후 정리). 우선 삭제하지 않음.
+
+## 애니메이션
+- Tailwind keyframes(`src/styles.css`)에 `topping-drop` 추가: `translateY(-120%) → 0`, 살짝 `scale` 바운스, 회전 약간. 단어별 `animation-delay`는 인덱스 기반.
+- 5초마다 재계산(기존 `tick` 패턴 유지) — 새 단어가 추가되면 위에서 떨어지듯 다시 진입.
+
+## 디자인 토큰
+기존 토큰만 사용 (`bg-grad-cream`, `bg-grad-strawberry`, `bg-grad-mint`, `shadow-pink` 등). 새 색 추가 없음.
+
+## 범위 외
+- 데이터 모델 변경 없음.
+- 형태소 분석기(예: hangul-js) 도입은 번들 크기 우려로 보류 — 휴리스틱으로 시작.
