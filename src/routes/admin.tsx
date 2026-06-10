@@ -264,15 +264,15 @@ function VenueCard({ venue }: { venue: VenueStat }) {
             className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col min-h-[68px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
-            <div className="flex items-baseline gap-1.5 mb-1">
-              <span className="text-xl font-extrabold leading-none">
+            <div className="flex items-baseline gap-1">
+              <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
             </div>
-            <p className="text-sm text-foreground/80 leading-snug line-clamp-2 mb-2 flex-1">
+            <p className="text-xs text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex flex-col items-center gap-2">
+            <div className="mt-auto flex flex-col items-center gap-1">
               <div
                 className="relative shrink-0 rounded-full grid place-items-center"
                 style={{
