@@ -40,7 +40,9 @@ interface VenueStat {
   subs: SubStat[];
   totalOrders: number;
   totalPickups: number;
+  noMetrics?: boolean;
 }
+
 
 function AdminView() {
   const orders = useConfestaStore((s) => s.orders);
@@ -48,9 +50,20 @@ function AdminView() {
 
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
+      if (v.noMetrics) {
+        return {
+          id: v.id,
+          name: v.name,
+          area: v.area,
+          subs: [],
+          totalOrders: 0,
+          totalPickups: 0,
+          noMetrics: true,
+        };
+      }
       const codes = v.subspaces.length ? v.subspaces : [""];
       const subs: SubStat[] = codes.map((code) => {
-        const roomLabel = v.id.startsWith("hall")
+        const roomLabel = v.id === "hall"
           ? `LEWEST Hall${code ? " " + code : ""}`
           : code
             ? `${v.id}-${code}`
@@ -84,7 +97,6 @@ function AdminView() {
         };
       });
 
-      // VIP 보드룸 등 데이터 없는 공간은 비어있는 카운트로
       const totalOrders = subs.reduce((a, b) => a + b.orders, 0);
       const totalPickups = subs.reduce((a, b) => a + b.pickups, 0);
       return {
@@ -97,6 +109,7 @@ function AdminView() {
       };
     });
   }, [orders, scoops]);
+
 
 
   const totals = useMemo(
@@ -152,12 +165,13 @@ function AdminView() {
           style={{
             gridTemplateColumns: "1.1fr 1.6fr 1.1fr",
             gridTemplateAreas: `
-              "v402  hallC  v403"
-              "v401  hallAB v404"
-              "v400  hallAB ."
+              "v402  hall  v403"
+              "v401  hall  v404"
+              "v400  .     ."
             `,
           }}
         >
+
           {stats.map((v) => (
             <VenueCard key={v.id} venue={v} />
           ))}
@@ -188,10 +202,20 @@ function VenueCard({ venue }: { venue: VenueStat }) {
         <h3 className="font-extrabold text-base sm:text-lg leading-none">
           {venue.name}
         </h3>
-        <span className="text-[10px] font-bold text-muted-foreground">
-          {venue.subs.length} 공간
-        </span>
+        {!venue.noMetrics && (
+          <span className="text-[10px] font-bold text-muted-foreground">
+            {venue.subs.length} 공간
+          </span>
+        )}
       </div>
+
+      {venue.noMetrics ? (
+        <div className="relative flex-1 flex items-center justify-center text-center text-[11px] text-muted-foreground py-4">
+          주문/수령 집계 없음
+        </div>
+      ) : (
+        <>
+
 
       {/* 합계 두 카운트 + 수령률 */}
       <div className="relative grid grid-cols-2 gap-2 mb-2">
@@ -250,9 +274,12 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           );
         })}
       </div>
+        </>
+      )}
     </div>
   );
 }
+
 
 function TotalCard({
   label,

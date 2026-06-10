@@ -101,32 +101,29 @@ export interface Venue {
   subspaces: string[]; // 세부 공간 코드(예: "A","B"). 빈 배열이면 단일 공간
   /** CSS grid area name for floor-plan layout */
   area: string;
+  /** 주문/수령 집계를 표시하지 않는 공간(예: VIP 보드룸) */
+  noMetrics?: boolean;
 }
 
 export const VENUES: Venue[] = [
   { id: "402", name: "402", subspaces: ["A", "B"], area: "v402" },
-  { id: "hallC", name: "LEWEST Hall C", subspaces: [], area: "hallC" },
+  { id: "hall", name: "LEWEST Hall", subspaces: ["A", "B", "C"], area: "hall" },
   { id: "403", name: "403", subspaces: ["A", "B", "C"], area: "v403" },
   { id: "401", name: "401", subspaces: ["A", "B", "C", "D"], area: "v401" },
-  { id: "hallAB", name: "LEWEST Hall", subspaces: ["B", "A"], area: "hallAB" },
   { id: "404", name: "404", subspaces: ["A", "B", "C"], area: "v404" },
-  { id: "400", name: "400 VIP 보드룸", subspaces: [], area: "v400" },
+  { id: "400", name: "400 VIP 보드룸", subspaces: [], area: "v400", noMetrics: true },
 ];
 
-/** 세션의 room → venue.id 매핑 (예: "401-A" → "401", "LEWEST Hall A" → "hallAB") */
+/** 세션의 room → venue.id 매핑 (예: "401-A" → "401", "LEWEST Hall A" → "hall") */
 export function venueOfRoom(room: string): string | null {
-  if (room.startsWith("LEWEST Hall")) {
-    const sub = room.replace("LEWEST Hall", "").trim();
-    if (sub === "C") return "hallC";
-    if (sub === "A" || sub === "B") return "hallAB";
-    return null;
-  }
+  if (room.startsWith("LEWEST Hall")) return "hall";
   const major = room.split("-")[0];
   return major || null;
 }
 
 /** 호환용: 기존 ROOMS 사용처를 위해 major venue id 목록을 노출 */
 export const ROOMS = VENUES.map((v) => v.name);
+
 
 
 export interface SampleTopping {
