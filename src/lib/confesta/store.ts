@@ -1,20 +1,34 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { RedemptionLog, StackedScoop, Topping } from "./types";
+import type {
+  Order,
+  RedemptionLog,
+  SessionQRKind,
+  StackedScoop,
+  Topping,
+} from "./types";
 import { SESSIONS, getCategory, SAMPLE_TOPPINGS } from "./mockData";
 
 const MAX_SCOOPS = 3;
 const QR_PAYLOAD_PREFIX = "confesta:";
 
-export function makeAttendanceQR(sessionId: string, nonce: string) {
-  return `${QR_PAYLOAD_PREFIX}attend:${sessionId}:${nonce}`;
+// ── QR helpers ────────────────────────────────────────────
+export function makeOrderQR(sessionId: string, nonce: string) {
+  return `${QR_PAYLOAD_PREFIX}order:${sessionId}:${nonce}`;
+}
+export function makePickupQR(sessionId: string, nonce: string) {
+  return `${QR_PAYLOAD_PREFIX}pickup:${sessionId}:${nonce}`;
 }
 
-export function parseAttendanceQR(payload: string) {
-  if (!payload.startsWith(`${QR_PAYLOAD_PREFIX}attend:`)) return null;
+export function parseSessionQR(
+  payload: string,
+): { kind: SessionQRKind; sessionId: string; nonce: string } | null {
+  if (!payload.startsWith(QR_PAYLOAD_PREFIX)) return null;
   const parts = payload.split(":");
   if (parts.length !== 4) return null;
-  return { sessionId: parts[2], nonce: parts[3] };
+  const kind = parts[1];
+  if (kind !== "order" && kind !== "pickup") return null;
+  return { kind, sessionId: parts[2], nonce: parts[3] };
 }
 
 export function makeReceiptToken(scoops: StackedScoop[]) {
@@ -27,27 +41,38 @@ export function parseReceiptToken(payload: string) {
   return payload;
 }
 
+type ScanResult =
+  | { ok: true; flavor?: string; sessionId: string }
+  | { ok: false; reason: string };
+
+interface NoncePair {
+  order: string;
+  pickup: string;
+}
+
 interface ConfestaState {
   enrolledSessionIds: string[];
+  orders: Order[];
   scoops: StackedScoop[];
   toppings: Topping[];
-  presenterNonces: Record<string, string>; // sessionId -> current nonce
+  presenterNonces: Record<string, NoncePair>; // sessionId -> {order, pickup}
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
   redemptionLog: RedemptionLog[];
-  attendanceCounts: Record<string, number>; // sessionId -> attendance count
+  attendanceCounts: Record<string, number>;
   slideIndex: number;
   slideTotal: number;
   slidePaused: boolean;
 
   toggleEnroll: (sessionId: string) => void;
-  addScoopFromQR: (payload: string) => { ok: boolean; reason?: string; flavor?: string };
+  placeOrderFromQR: (payload: string) => ScanResult;
+  pickupFromQR: (payload: string) => ScanResult;
   resetScoops: () => void;
   generateReceipt: () => string | null;
   addTopping: (sessionId: string, text: string) => void;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
-  rotatePresenterNonce: (sessionId: string) => string;
+  rotatePresenterNonce: (sessionId: string, kind: SessionQRKind) => string;
   redeemReceipt: (token: string) => RedemptionLog;
   bumpAttendance: (sessionId: string, delta?: number) => void;
   nextSlide: () => void;
@@ -66,11 +91,15 @@ const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
   addressed: t.addressed,
 }));
 
+function makeNonce() {
+  return Math.random().toString(36).slice(2, 10);
+}
 
 export const useConfestaStore = create<ConfestaState>()(
   persist(
     (set, get) => ({
       enrolledSessionIds: [],
+      orders: [],
       scoops: [],
       toppings: initialToppings,
       presenterNonces: {},
@@ -89,33 +118,72 @@ export const useConfestaStore = create<ConfestaState>()(
             : [...s.enrolledSessionIds, sessionId],
         })),
 
-      addScoopFromQR: (payload) => {
-        const parsed = parseAttendanceQR(payload);
+      placeOrderFromQR: (payload) => {
+        const parsed = parseSessionQR(payload);
         if (!parsed) return { ok: false, reason: "유효하지 않은 QR입니다" };
-        const state = get();
-        if (state.scoops.length >= MAX_SCOOPS) {
-          return { ok: false, reason: "콘이 가득 찼습니다 (최대 3스쿱)" };
-        }
-        if (state.scoops.some((s) => s.sessionId === parsed.sessionId)) {
-          return { ok: false, reason: "이미 출석한 세션입니다" };
+        if (parsed.kind !== "order") {
+          return {
+            ok: false,
+            reason: "주문 QR이 아닙니다 (수령 QR은 주문 카드에서 스캔하세요)",
+          };
         }
         const session = SESSIONS.find((s) => s.id === parsed.sessionId);
         if (!session) return { ok: false, reason: "알 수 없는 세션입니다" };
+        const state = get();
+        if (state.orders.some((o) => o.sessionId === parsed.sessionId)) {
+          return { ok: false, reason: "이미 주문한 세션입니다" };
+        }
+        const order: Order = {
+          id: `order-${parsed.sessionId}-${Date.now()}`,
+          sessionId: parsed.sessionId,
+          orderedAt: Date.now(),
+          pickedUpAt: null,
+        };
+        set({ orders: [order, ...state.orders] });
+        return { ok: true, sessionId: parsed.sessionId };
+      },
+
+      pickupFromQR: (payload) => {
+        const parsed = parseSessionQR(payload);
+        if (!parsed) return { ok: false, reason: "유효하지 않은 QR입니다" };
+        if (parsed.kind !== "pickup") {
+          return { ok: false, reason: "수령 QR이 아닙니다" };
+        }
+        const state = get();
+        const session = SESSIONS.find((s) => s.id === parsed.sessionId);
+        if (!session) return { ok: false, reason: "알 수 없는 세션입니다" };
+        const order = state.orders.find((o) => o.sessionId === parsed.sessionId);
+        if (!order) {
+          return {
+            ok: false,
+            reason: "주문 내역이 없습니다 — 먼저 주문 QR을 스캔하세요",
+          };
+        }
+        if (order.pickedUpAt) {
+          return { ok: false, reason: "이미 수령 완료된 세션입니다" };
+        }
+        if (state.scoops.length >= MAX_SCOOPS) {
+          return { ok: false, reason: "콘이 가득 찼습니다 (최대 3스쿱)" };
+        }
         const cat = getCategory(session.category);
+        const now = Date.now();
         const scoop: StackedScoop = {
-          id: `scoop-${Date.now()}`,
+          id: `scoop-${now}`,
           sessionId: session.id,
           flavor: cat.flavor,
-          stackedAt: Date.now(),
+          stackedAt: now,
         };
         set({
+          orders: state.orders.map((o) =>
+            o.sessionId === parsed.sessionId ? { ...o, pickedUpAt: now } : o,
+          ),
           scoops: [...state.scoops, scoop],
           attendanceCounts: {
             ...state.attendanceCounts,
             [session.id]: (state.attendanceCounts[session.id] ?? 0) + 1,
           },
         });
-        return { ok: true, flavor: cat.flavor };
+        return { ok: true, flavor: cat.flavor, sessionId: session.id };
       },
 
       bumpAttendance: (sessionId, delta = 1) =>
@@ -139,7 +207,12 @@ export const useConfestaStore = create<ConfestaState>()(
         })),
 
       resetScoops: () =>
-        set({ scoops: [], receiptToken: null, receiptRedeemed: null }),
+        set({
+          scoops: [],
+          orders: [],
+          receiptToken: null,
+          receiptRedeemed: null,
+        }),
 
       generateReceipt: () => {
         const state = get();
@@ -177,11 +250,20 @@ export const useConfestaStore = create<ConfestaState>()(
           ),
         })),
 
-      rotatePresenterNonce: (sessionId) => {
-        const nonce = Math.random().toString(36).slice(2, 10);
-        set((s) => ({
-          presenterNonces: { ...s.presenterNonces, [sessionId]: nonce },
-        }));
+      rotatePresenterNonce: (sessionId, kind) => {
+        const nonce = makeNonce();
+        set((s) => {
+          const prev: NoncePair = s.presenterNonces[sessionId] ?? {
+            order: makeNonce(),
+            pickup: makeNonce(),
+          };
+          return {
+            presenterNonces: {
+              ...s.presenterNonces,
+              [sessionId]: { ...prev, [kind]: nonce },
+            },
+          };
+        });
         return nonce;
       },
 
@@ -202,10 +284,7 @@ export const useConfestaStore = create<ConfestaState>()(
         const updates: Partial<ConfestaState> = {
           redemptionLog: [log, ...state.redemptionLog].slice(0, 100),
         };
-        if (
-          log.status === "success" &&
-          state.receiptToken === token
-        ) {
+        if (log.status === "success" && state.receiptToken === token) {
           updates.receiptRedeemed = { at: log.redeemedAt };
         }
         set(updates as ConfestaState);
@@ -213,10 +292,9 @@ export const useConfestaStore = create<ConfestaState>()(
       },
     }),
     {
-      name: "confesta-state-v2",
+      name: "confesta-state-v3",
     },
   ),
 );
-
 
 export const MAX_SCOOPS_CONST = MAX_SCOOPS;

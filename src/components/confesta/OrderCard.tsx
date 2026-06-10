@@ -1,0 +1,130 @@
+import { useState } from "react";
+import { Camera, Check } from "lucide-react";
+import type { Order } from "@/lib/confesta/types";
+import { SESSIONS, getCategory } from "@/lib/confesta/mockData";
+import { useConfestaStore, parseSessionQR } from "@/lib/confesta/store";
+import { CameraScanner } from "./CameraScanner";
+import { ToppingScatter } from "./ToppingDecor";
+
+const FLAVOR_GRAD: Record<string, string> = {
+  mint: "bg-grad-mint",
+  strawberry: "bg-grad-strawberry",
+  mango: "bg-grad-mango",
+  blueberry: "bg-grad-blueberry",
+  chocolate: "bg-grad-chocolate",
+};
+
+interface Props {
+  order: Order;
+}
+
+function fmtTime(ts: number) {
+  return new Date(ts).toLocaleTimeString("ko-KR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function OrderCard({ order }: Props) {
+  const session = SESSIONS.find((s) => s.id === order.sessionId);
+  const pickup = useConfestaStore((s) => s.pickupFromQR);
+  const [scanning, setScanning] = useState(false);
+  const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(
+    null,
+  );
+
+  if (!session) return null;
+  const cat = getCategory(session.category);
+  const picked = !!order.pickedUpAt;
+
+  const handleScan = (text: string) => {
+    const parsed = parseSessionQR(text);
+    if (parsed?.kind === "order") {
+      setFeedback({ ok: false, msg: "이건 주문 QR이에요 (수령 QR을 스캔하세요)" });
+      return;
+    }
+    if (parsed?.kind === "pickup" && parsed.sessionId !== order.sessionId) {
+      setFeedback({ ok: false, msg: "다른 세션의 수령 QR입니다" });
+      return;
+    }
+    const result = pickup(text);
+    if (result.ok) {
+      setFeedback({ ok: true, msg: "수령 완료! 스쿱이 콘에 쌓였어요 🍦" });
+      setScanning(false);
+    } else {
+      setFeedback({ ok: false, msg: result.reason });
+    }
+  };
+
+  return (
+    <div className="relative overflow-hidden bg-card rounded-3xl p-5 shadow-cream border border-white/60 flex flex-col gap-3">
+      <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
+      <ToppingScatter density="low" seed={`order-${order.id}`} />
+
+      <div className="relative flex items-start justify-between gap-2">
+        <span
+          className={`${FLAVOR_GRAD[cat.flavor]} text-white text-xs font-bold px-3 py-1 rounded-full shadow-cream`}
+        >
+          {cat.label}
+        </span>
+        <span
+          className={`text-xs font-extrabold px-3 py-1 rounded-full text-white shadow-cream ${
+            picked ? "bg-grad-success" : "bg-grad-blueberry"
+          }`}
+        >
+          {picked ? "② 수령 완료" : "① 주문 접수"}
+        </span>
+      </div>
+
+      <div className="relative">
+        <h3 className="text-lg font-bold leading-snug">{session.title}</h3>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {session.presenter} · {session.room} · {session.timeSlot}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1.5">
+          주문 {fmtTime(order.orderedAt)}
+          {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}
+        </p>
+      </div>
+
+      <div className="relative">
+        {picked ? (
+          <div className="inline-flex items-center gap-2 bg-grad-success text-white rounded-full px-4 py-2 text-sm font-bold shadow-cream">
+            <Check className="w-4 h-4" />
+            {fmtTime(order.pickedUpAt!)} 수령 완료
+          </div>
+        ) : scanning ? (
+          <div>
+            <CameraScanner
+              onScan={handleScan}
+              onClose={() => setScanning(false)}
+              hintLine="세션 종료 직전 발표자 화면의 수령 QR을 비추세요"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setScanning(true);
+              setFeedback(null);
+            }}
+            className="bounce-press w-full inline-flex items-center justify-center gap-2 bg-grad-strawberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-pink"
+          >
+            <Camera className="w-4 h-4" />
+            수령 QR 스캔
+          </button>
+        )}
+
+        {feedback && (
+          <div
+            className={`mt-3 p-3 rounded-2xl text-xs font-semibold text-center text-white shadow-cream ${
+              feedback.ok ? "bg-grad-success" : "bg-grad-danger"
+            }`}
+          >
+            {feedback.msg}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

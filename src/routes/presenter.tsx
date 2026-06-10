@@ -11,7 +11,7 @@ import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { AttendanceGauge } from "@/components/confesta/AttendanceGauge";
 import { StageMarquee } from "@/components/confesta/StageMarquee";
-import { useConfestaStore, makeAttendanceQR } from "@/lib/confesta/store";
+import { useConfestaStore, makeOrderQR, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { usePresenterShortcuts } from "@/hooks/use-presenter-shortcuts";
@@ -56,7 +56,7 @@ function PresenterView() {
   const [sessionId, setSessionId] = useState(SESSIONS[0].id);
   const session = SESSIONS.find((s) => s.id === sessionId)!;
   const rotate = useConfestaStore((s) => s.rotatePresenterNonce);
-  const nonce = useConfestaStore((s) => s.presenterNonces[sessionId]);
+  const noncePair = useConfestaStore((s) => s.presenterNonces[sessionId]);
   const attendanceCount = useConfestaStore(
     (s) => s.attendanceCounts[sessionId] ?? 0,
   );
@@ -81,9 +81,10 @@ function PresenterView() {
   // Force stage mode while in fullscreen
   const effectiveMode: PresenterMode = isFullscreen ? "stage" : mode;
 
-  // Rotate nonce
+  // Rotate both nonces (order + pickup)
   useEffect(() => {
-    rotate(sessionId);
+    rotate(sessionId, "order");
+    rotate(sessionId, "pickup");
     setProgress(100);
     const start = Date.now();
     const tickId = window.setInterval(() => {
@@ -91,7 +92,8 @@ function PresenterView() {
       setProgress(100 - (elapsed / QR_INTERVAL_MS) * 100);
     }, 100);
     const rotateId = window.setInterval(() => {
-      rotate(sessionId);
+      rotate(sessionId, "order");
+      rotate(sessionId, "pickup");
     }, QR_INTERVAL_MS);
     return () => {
       window.clearInterval(tickId);
@@ -109,7 +111,16 @@ function PresenterView() {
     return () => window.clearInterval(id);
   }, [sessionId, session.capacity, attendanceCount, bumpAttendance]);
 
-  const qrValue = nonce ? makeAttendanceQR(sessionId, nonce) : "";
+  const orderQR = noncePair?.order
+    ? makeOrderQR(sessionId, noncePair.order)
+    : "";
+  const pickupQR = noncePair?.pickup
+    ? makePickupQR(sessionId, noncePair.pickup)
+    : "";
+  const [handheldQRKind, setHandheldQRKind] = useState<"order" | "pickup">(
+    "order",
+  );
+  const handheldQRValue = handheldQRKind === "order" ? orderQR : pickupQR;
 
 
   const modeToggle = (
@@ -147,27 +158,39 @@ function PresenterView() {
         >
           {/* Left: huge QR + attendance */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="relative overflow-hidden rounded-[2rem] p-6 sm:p-8 shadow-blue border border-white/60 flex-1 flex flex-col">
+            <div className="relative overflow-hidden rounded-[2rem] p-5 sm:p-6 shadow-blue border border-white/60 flex-1 flex flex-col">
               <div className="absolute inset-0 bg-grad-cream" />
               <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
               <ToppingScatter density="med" seed="stage-qr" />
               <div className="relative flex items-center justify-between mb-3">
-                <h2 className="text-xl sm:text-2xl font-extrabold bg-clip-text text-transparent bg-grad-sunset">
+                <h2 className="text-lg sm:text-xl font-extrabold bg-clip-text text-transparent bg-grad-sunset">
                   📱 지금 스캔하세요
                 </h2>
                 <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초 갱신
                 </span>
               </div>
-              <div className="relative bg-white p-4 sm:p-6 rounded-2xl flex justify-center flex-1 items-center border-2 border-white shadow-cream">
-                {qrValue && (
-                  <QRCode
-                    value={qrValue}
-                    size={420}
-                    level="M"
-                    style={{ maxWidth: "100%", height: "auto", width: "100%" }}
-                  />
-                )}
+              <div className="relative grid grid-cols-2 gap-3 flex-1">
+                {[
+                  { label: "① 주문 QR", sub: "도착 시 스캔", value: orderQR, grad: "bg-grad-blueberry" },
+                  { label: "② 수령 QR", sub: "종료 직전 스캔", value: pickupQR, grad: "bg-grad-strawberry" },
+                ].map((q) => (
+                  <div key={q.label} className="flex flex-col">
+                    <div className={`${q.grad} text-white text-xs font-extrabold px-3 py-1.5 rounded-t-2xl text-center shadow-cream`}>
+                      {q.label} <span className="opacity-80 font-semibold">· {q.sub}</span>
+                    </div>
+                    <div className="bg-white p-3 sm:p-4 rounded-b-2xl flex justify-center flex-1 items-center border-2 border-t-0 border-white shadow-cream">
+                      {q.value && (
+                        <QRCode
+                          value={q.value}
+                          size={320}
+                          level="M"
+                          style={{ maxWidth: "100%", height: "auto", width: "100%" }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="relative mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
                 <div
@@ -176,6 +199,7 @@ function PresenterView() {
                 />
               </div>
             </div>
+
 
             <div className="relative overflow-hidden rounded-3xl p-5 shadow-cream border border-white/60 flex items-center gap-5">
               <div className="absolute inset-0 bg-grad-cream" />
@@ -289,13 +313,35 @@ function PresenterView() {
               <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
               <ToppingScatter density="med" seed="hh-qr" />
               <div className="relative flex items-center justify-between mb-3">
-                <h3 className="font-bold bg-clip-text text-transparent bg-grad-sunset">출석 QR</h3>
+                <h3 className="font-bold bg-clip-text text-transparent bg-grad-sunset">
+                  {handheldQRKind === "order" ? "① 주문 QR" : "② 수령 QR"}
+                </h3>
                 <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초마다 갱신
                 </span>
               </div>
+              <div className="relative inline-flex p-1 bg-grad-muted rounded-full shadow-cream border border-white/60 mb-3">
+                {(["order", "pickup"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setHandheldQRKind(k)}
+                    className={`bounce-press rounded-full px-4 py-1.5 text-xs font-bold ${
+                      handheldQRKind === k
+                        ? k === "order"
+                          ? "bg-grad-blueberry text-white shadow-blue"
+                          : "bg-grad-strawberry text-white shadow-pink"
+                        : "text-foreground/70"
+                    }`}
+                  >
+                    {k === "order" ? "주문(도착)" : "수령(종료)"}
+                  </button>
+                ))}
+              </div>
               <div className="relative bg-white p-5 rounded-2xl flex justify-center border-2 border-white shadow-cream">
-                {qrValue && <QRCode value={qrValue} size={200} level="M" />}
+                {handheldQRValue && (
+                  <QRCode value={handheldQRValue} size={200} level="M" />
+                )}
               </div>
               <div className="relative mt-3 h-2.5 rounded-full bg-white/60 overflow-hidden">
                 <div
@@ -307,6 +353,7 @@ function PresenterView() {
                 다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
               </p>
             </div>
+
 
             <SlideControlPanel />
           </div>
