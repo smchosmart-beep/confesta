@@ -162,10 +162,33 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
             [READY FOR REDEMPTION]
           </span>
         </div>
+
+        <PersonaBadge persona={derivePersona(scoops)} />
       </div>
       <p className="text-center text-[11px] text-muted-foreground mt-3">
         ※ 실제 영수증은 내가 모은 스쿱과 발급 시각으로 자동 생성됩니다.
       </p>
+    </div>
+  );
+}
+
+function PersonaBadge({ persona }: { persona: Persona }) {
+  return (
+    <div className="relative mt-5 pt-4 border-t border-dashed border-foreground/20">
+      <p className="text-center text-[11px] tracking-wider font-bold text-muted-foreground">
+        오늘 당신의 AI 교육자 유형
+      </p>
+      <div
+        className={`mt-2 mx-auto max-w-[260px] rounded-2xl px-4 py-3 text-white text-center shadow-pink ${persona.accent}`}
+      >
+        <div className="text-2xl leading-none">{persona.emoji}</div>
+        <div className="mt-1 font-extrabold text-base leading-tight">
+          [{persona.title}]
+        </div>
+        <p className="mt-1 text-[11px] opacity-95 leading-snug">
+          {persona.tagline}
+        </p>
+      </div>
     </div>
   );
 }
