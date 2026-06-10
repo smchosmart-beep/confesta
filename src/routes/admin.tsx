@@ -116,7 +116,7 @@ function AdminView() {
         totalPickups,
       };
     });
-  }, [orders, scoops]);
+  }, [orders, scoops, toppings]);
 
 
 
