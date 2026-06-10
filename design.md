@@ -155,7 +155,32 @@ border-2 rounded-2xl p-4 shadow-cream
 - 핀됨: `border-transparent bg-grad-sunset-soft`
 - 답변완료: `opacity-60 line-through`
 
+### 8.5 스쿱 카드 (ScoopCard)
+
+홈의 역할 선택처럼 "맛으로 분류되는" 내비게이션 카드. 일반적인 직사각형 카드 대신 **아이스크림 스쿱 윗부분(돔) 실루엣**으로 렌더링한다.
+
+**형태**
+- 윗면: 매끈한 반원 돔 — 큐빅 베지어로 그린 부드러운 곡선
+- 아랫면: 4~5개의 부드러운 물결(scalloped) 모서리 — 스쿱이 살짝 흘러내린 듯한 느낌
+- 와플콘 실루엣은 포함하지 않음 (스쿱 위쪽만)
+
+**구현**
+- SVG `<clipPath clipPathUnits="objectBoundingBox">`로 카드 컨테이너(`aspect-[4/3]`)를 마스킹
+- 동일한 실루엣 그림자는 부모 `<Link>`에 `filter: drop-shadow(...)`로 부여 (`clipPath`가 `box-shadow`를 잘라먹기 때문)
+- 채움: `bg-grad-{flavor}` 전면 + 좌상단 `radial-gradient` 하이라이트로 입체감
+- 토핑 데코는 `ToppingScatter`로 클립 내부에 흩뿌림
+
+**색 매핑 (역할)**
+- 청중 → `strawberry`, 발표자 → `blueberry`, 스태프 → `mint`, 관리자 → `mango`
+
+**내부 요소**
+- 중앙 정렬 콘텐츠: 아이콘 배지(`w-14 h-14 rounded-full bg-white/80 ring-2 ring-white`) → 라벨 → 한글명(`text-2xl font-extrabold text-white drop-shadow`) → 한 줄 설명
+- 텍스트는 모두 흰색 + `drop-shadow`로 그라데이션 위 가독성 확보
+
+**사용처**: 홈 역할 선택 카드, 향후 카테고리 선택 카드 등 "1개 = 1스쿱" 메타포가 어울리는 곳
+
 ---
+
 
 ## 9. 아이콘그래피
 

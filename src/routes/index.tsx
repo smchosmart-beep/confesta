@@ -1,6 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { IceCream, Mic, ScanLine, LayoutGrid, Sparkles } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import { ScoopCard } from "@/components/confesta/ScoopCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -28,9 +29,7 @@ const ROLES = [
     ko: "청중",
     desc: "수강신청 · 스쿱 적립 · 토핑 질문 · 디지털 영수증",
     icon: IceCream,
-    grad: "bg-grad-strawberry",
-    softGrad: "bg-grad-sunset-soft",
-    shadow: "shadow-pink",
+    flavor: "strawberry" as const,
   },
   {
     to: "/presenter" as const,
@@ -38,9 +37,7 @@ const ROLES = [
     ko: "발표자",
     desc: "동적 QR 브로드캐스트 · 실시간 질문 피드",
     icon: Mic,
-    grad: "bg-grad-blueberry",
-    softGrad: "bg-grad-aurora-soft",
-    shadow: "shadow-blue",
+    flavor: "blueberry" as const,
   },
   {
     to: "/staff" as const,
@@ -48,9 +45,7 @@ const ROLES = [
     ko: "운영 스태프",
     desc: "모바일 영수증 스캐너 · 굿즈 수령 검증",
     icon: ScanLine,
-    grad: "bg-grad-mint",
-    softGrad: "bg-grad-aurora-soft",
-    shadow: "shadow-cream",
+    flavor: "mint" as const,
   },
   {
     to: "/admin" as const,
@@ -58,9 +53,7 @@ const ROLES = [
     ko: "관리자",
     desc: "벤토 그리드 운영 현황 · 실시간 깔때기 지표",
     icon: LayoutGrid,
-    grad: "bg-grad-mango",
-    softGrad: "bg-grad-sunset-soft",
-    shadow: "shadow-cream",
+    flavor: "mango" as const,
   },
 ];
 
@@ -87,30 +80,17 @@ function Home() {
       </section>
 
       <section className="px-4 sm:px-6 pb-20 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {ROLES.map((r) => (
-            <Link
+            <ScoopCard
               key={r.to}
               to={r.to}
-              className={`group bounce-press relative overflow-hidden rounded-3xl bg-card p-6 border border-white/60 ${r.shadow}`}
-            >
-              <div className={`absolute inset-0 ${r.softGrad} opacity-60`} />
-              <ToppingScatter density="med" seed={`role-${r.to}`} />
-              <div className="relative flex items-start gap-4">
-                <span
-                  className={`${r.grad} text-white w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-pink ring-2 ring-white/60`}
-                >
-                  <r.icon className="w-7 h-7 drop-shadow" />
-                </span>
-                <div className="flex-1">
-                  <div className="text-xs font-bold uppercase tracking-wider text-foreground/60">
-                    {r.label}
-                  </div>
-                  <h2 className="text-2xl font-extrabold mt-0.5">{r.ko}</h2>
-                  <p className="text-sm text-foreground/70 mt-2">{r.desc}</p>
-                </div>
-              </div>
-            </Link>
+              flavor={r.flavor}
+              label={r.label}
+              ko={r.ko}
+              desc={r.desc}
+              icon={r.icon}
+            />
           ))}
         </div>
 
