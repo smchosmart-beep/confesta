@@ -30,10 +30,10 @@ const FLAVOR_TEXT: Record<Flavor, string> = {
   mango: "#6B3300",
 };
 
-// 강한 텍스트 외곽선(흰색 헤일로) — 어떤 하이라이트 위에서도 윤곽 확보
+// 얇은 흰색 외곽선 — 진한 텍스트를 살짝 분리만 해주는 정도
 const TEXT_HALO: React.CSSProperties = {
   textShadow:
-    "0 1px 0 rgba(255,255,255,0.85), 0 0 6px rgba(255,255,255,0.7), 0 0 12px rgba(255,255,255,0.5)",
+    "0 1px 1px rgba(255,255,255,0.55), 0 0 2px rgba(255,255,255,0.45)",
 };
 
 
