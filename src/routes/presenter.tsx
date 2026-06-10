@@ -6,7 +6,7 @@ import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { PresenterModeToggle, type PresenterMode } from "@/components/confesta/PresenterModeToggle";
 import { SlideControlPanel } from "@/components/confesta/SlideControlPanel";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
-import { ToppingWordCloud } from "@/components/confesta/ToppingWordCloud";
+
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { AttendanceGauge } from "@/components/confesta/AttendanceGauge";
 import { StageMarquee } from "@/components/confesta/StageMarquee";
