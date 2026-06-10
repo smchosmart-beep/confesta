@@ -43,7 +43,7 @@ export function useAnswerPrompts(sessionId: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, qc]);
+  }, [sessionId, qc, channelId]);
 
   const create = useMutation({
     mutationFn: (text: string) => createSrv({ data: { sessionId: sessionId!, text } }),
