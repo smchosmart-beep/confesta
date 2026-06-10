@@ -48,9 +48,20 @@ function AdminView() {
 
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
+      if (v.noMetrics) {
+        return {
+          id: v.id,
+          name: v.name,
+          area: v.area,
+          subs: [],
+          totalOrders: 0,
+          totalPickups: 0,
+          noMetrics: true,
+        };
+      }
       const codes = v.subspaces.length ? v.subspaces : [""];
       const subs: SubStat[] = codes.map((code) => {
-        const roomLabel = v.id.startsWith("hall")
+        const roomLabel = v.id === "hall"
           ? `LEWEST Hall${code ? " " + code : ""}`
           : code
             ? `${v.id}-${code}`
@@ -84,7 +95,6 @@ function AdminView() {
         };
       });
 
-      // VIP 보드룸 등 데이터 없는 공간은 비어있는 카운트로
       const totalOrders = subs.reduce((a, b) => a + b.orders, 0);
       const totalPickups = subs.reduce((a, b) => a + b.pickups, 0);
       return {
@@ -97,6 +107,7 @@ function AdminView() {
       };
     });
   }, [orders, scoops]);
+
 
 
   const totals = useMemo(
