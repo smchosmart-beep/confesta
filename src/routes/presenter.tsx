@@ -92,12 +92,13 @@ function PresenterView() {
             return first?.id;
           };
 
-          const stepBtn = (active: boolean) =>
-            `bounce-press px-4 py-2 rounded-full text-sm font-bold border transition ${
-              active
-                ? "bg-grad-strawberry text-white border-transparent shadow-pink"
-                : "bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40"
-            }`;
+          const selectCls =
+            "bounce-press w-full appearance-none rounded-full px-4 py-2.5 text-sm font-bold border bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40 transition cursor-pointer bg-no-repeat pr-10";
+          const selectStyle = {
+            backgroundImage:
+              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
+            backgroundPosition: "right 14px center",
+          } as const;
 
           return (
             <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
@@ -108,23 +109,24 @@ function PresenterView() {
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       1단계 · 일자 선택
                     </span>
-                    <div className="flex gap-2 flex-wrap">
+                    <select
+                      className={selectCls}
+                      style={selectStyle}
+                      value={day}
+                      onChange={(e) => {
+                        const d = parseInt(e.target.value, 10);
+                        const next =
+                          pickFirstSessionFor(d, period) ??
+                          pickFirstSessionFor(d, period === "am" ? "pm" : "am");
+                        if (next) setSessionId(next);
+                      }}
+                    >
                       {daysAvailable.map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          className={stepBtn(d === day)}
-                          onClick={() => {
-                            const next =
-                              pickFirstSessionFor(d, period) ??
-                              pickFirstSessionFor(d, period === "am" ? "pm" : "am");
-                            if (next) setSessionId(next);
-                          }}
-                        >
+                        <option key={d} value={d}>
                           Day {d}
-                        </button>
+                        </option>
                       ))}
-                    </div>
+                    </select>
                   </div>
 
                   {/* 2단계 */}
@@ -132,27 +134,26 @@ function PresenterView() {
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       2단계 · 시간대 선택
                     </span>
-                    <div className="flex gap-2 flex-wrap">
-                      {(["am", "pm"] as const).map((p) => {
-                        const enabled = periodsAvailable.includes(p);
-                        return (
-                          <button
-                            key={p}
-                            type="button"
-                            disabled={!enabled}
-                            className={`${stepBtn(p === period && enabled)} ${
-                              !enabled ? "opacity-40 cursor-not-allowed" : ""
-                            }`}
-                            onClick={() => {
-                              const next = pickFirstSessionFor(day, p);
-                              if (next) setSessionId(next);
-                            }}
-                          >
-                            {p === "am" ? "오전" : "오후"}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <select
+                      className={selectCls}
+                      style={selectStyle}
+                      value={period}
+                      onChange={(e) => {
+                        const p = e.target.value as "am" | "pm";
+                        const next = pickFirstSessionFor(day, p);
+                        if (next) setSessionId(next);
+                      }}
+                    >
+                      {(["am", "pm"] as const).map((p) => (
+                        <option
+                          key={p}
+                          value={p}
+                          disabled={!periodsAvailable.includes(p)}
+                        >
+                          {p === "am" ? "오전" : "오후"}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* 3단계 */}
@@ -160,30 +161,18 @@ function PresenterView() {
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       3단계 · 세션 선택
                     </span>
-                    <div className="flex flex-col gap-2">
-                      {sessionsInScope.map((s) => {
-                        const active = s.id === sessionId;
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => setSessionId(s.id)}
-                            className={`bounce-press text-left rounded-2xl px-4 py-3 border transition ${
-                              active
-                                ? "bg-grad-blueberry text-white border-transparent shadow-blue"
-                                : "bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40"
-                            }`}
-                          >
-                            <div className="text-xs font-semibold opacity-80">
-                              {s.timeSlot} · {s.room}
-                            </div>
-                            <div className="text-sm font-bold leading-snug">
-                              {s.title}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <select
+                      className={selectCls}
+                      style={selectStyle}
+                      value={sessionId}
+                      onChange={(e) => setSessionId(e.target.value)}
+                    >
+                      {sessionsInScope.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.timeSlot} · {s.room} — {s.title}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
@@ -198,6 +187,7 @@ function PresenterView() {
               </div>
             </div>
           );
+
 
         })()}
 
