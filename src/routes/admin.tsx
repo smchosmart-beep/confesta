@@ -187,6 +187,43 @@ function AdminView() {
   );
 }
 
+/** 실제 평면도 배치를 반영한 서브공간 그리드 스타일 */
+function subGridStyle(venueId: string): React.CSSProperties {
+  switch (venueId) {
+    case "401":
+      // 위→아래: D, C, B, A (세로 1열)
+      return {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(4, minmax(0, 1fr))",
+        gridTemplateAreas: `"d" "c" "b" "a"`,
+      };
+    case "402":
+      // 위→아래: B, A
+      return {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridTemplateAreas: `"b" "a"`,
+      };
+    case "403":
+    case "404":
+      // 위→아래: C, B, A
+      return {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(3, minmax(0, 1fr))",
+        gridTemplateAreas: `"c" "b" "a"`,
+      };
+    case "hall":
+      // 좌상 C, 우측 전체 A, 좌하 B (A가 우측 컬럼 두 행 모두 차지)
+      return {
+        gridTemplateColumns: "1fr 1.4fr",
+        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridTemplateAreas: `"c a" "b a"`,
+      };
+    default:
+      return { gridTemplateColumns: "1fr" };
+  }
+}
+
 function VenueCard({ venue }: { venue: VenueStat }) {
   const rate =
     venue.totalOrders > 0
