@@ -81,7 +81,7 @@ export function OrderCard({ order }: Props) {
         <p className="text-sm text-muted-foreground mt-0.5">
           {session.presenter} · {session.room} · {session.timeSlot}
         </p>
-        <p className="text-xs text-muted-foreground mt-1.5">
+        <p className="text-xs text-muted-foreground mt-1.5" suppressHydrationWarning>
           주문 {fmtTime(order.orderedAt)}
           {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}
         </p>
@@ -89,7 +89,7 @@ export function OrderCard({ order }: Props) {
 
       <div className="relative">
         {picked ? (
-          <div className="inline-flex items-center gap-2 bg-grad-success text-white rounded-full px-4 py-2 text-sm font-bold shadow-cream">
+          <div className="inline-flex items-center gap-2 bg-grad-success text-white rounded-full px-4 py-2 text-sm font-bold shadow-cream" suppressHydrationWarning>
             <Check className="w-4 h-4" />
             {fmtTime(order.pickedUpAt!)} 수령 완료
           </div>

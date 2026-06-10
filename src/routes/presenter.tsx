@@ -5,6 +5,7 @@ import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
+import { PresenterAuthGate } from "@/components/confesta/PresenterAuthGate";
 import { useConfestaStore, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { QrCode, X } from "lucide-react";
@@ -29,13 +30,20 @@ const QR_INTERVAL_MS = 15_000;
 
 function PresenterView() {
   const [sessionId, setSessionId] = useState(SESSIONS[0].id);
+  const [unlockedSessionId, setUnlockedSessionId] = useState<string | null>(null);
   const session = SESSIONS.find((s) => s.id === sessionId)!;
+  const isUnlocked = unlockedSessionId === sessionId;
   const [pickupOpen, setPickupOpen] = useState(false);
 
   const rotate = useConfestaStore((s) => s.rotatePresenterNonce);
   const noncePair = useConfestaStore((s) => s.presenterNonces[sessionId]);
 
   const [progress, setProgress] = useState(100);
+
+  // 세션이 바뀌면 수령 QR 모달 닫기 (다시 잠금됨)
+  useEffect(() => {
+    setPickupOpen(false);
+  }, [sessionId]);
 
   // 수령 QR은 모달이 열린 동안에만 갱신
   useEffect(() => {
@@ -177,14 +185,16 @@ function PresenterView() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setPickupOpen(true)}
-                  className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[88px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
-                >
-                  <QrCode className="w-5 h-5" />
-                  수령 QR
-                </button>
+                {isUnlocked && (
+                  <button
+                    type="button"
+                    onClick={() => setPickupOpen(true)}
+                    className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[88px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
+                  >
+                    <QrCode className="w-5 h-5" />
+                    수령 QR
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -193,32 +203,40 @@ function PresenterView() {
         })()}
 
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-          {/* 토핑 키워드 */}
-          <div className="space-y-2 flex flex-col h-full">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              토핑 키워드 (응답)
-            </h2>
-            <ToppingGateControl sessionId={sessionId} />
-            <p className="text-sm text-muted-foreground">
-              청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
-            </p>
-            <div className="flex-1 min-h-0">
-              <ToppingTubScene sessionId={sessionId} />
+        {!isUnlocked ? (
+          <PresenterAuthGate
+            session={session}
+            onUnlock={() => setUnlockedSessionId(sessionId)}
+          />
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
+            {/* 토핑 키워드 */}
+            <div className="space-y-2 flex flex-col h-full">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                토핑 키워드 (응답)
+              </h2>
+              <ToppingGateControl sessionId={sessionId} />
+              <p className="text-sm text-muted-foreground">
+                청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
+              </p>
+              <div className="flex-1 min-h-0">
+                <ToppingTubScene sessionId={sessionId} />
+              </div>
             </div>
-          </div>
 
-          {/* 질문 목록 */}
-          <div className="space-y-2 flex flex-col h-full overflow-hidden">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              질문 목록
-            </h2>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <QuestionStream sessionId={sessionId} />
+            {/* 질문 목록 */}
+            <div className="space-y-2 flex flex-col h-full overflow-hidden">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                질문 목록
+              </h2>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <QuestionStream sessionId={sessionId} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
+
 
       {/* 수령 QR 모달 */}
       {pickupOpen && (
