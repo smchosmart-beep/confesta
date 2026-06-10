@@ -54,6 +54,7 @@ function AudienceView() {
   // Orders tab state
   const orders = useConfestaStore((s) => s.orders);
   const toppings = useConfestaStore((s) => s.toppings);
+  const answerPrompts = useConfestaStore((s) => s.answerPrompts);
   const likedToppingIds = useConfestaStore((s) => s.likedToppingIds);
   const toggleLikeTopping = useConfestaStore((s) => s.toggleLikeTopping);
   const placeOrder = useConfestaStore((s) => s.placeOrderFromQR);
