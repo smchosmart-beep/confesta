@@ -91,6 +91,13 @@ export function ReceiptCard() {
 
   const ready = scoops.length >= 3;
 
+  // Auto-issue receipt as soon as the third scoop arrives and no token exists.
+  useEffect(() => {
+    if (ready && !token && !issuingReceipt) {
+      void issueReceipt().catch((e) => console.error(e));
+    }
+  }, [ready, token, issuingReceipt, issueReceipt]);
+
   if (!ready) {
     return (
       <div className="flex flex-col gap-6">
