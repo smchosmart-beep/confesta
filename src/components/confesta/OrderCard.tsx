@@ -95,9 +95,9 @@ export function OrderCard({ order }: Props) {
 
       <div className="relative flex items-start justify-between gap-2">
         <span
-          className={`${FLAVOR_GRAD[cat.flavor]} text-white text-xs font-bold px-3 py-1 rounded-full shadow-cream`}
+          className={`${FLAVOR_GRAD[display.flavor]} text-white text-xs font-bold px-3 py-1 rounded-full shadow-cream`}
         >
-          {cat.label}
+          {display.catLabel}
         </span>
         <span
           className={`text-xs font-extrabold px-3 py-1 rounded-full text-white shadow-cream ${
@@ -109,10 +109,11 @@ export function OrderCard({ order }: Props) {
       </div>
 
       <div className="relative">
-        <h3 className="text-lg font-bold leading-snug">{session.title}</h3>
+        <h3 className="text-lg font-bold leading-snug">{display.title}</h3>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {session.presenter} · {session.room} · {session.timeSlot}
+          {display.sub}
         </p>
+
         <p className="text-xs text-muted-foreground mt-1.5" suppressHydrationWarning>
           주문 {fmtTime(order.orderedAt)}
           {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}
