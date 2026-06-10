@@ -26,9 +26,11 @@ interface Props {
   sessionId: string;
   kind?: ToppingKind;
   onKindChange?: (k: ToppingKind) => void;
+  /** When true, the answer-mode submit form is replaced by a notice (input lives in per-prompt cards). */
+  disableAnswerSubmit?: boolean;
 }
 
-export function ToppingInput({ sessionId, kind: kindProp, onKindChange }: Props) {
+export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableAnswerSubmit = false }: Props) {
   const [kindState, setKindState] = useState<ToppingKind>("question");
   const kind = kindProp ?? kindState;
   const setKind = (k: ToppingKind) => {
@@ -138,69 +140,69 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange }: Props)
         })}
       </div>
 
-      {kind === "answer" && gate.answersOpen && gate.answerPrompt.trim() && (
+      {kind === "answer" && disableAnswerSubmit ? (
         <div className="relative overflow-hidden rounded-2xl bg-grad-sunset-soft border border-white/70 px-4 py-3 shadow-cream">
           <div className="flex items-start gap-2">
             <Megaphone className="w-4 h-4 text-pink-700 shrink-0 mt-0.5" />
             <div className="flex-1">
               <div className="text-[11px] font-bold text-pink-700 uppercase tracking-wider">
-                발표자의 질문
+                키워드 응답 모드
               </div>
               <div className="text-sm font-semibold text-foreground">
-                {gate.answerPrompt}
+                아래 질문 카드에서 응답해 주세요.
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="relative">
-        <div
-          className={`flex items-center gap-2 bg-card border border-white/60 rounded-full p-1.5 pl-5 shadow-pink ${
-            !currentOpen ? "opacity-60" : ""
-          }`}
-        >
-          <Sparkles className="w-5 h-5 text-primary shrink-0" />
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={placeholder}
-            disabled={!currentOpen}
-            className="flex-1 bg-transparent outline-none text-sm py-2 disabled:cursor-not-allowed"
-            maxLength={kind === "answer" ? 24 : 140}
-          />
-          <button
-            type="submit"
-            disabled={!text.trim() || !currentOpen}
-            className="bounce-press bg-grad-strawberry text-white rounded-full p-2.5 shadow-pink disabled:opacity-40 disabled:hover:scale-100"
-            aria-label="토핑 전송"
+      ) : (
+        <form onSubmit={handleSubmit} className="relative">
+          <div
+            className={`flex items-center gap-2 bg-card border border-white/60 rounded-full p-1.5 pl-5 shadow-pink ${
+              !currentOpen ? "opacity-60" : ""
+            }`}
           >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 -top-2 h-2">
-          {sprinkles.map((s) => (
-            <span
-              key={s.id}
-              className="absolute block rounded-full"
-              style={
-                {
-                  left: `${s.left}%`,
-                  top: 0,
-                  width: 8,
-                  height: 8,
-                  backgroundColor: s.color,
-                  animation: "var(--animate-topping-fly)",
-                  animationDelay: `${s.delay}ms`,
-                  ["--drift" as string]: `${s.drift}px`,
-                  ["--spin" as string]: `${s.spin}deg`,
-                } as React.CSSProperties
-              }
+            <Sparkles className="w-5 h-5 text-primary shrink-0" />
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={placeholder}
+              disabled={!currentOpen}
+              className="flex-1 bg-transparent outline-none text-sm py-2 disabled:cursor-not-allowed"
+              maxLength={kind === "answer" ? 24 : 140}
             />
-          ))}
-        </div>
-      </form>
+            <button
+              type="submit"
+              disabled={!text.trim() || !currentOpen}
+              className="bounce-press bg-grad-strawberry text-white rounded-full p-2.5 shadow-pink disabled:opacity-40 disabled:hover:scale-100"
+              aria-label="토핑 전송"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 -top-2 h-2">
+            {sprinkles.map((s) => (
+              <span
+                key={s.id}
+                className="absolute block rounded-full"
+                style={
+                  {
+                    left: `${s.left}%`,
+                    top: 0,
+                    width: 8,
+                    height: 8,
+                    backgroundColor: s.color,
+                    animation: "var(--animate-topping-fly)",
+                    animationDelay: `${s.delay}ms`,
+                    ["--drift" as string]: `${s.drift}px`,
+                    ["--spin" as string]: `${s.spin}deg`,
+                  } as React.CSSProperties
+                }
+              />
+            ))}
+          </div>
+        </form>
+      )}
     </div>
   );
 }
