@@ -224,11 +224,11 @@ function subGridStyle(venueId: string): React.CSSProperties {
         gridTemplateAreas: `"c" "b" "a"`,
       };
     case "hall":
-      // A, B, C 동일한 가로 길이로 한 줄 배치 — 401(4공간) 세로보다 약간 길게
+      // 2행 2열 — 1행: C | A,  2행: B | A  (A는 두 행 모두 차지 → B+C 세로 = A 세로)
       return {
-        gridTemplateColumns: "1fr 1fr 1fr",
-        gridAutoRows: "738px",
-        gridTemplateAreas: `"c b a"`,
+        gridTemplateColumns: "1fr 1fr",
+        gridTemplateRows: "366px 366px",
+        gridTemplateAreas: `"c a" "b a"`,
       };
     default:
       return { gridTemplateColumns: "1fr" };
