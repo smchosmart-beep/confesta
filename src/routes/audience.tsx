@@ -4,6 +4,7 @@ import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
 import { OrderCard } from "@/components/confesta/OrderCard";
+import { OrderSkeletonCard } from "@/components/confesta/OrderSkeletonCard";
 import { IceCreamCone } from "@/components/confesta/IceCreamCone";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingInput } from "@/components/confesta/ToppingInput";
