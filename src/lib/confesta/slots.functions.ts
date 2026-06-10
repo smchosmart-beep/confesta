@@ -168,3 +168,61 @@ export const rotateOrderQR = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true as const, payload: makeOrderQR(key, nonce) };
   });
+
+export const issuePickupQR = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({ day: DaySchema, period: PeriodSchema, room: RoomSchema })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertPresenter();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const key = makeSlotKey(data.day, data.period, data.room);
+
+    await supabaseAdmin
+      .from("session_slots")
+      .upsert(
+        { day: data.day, period: data.period, room: data.room },
+        { onConflict: "day,period,room", ignoreDuplicates: true },
+      );
+
+    const { data: existing } = await supabaseAdmin
+      .from("session_nonces")
+      .select("nonce")
+      .eq("session_id", key)
+      .eq("kind", "pickup")
+      .maybeSingle();
+
+    if (existing) {
+      return { ok: true as const, payload: makePickupQR(key, existing.nonce) };
+    }
+
+    const nonce = newNonce();
+    const { error } = await supabaseAdmin
+      .from("session_nonces")
+      .insert({ session_id: key, kind: "pickup", nonce });
+    if (error) throw error;
+    return { ok: true as const, payload: makePickupQR(key, nonce) };
+  });
+
+export const rotatePickupQR = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({ day: DaySchema, period: PeriodSchema, room: RoomSchema })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertPresenter();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const key = makeSlotKey(data.day, data.period, data.room);
+    const nonce = newNonce();
+    const { error } = await supabaseAdmin
+      .from("session_nonces")
+      .upsert(
+        { session_id: key, kind: "pickup", nonce, rotated_at: new Date().toISOString() },
+        { onConflict: "session_id,kind" },
+      );
+    if (error) throw error;
+    return { ok: true as const, payload: makePickupQR(key, nonce) };
+  });
