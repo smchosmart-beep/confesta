@@ -16,6 +16,8 @@ import {
   MAX_SCOOPS_CONST,
   parseSessionQR,
 } from "@/lib/confesta/store";
+import type { ToppingKind } from "@/lib/confesta/types";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import {
   Camera,
   Plus,
@@ -101,6 +103,8 @@ function AudienceView() {
   }, [mySessionIds, selectedSessionId]);
 
   const activeSessionId = selectedSessionId;
+
+  const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
   const handleOrderScan = (text: string) => {
     const parsed = parseSessionQR(text);
