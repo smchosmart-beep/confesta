@@ -227,7 +227,7 @@ function subGridStyle(venueId: string): React.CSSProperties {
       // 2행 2열 — 1행: C | A,  2행: B | A  (A는 두 행 모두 차지 → B+C 세로 = A 세로)
       return {
         gridTemplateColumns: "1fr 1fr",
-        gridTemplateRows: "366px 366px",
+        gridTemplateRows: "240px 432px",
         gridTemplateAreas: `"c a" "b a"`,
       };
     default:
