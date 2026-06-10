@@ -160,12 +160,14 @@ border-2 rounded-2xl p-4 shadow-cream
 홈의 역할 선택처럼 "맛으로 분류되는" 내비게이션 카드. 일반적인 직사각형 카드 대신 **아이스크림 스쿱 윗부분(돔) 실루엣**으로 렌더링한다.
 
 **형태**
-- 윗면: 매끈한 반원 돔 — 큐빅 베지어로 그린 부드러운 곡선
-- 아랫면: 4~5개의 부드러운 물결(scalloped) 모서리 — 스쿱이 살짝 흘러내린 듯한 느낌
-- 와플콘 실루엣은 포함하지 않음 (스쿱 위쪽만)
+- 본체: **거의 완전한 원형** — 큐빅 베지어 4분할로 그린 매끈한 공(스쿱) 모양
+- 하단: 본체 바로 아래에 폭의 약 90%, 높이 약 15%의 **얇고 비대칭인 녹은 받침** (2~3개의 작은 물결, 좌우 길이가 미세하게 다름)
+- 와플콘 실루엣은 포함하지 않음
+- 카드 비율: `aspect-[1/1.05]` (거의 정사각, 살짝 세로로 김), `max-w-[340px]`로 너무 커지지 않게 제한
 
 **구현**
-- SVG `<clipPath clipPathUnits="objectBoundingBox">`로 카드 컨테이너(`aspect-[4/3]`)를 마스킹
+- SVG `<clipPath clipPathUnits="objectBoundingBox">`로 카드 컨테이너를 마스킹
+
 - 동일한 실루엣 그림자는 부모 `<Link>`에 `filter: drop-shadow(...)`로 부여 (`clipPath`가 `box-shadow`를 잘라먹기 때문)
 - 채움: `bg-grad-{flavor}` 전면 + 좌상단 `radial-gradient` 하이라이트로 입체감
 - 토핑 데코는 `ToppingScatter`로 클립 내부에 흩뿌림
