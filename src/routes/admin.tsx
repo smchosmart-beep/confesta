@@ -1,10 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  selectTriggerCls,
+  selectContentCls,
+  selectItemCls,
+} from "@/lib/confesta/selectStyles";
+
+type Period = "am" | "pm";
+const periodOf = (s: { timeSlot: string }): Period =>
+  parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm";
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
