@@ -252,7 +252,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
 
       {/* 서브 공간 그리드 (평면도 실제 배치 반영) */}
       <div
-        className="relative grid gap-2 mt-auto flex-1 p-2 rounded-xl bg-muted/40 border border-dashed border-foreground/15"
+        className="relative grid gap-1.5 mt-auto flex-1 p-1.5 rounded-xl bg-muted/40 border border-dashed border-foreground/15"
         style={subGridStyle(venue.id)}
       >
         {venue.subs.map((sub) => {
