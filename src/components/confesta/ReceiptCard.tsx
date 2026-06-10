@@ -100,7 +100,7 @@ export function ReceiptCard() {
 
   return (
     <div className="relative mx-auto max-w-sm">
-      <div className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
+      <div ref={receiptRef} className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
         <div className="absolute inset-x-0 top-0 h-2 bg-grad-sunset" />
         <div className="relative text-center border-b border-dashed border-foreground/20 pb-4 mb-4">
           <h2 className="font-extrabold text-xl tracking-tight text-grad-sunset">
