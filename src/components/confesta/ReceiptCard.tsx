@@ -42,7 +42,6 @@ export function ReceiptCard() {
       <div className="flex flex-col gap-6">
         <div className="relative overflow-hidden bg-card rounded-3xl p-8 shadow-cream border border-white/60 text-center">
           <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
-          <ToppingScatter density="med" seed="receipt-empty" />
           <div className="relative">
             <Ticket className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
             <h3 className="font-bold text-lg">아직 영수증을 받을 수 없어요</h3>
@@ -71,7 +70,6 @@ export function ReceiptCard() {
     <div className="relative mx-auto max-w-sm">
       <div className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
         <div className="absolute inset-x-0 top-0 h-2 bg-grad-sunset" />
-        <ToppingScatter density="med" seed="receipt-main" />
         <div className="relative text-center border-b border-dashed border-foreground/20 pb-4 mb-4">
           <h2 className="font-extrabold text-xl tracking-tight text-grad-sunset">
             CONFESTA · Sweet Reward
@@ -151,7 +149,6 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
     <div className="relative mx-auto max-w-sm opacity-90">
       <div className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-cream border border-dashed border-grad-mango/40">
         <div className="absolute inset-x-0 top-0 h-2 bg-grad-sunset" />
-        <ToppingScatter density="low" seed="receipt-sample" />
         <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-grad-mango/20 text-grad-mango text-[10px] font-extrabold tracking-wide">
           SAMPLE
         </div>
