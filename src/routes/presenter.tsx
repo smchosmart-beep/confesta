@@ -180,14 +180,16 @@ function PresenterView() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setPickupOpen(true)}
-                  className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[88px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
-                >
-                  <QrCode className="w-5 h-5" />
-                  수령 QR
-                </button>
+                {isUnlocked && (
+                  <button
+                    type="button"
+                    onClick={() => setPickupOpen(true)}
+                    className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[88px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
+                  >
+                    <QrCode className="w-5 h-5" />
+                    수령 QR
+                  </button>
+                )}
               </div>
             </div>
           );
