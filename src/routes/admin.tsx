@@ -168,21 +168,22 @@ function AdminView() {
           </div>
         </div>
 
-        <div
-          className="grid gap-2 sm:gap-3 p-2 sm:p-3 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream"
-          style={{
-            gridTemplateColumns: "1.1fr 1.6fr 1.1fr",
-            gridTemplateAreas: `
-              "v402  hall  v403"
-              "v401  hall  v404"
-              "v400  .     ."
-            `,
-          }}
-        >
-
-          {stats.map((v) => (
-            <VenueCard key={v.id} venue={v} />
-          ))}
+        <div className="grid gap-3 sm:gap-4 p-2 sm:p-3 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[1.1fr_1.6fr_1.1fr] items-start">
+          {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
+          <div className="flex flex-col gap-6 self-stretch">
+            {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} />)}
+          </div>
+          {/* 중앙 컬럼: LEWEST Hall */}
+          <div className="flex flex-col self-stretch">
+            {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} />)}
+          </div>
+          {/* 우측 컬럼: 403 (위) / 404 (아래) */}
+          <div className="flex flex-col gap-6 self-stretch">
+            {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} />)}
+            {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} />)}
+          </div>
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-2xl p-4">
@@ -197,19 +198,21 @@ function AdminView() {
 
 /** 실제 평면도 배치를 반영한 서브공간 그리드 스타일 */
 function subGridStyle(venueId: string): React.CSSProperties {
+  // 401~404: 모든 서브공간 타일을 동일한 고정 높이로 (A,B,C,D 카드 크기 균일)
+  const tileRow = "168px";
   switch (venueId) {
     case "401":
       // 위→아래: D, C, B, A (세로 1열)
       return {
         gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(4, minmax(0, 1fr))",
+        gridAutoRows: tileRow,
         gridTemplateAreas: `"d" "c" "b" "a"`,
       };
     case "402":
       // 위→아래: B, A
       return {
         gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridAutoRows: tileRow,
         gridTemplateAreas: `"b" "a"`,
       };
     case "403":
@@ -217,7 +220,7 @@ function subGridStyle(venueId: string): React.CSSProperties {
       // 위→아래: C, B, A
       return {
         gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(3, minmax(0, 1fr))",
+        gridAutoRows: tileRow,
         gridTemplateAreas: `"c" "b" "a"`,
       };
     case "hall":
