@@ -40,6 +40,11 @@ function PresenterView() {
 
   const [progress, setProgress] = useState(100);
 
+  // 세션이 바뀌면 수령 QR 모달 닫기 (다시 잠금됨)
+  useEffect(() => {
+    setPickupOpen(false);
+  }, [sessionId]);
+
   // 수령 QR은 모달이 열린 동안에만 갱신
   useEffect(() => {
     if (!pickupOpen) return;
