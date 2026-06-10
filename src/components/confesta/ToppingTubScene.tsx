@@ -291,7 +291,7 @@ function IceCreamTub({
         x="200"
         y="195"
         textAnchor="middle"
-        fontFamily="ui-sans-serif, system-ui"
+        fontFamily="'Times New Roman', Georgia, serif"
         fontWeight="900"
         fontSize="20"
         fill="#FFFFFF"
