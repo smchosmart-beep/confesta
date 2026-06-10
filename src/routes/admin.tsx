@@ -286,7 +286,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                   <span className="text-xs font-extrabold tabular-nums text-foreground">{pct}%</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap justify-center">
+              <div className="flex items-center gap-1.5 flex-wrap justify-center w-14">
                 <span className="inline-flex items-center gap-1 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-2 py-0.5 text-xs font-extrabold text-grad-blueberry">
                   주문 <span className="tabular-nums">{sub.orders}</span>
                 </span>
