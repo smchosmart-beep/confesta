@@ -44,7 +44,8 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
   const coneH = coneW * 0.95;
   const coneTuck = coneH * 0.12;
 
-  const count = Math.max(scoops.length, 1);
+  const placeholderCount = scoops.length === 0 ? 3 : 0;
+  const count = Math.max(scoops.length + placeholderCount, 1);
   const totalHeight =
     domeVisible * count + (coneH - coneTuck) + domeBox * 0.04;
 
@@ -100,19 +101,48 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
         />
       </div>
 
-      {/* Empty state */}
-      {scoops.length === 0 && (
-        <div
-          className="absolute left-1/2 -translate-x-1/2 rounded-full border-2 border-dashed border-foreground/15 flex items-center justify-center text-xs text-muted-foreground bg-white/60"
-          style={{
-            width: domeBox * 0.9,
-            height: domeVisible,
-            bottom: coneH - coneTuck,
-          }}
-        >
-          QR 스캔하면 스쿱이 쌓여요
-        </div>
-      )}
+      {/* Empty state — 3 ghost scoops on the cone (matches receipt design) */}
+      {scoops.length === 0 &&
+        Array.from({ length: 3 }).map((_, i) => {
+          const bottom = coneH - coneTuck - domeBox * 0.5 + i * domeVisible;
+          const isTop = i === 2;
+          return (
+            <div
+              key={`ghost-${i}`}
+              className="absolute left-1/2 -translate-x-1/2"
+              style={{
+                width: domeBox,
+                height: domeBox,
+                bottom,
+                zIndex: 10 + i,
+              }}
+              aria-hidden
+            >
+              <div className="absolute inset-0" style={MASK_STYLE}>
+                <div className="absolute inset-0 bg-white/70" />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "repeating-linear-gradient(45deg, transparent 0 5px, rgba(0,0,0,0.10) 5px 6px)",
+                  }}
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      "radial-gradient(circle at 50% 50%, transparent 60%, rgba(0,0,0,0.10) 100%)",
+                  }}
+                />
+                {isTop && (
+                  <div className="absolute inset-x-0 top-[18%] text-center text-[10px] font-bold text-muted-foreground tracking-wide">
+                    QR 스캔하면 스쿱이 쌓여요
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
 
 
       {/* Scoops (i=0 is bottom) */}
