@@ -202,10 +202,20 @@ function VenueCard({ venue }: { venue: VenueStat }) {
         <h3 className="font-extrabold text-base sm:text-lg leading-none">
           {venue.name}
         </h3>
-        <span className="text-[10px] font-bold text-muted-foreground">
-          {venue.subs.length} 공간
-        </span>
+        {!venue.noMetrics && (
+          <span className="text-[10px] font-bold text-muted-foreground">
+            {venue.subs.length} 공간
+          </span>
+        )}
       </div>
+
+      {venue.noMetrics ? (
+        <div className="relative flex-1 flex items-center justify-center text-center text-[11px] text-muted-foreground py-4">
+          주문/수령 집계 없음
+        </div>
+      ) : (
+        <>
+
 
       {/* 합계 두 카운트 + 수령률 */}
       <div className="relative grid grid-cols-2 gap-2 mb-2">
