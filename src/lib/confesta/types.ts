@@ -27,6 +27,8 @@ export interface Session {
   timeSlot: string; // "10:00 - 10:50"
   category: CategoryKey;
   capacity: number;
+  /** Demo-only seed password used by the presenter view's auth gate. */
+  presenterPassword: string;
 }
 
 export type ToppingKind = "question" | "answer";
