@@ -82,7 +82,7 @@ export function QuestionStream({ sessionId }: Props) {
       ) : (
         <div className="space-y-3">
           {filtered.map((t) => {
-            const likes = mockLikes(t.id);
+            const likes = t.likes ?? 0;
             return (
               <div
                 key={t.id}
