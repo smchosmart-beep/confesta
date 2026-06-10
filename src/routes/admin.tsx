@@ -324,7 +324,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                 </div>
               </div>
               {/* 우측: 토핑(질문) 수 카드 */}
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-1.5 py-2 h-full">
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-4 py-2 h-full">
                 <span className="text-[9px] font-bold text-muted-foreground leading-none mb-1">
                   토핑 (질문)
                 </span>
