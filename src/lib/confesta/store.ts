@@ -7,7 +7,9 @@ import type {
   StackedScoop,
   Topping,
   ToppingKind,
+  ToppingGate,
 } from "./types";
+import { DEFAULT_TOPPING_GATE } from "./types";
 import { SESSIONS, getCategory, SAMPLE_TOPPINGS } from "./mockData";
 
 const MAX_SCOOPS = 3;
