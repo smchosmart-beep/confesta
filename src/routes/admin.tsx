@@ -329,10 +329,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                   토핑 (질문)
                 </span>
                 <span className={`font-extrabold tabular-nums text-grad-mango leading-none ${toppingSize}`}>
-                  {sub.toppings}
-                </span>
-                <span className="text-[9px] font-bold text-muted-foreground leading-none mt-1">
-                  개
+                  {sub.toppings}<span className="text-[0.45em] align-top ml-0.5">개</span>
                 </span>
               </div>
             </div>
