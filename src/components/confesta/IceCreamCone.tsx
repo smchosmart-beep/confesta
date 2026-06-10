@@ -38,110 +38,30 @@ interface Props {
 
 export function IceCreamCone({ scoops, size = 200 }: Props) {
   const w = size;
-  const domeW = w * 0.82;
-  const overlap = 0.52; // each scoop overlaps previous by this fraction of its square
-  const stackHeight =
-    scoops.length > 0
-      ? domeW * (1 - overlap) * scoops.length + domeW * overlap
-      : domeW * 0.5;
-  const h = stackHeight + w * 0.78 - domeW * 0.18; // + cone height, slight overlap
+  const domeBox = w * 0.86; // square that contains a single dome scoop
+  const domeVisible = domeBox * 0.5; // visible dome height inside the square
+  const coneW = w * 0.78;
+  const coneH = coneW; // svg is square viewBox
+  const coneTuck = coneW * 0.1; // how much scoops sit into the cone rim
+
+  const count = Math.max(scoops.length, 1);
+  const totalHeight =
+    domeVisible * count + (coneH - coneTuck) + domeBox * 0.04; // breathing room
 
   return (
     <div
-      className="relative flex flex-col items-center"
-      style={{ width: w, height: h }}
+      className="relative mx-auto"
+      style={{ width: w, height: totalHeight }}
     >
-      {/* Scoop stack */}
-      <div
-        className="relative flex flex-col-reverse items-center"
-        style={{ width: domeW }}
-      >
-        {scoops.map((scoop, i) => {
-          const flavor = (scoop.flavor as Flavor) ?? "mint";
-          return (
-            <div
-              key={scoop.id}
-              className="relative"
-              style={{
-                width: domeW,
-                height: domeW,
-                marginTop: i === 0 ? 0 : -domeW * overlap,
-                zIndex: i + 1,
-                filter: FLAVOR_SHADOW[flavor],
-                animation: "var(--animate-scoop-drop)",
-                animationDelay: `${i * 40}ms`,
-              }}
-              aria-label={`${flavor} 스쿱`}
-            >
-              <div className="absolute inset-0" style={MASK_STYLE}>
-                <div className={`absolute inset-0 ${FLAVOR_GRAD[flavor]}`} />
-                {/* volume shading */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "radial-gradient(ellipse 70% 55% at 35% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 35%, rgba(255,255,255,0) 55%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0) 100%)",
-                  }}
-                />
-                {/* specular */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "radial-gradient(circle 40px at 28% 22%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%)",
-                  }}
-                />
-                {/* bottom inner shadow */}
-                <svg
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M 3,52 Q 50,79 97,52"
-                    stroke="rgba(0,0,0,0.35)"
-                    strokeWidth="5"
-                    fill="none"
-                    strokeLinecap="round"
-                    style={{ filter: "blur(4px)" }}
-                  />
-                </svg>
-                {/* rim vignette */}
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.18) 100%)",
-                  }}
-                />
-                {/* toppings */}
-                <div className="absolute inset-0 opacity-90">
-                  <ToppingScatter density="low" seed={`cone-${scoop.id}`} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-
-        {scoops.length === 0 && (
-          <div
-            className="rounded-full border-2 border-dashed border-foreground/15 flex items-center justify-center text-xs text-muted-foreground"
-            style={{ width: domeW, height: domeW * 0.48 }}
-          >
-            QR 스캔하면 스쿱이 쌓여요
-          </div>
-        )}
-      </div>
-
-      {/* Cone */}
+      {/* Cone (back layer) */}
       <svg
         viewBox="0 0 100 100"
+        className="absolute left-1/2 -translate-x-1/2"
         style={{
-          width: w * 0.78,
-          height: w * 0.78,
-          marginTop: -domeW * 0.18,
-          zIndex: 0,
+          width: coneW,
+          height: coneH,
+          bottom: 0,
+          zIndex: 5,
         }}
         aria-hidden
       >
@@ -180,6 +100,89 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
         <polygon points="10,5 90,5 50,95" fill="url(#waffle)" />
         <rect x="8" y="2" width="84" height="8" rx="3" fill="url(#cone-rim)" />
       </svg>
+
+      {/* Empty state */}
+      {scoops.length === 0 && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 rounded-full border-2 border-dashed border-foreground/15 flex items-center justify-center text-xs text-muted-foreground bg-white/60"
+          style={{
+            width: domeBox * 0.9,
+            height: domeVisible,
+            bottom: coneH - coneTuck,
+          }}
+        >
+          QR 스캔하면 스쿱이 쌓여요
+        </div>
+      )}
+
+      {/* Scoops (i=0 is bottom) */}
+      {scoops.map((scoop, i) => {
+        const flavor = (scoop.flavor as Flavor) ?? "mint";
+        // bottom of each scoop's square box; scoop dome occupies the top half of the box.
+        // The box's flat bottom curve sits at ~52% from top → visible bottom is at boxBottom + domeBox*0.48.
+        // We want successive scoops to sit so that their visible bottom curve overlaps cleanly.
+        const bottom =
+          coneH - coneTuck - domeBox * 0.5 + i * domeVisible;
+        return (
+          <div
+            key={scoop.id}
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              width: domeBox,
+              height: domeBox,
+              bottom,
+              zIndex: 10 + i,
+              filter: FLAVOR_SHADOW[flavor],
+              animation: "var(--animate-scoop-drop)",
+              animationDelay: `${i * 40}ms`,
+            }}
+            aria-label={`${flavor} 스쿱`}
+          >
+            <div className="absolute inset-0" style={MASK_STYLE}>
+              <div className={`absolute inset-0 ${FLAVOR_GRAD[flavor]}`} />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(ellipse 70% 55% at 35% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 35%, rgba(255,255,255,0) 55%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0) 100%)",
+                }}
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(circle 40px at 28% 22%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%)",
+                }}
+              />
+              <svg
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M 3,52 Q 50,79 97,52"
+                  stroke="rgba(0,0,0,0.35)"
+                  strokeWidth="5"
+                  fill="none"
+                  strokeLinecap="round"
+                  style={{ filter: "blur(4px)" }}
+                />
+              </svg>
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.18) 100%)",
+                }}
+              />
+              <div className="absolute inset-0 opacity-90">
+                <ToppingScatter density="low" seed={`cone-${scoop.id}`} />
+              </div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
