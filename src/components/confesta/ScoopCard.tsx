@@ -13,11 +13,16 @@ const FLAVOR_GRAD: Record<Flavor, string> = {
 };
 
 const FLAVOR_SHADOW: Record<Flavor, string> = {
-  strawberry: "drop-shadow(0 14px 26px rgba(255, 0, 122, 0.28))",
-  blueberry: "drop-shadow(0 14px 26px rgba(75, 83, 224, 0.28))",
-  mint: "drop-shadow(0 14px 26px rgba(47, 185, 154, 0.28))",
-  mango: "drop-shadow(0 14px 26px rgba(255, 138, 31, 0.28))",
+  strawberry:
+    "drop-shadow(0 6px 10px rgba(255,0,122,0.22)) drop-shadow(0 22px 36px rgba(255,0,122,0.30))",
+  blueberry:
+    "drop-shadow(0 6px 10px rgba(75,83,224,0.22)) drop-shadow(0 22px 36px rgba(75,83,224,0.30))",
+  mint:
+    "drop-shadow(0 6px 10px rgba(47,185,154,0.22)) drop-shadow(0 22px 36px rgba(47,185,154,0.30))",
+  mango:
+    "drop-shadow(0 6px 10px rgba(255,138,31,0.22)) drop-shadow(0 22px 36px rgba(255,138,31,0.30))",
 };
+
 
 const MASK_STYLE: React.CSSProperties = {
   WebkitMaskImage: `url(${scoopMask.url})`,
