@@ -235,44 +235,41 @@ function VenueCard({ venue }: { venue: VenueStat }) {
         </div>
       </div>
 
-      {/* 서브 공간 분해 */}
-      <div className="relative space-y-1.5 mt-auto">
-        {venue.subs.map((sub) => {
-          const cap = sub.capacity || 30;
-          const orderPct = Math.min(100, (sub.orders / cap) * 100);
-          const pickupPct = Math.min(100, (sub.pickups / cap) * 100);
-          const session = sub.sessionTitle;
-          return (
-            <div
-              key={sub.label}
-              className="rounded-xl border border-white/70 bg-white/60 px-2 py-1.5"
-            >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="text-[11px] font-extrabold">
-                  {sub.label}
-                </span>
-                <span className="text-[10px] font-bold text-grad-aurora">
-                  주문 {sub.orders} · 수령 {sub.pickups}
-                </span>
-              </div>
-              {session && (
-                <p className="text-[10px] text-muted-foreground truncate mb-1">
-                  {session}
-                </p>
-              )}
-              <div className="relative h-1.5 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-grad-blueberry opacity-60 rounded-full"
-                  style={{ width: `${orderPct}%` }}
-                />
-                <div
-                  className="absolute inset-y-0 left-0 bg-grad-strawberry rounded-full"
-                  style={{ width: `${pickupPct}%` }}
-                />
-              </div>
+      {/* 서브 공간 그리드 (평면도 분할) */}
+      <div
+        className="relative grid gap-1.5 mt-auto"
+        style={{
+          gridTemplateColumns:
+            venue.subs.length === 4
+              ? "repeat(2, minmax(0, 1fr))"
+              : venue.subs.length === 2
+                ? "repeat(2, minmax(0, 1fr))"
+                : "repeat(3, minmax(0, 1fr))",
+        }}
+      >
+        {venue.subs.map((sub) => (
+          <div
+            key={sub.label}
+            title={sub.sessionTitle}
+            className="rounded-xl border border-white/70 bg-white/70 px-2 py-2 flex flex-col min-h-[88px]"
+          >
+            <div className="flex items-baseline justify-between gap-1 mb-1">
+              <span className="text-sm font-extrabold leading-none">
+                {sub.code}
+              </span>
+              <span className="text-[9px] font-bold text-muted-foreground">
+                {sub.label}
+              </span>
             </div>
-          );
-        })}
+            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-1.5 min-h-[1.5em]">
+              {sub.sessionTitle ?? "—"}
+            </p>
+            <div className="mt-auto flex items-center justify-between text-[10px] font-extrabold">
+              <span className="text-grad-blueberry">주문 {sub.orders}</span>
+              <span className="text-grad-strawberry">수령 {sub.pickups}</span>
+            </div>
+          </div>
+        ))}
       </div>
         </>
       )}
