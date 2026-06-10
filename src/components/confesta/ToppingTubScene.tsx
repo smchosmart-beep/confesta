@@ -81,10 +81,11 @@ export function ToppingTubScene({ sessionId, compact = false }: Props) {
       return {
         kw, size, x, rot, gradient, Icon,
         dur, delay, swayDur, swayDelay, z,
-        key: `${kw.word}-${tick}`,
+        key: kw.word,
       };
     });
-  }, [keywords, maxCount, compact, tick]);
+  }, [keywords, maxCount, compact]);
+
 
   const containerH = compact ? "h-[360px]" : "h-[460px] sm:h-[560px] xl:h-[720px]";
 
