@@ -112,3 +112,54 @@ export function ReceiptCard() {
     </div>
   );
 }
+
+function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
+  return (
+    <div className="relative mx-auto max-w-sm opacity-90">
+      <div className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-cream border border-dashed border-grad-mango/40">
+        <div className="absolute inset-x-0 top-0 h-2 bg-grad-sunset" />
+        <ToppingScatter density="low" seed="receipt-sample" />
+        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-grad-mango/20 text-grad-mango text-[10px] font-extrabold tracking-wide">
+          SAMPLE
+        </div>
+        <div className="relative text-center border-b border-dashed border-foreground/20 pb-4 mb-4">
+          <h2 className="font-extrabold text-xl tracking-tight text-grad-sunset">
+            CONFESTA · Sweet Reward
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">디지털 보상 영수증</p>
+        </div>
+
+        <div className="relative flex justify-center my-4">
+          <IceCreamCone scoops={scoops} size={150} />
+        </div>
+
+        <div className="relative text-xs space-y-1 mb-4 font-mono">
+          {scoops.map((s, i) => (
+            <div key={s.id} className="flex justify-between">
+              <span>스쿱 #{i + 1}</span>
+              <span className="capitalize">{s.flavor}</span>
+            </div>
+          ))}
+          <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
+            <span>발급</span>
+            <span>2026-06-10 14:00</span>
+          </div>
+        </div>
+
+        <div className="relative bg-white p-3 rounded-2xl border border-foreground/10 flex justify-center">
+          <QRCode value="confesta:receipt:sample:preview" size={140} level="M" />
+        </div>
+
+        <div className="relative mt-4 flex justify-center">
+          <span className="px-4 py-1.5 rounded-full bg-grad-blueberry text-white text-xs font-bold shadow-blue">
+            [READY FOR REDEMPTION]
+          </span>
+        </div>
+      </div>
+      <p className="text-center text-[11px] text-muted-foreground mt-3">
+        ※ 실제 영수증은 내가 모은 스쿱과 발급 시각으로 자동 생성됩니다.
+      </p>
+    </div>
+  );
+}
+
