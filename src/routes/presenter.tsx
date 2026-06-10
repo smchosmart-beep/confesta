@@ -101,29 +101,92 @@ function PresenterView() {
 
           return (
             <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex flex-col gap-2">
-                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                    1단계 · 일자 선택
-                  </span>
-                  <div className="flex gap-2">
-                    {daysAvailable.map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        className={stepBtn(d === day)}
-                        onClick={() => {
-                          const next =
-                            pickFirstSessionFor(d, period) ??
-                            pickFirstSessionFor(d, period === "am" ? "pm" : "am");
-                          if (next) setSessionId(next);
-                        }}
-                      >
-                        Day {d}
-                      </button>
-                    ))}
+              <div className="flex items-start justify-between gap-3">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+                  {/* 1단계 */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      1단계 · 일자 선택
+                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      {daysAvailable.map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          className={stepBtn(d === day)}
+                          onClick={() => {
+                            const next =
+                              pickFirstSessionFor(d, period) ??
+                              pickFirstSessionFor(d, period === "am" ? "pm" : "am");
+                            if (next) setSessionId(next);
+                          }}
+                        >
+                          Day {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2단계 */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      2단계 · 시간대 선택
+                    </span>
+                    <div className="flex gap-2 flex-wrap">
+                      {(["am", "pm"] as const).map((p) => {
+                        const enabled = periodsAvailable.includes(p);
+                        return (
+                          <button
+                            key={p}
+                            type="button"
+                            disabled={!enabled}
+                            className={`${stepBtn(p === period && enabled)} ${
+                              !enabled ? "opacity-40 cursor-not-allowed" : ""
+                            }`}
+                            onClick={() => {
+                              const next = pickFirstSessionFor(day, p);
+                              if (next) setSessionId(next);
+                            }}
+                          >
+                            {p === "am" ? "오전" : "오후"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3단계 */}
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                      3단계 · 세션 선택
+                    </span>
+                    <div className="flex flex-col gap-2">
+                      {sessionsInScope.map((s) => {
+                        const active = s.id === sessionId;
+                        return (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSessionId(s.id)}
+                            className={`bounce-press text-left rounded-2xl px-4 py-3 border transition ${
+                              active
+                                ? "bg-grad-blueberry text-white border-transparent shadow-blue"
+                                : "bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40"
+                            }`}
+                          >
+                            <div className="text-xs font-semibold opacity-80">
+                              {s.timeSlot} · {s.room}
+                            </div>
+                            <div className="text-sm font-bold leading-snug">
+                              {s.title}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => setPickupOpen(true)}
@@ -133,65 +196,9 @@ function PresenterView() {
                   수령 QR
                 </button>
               </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  2단계 · 시간대 선택
-                </span>
-                <div className="flex gap-2">
-                  {(["am", "pm"] as const).map((p) => {
-                    const enabled = periodsAvailable.includes(p);
-                    return (
-                      <button
-                        key={p}
-                        type="button"
-                        disabled={!enabled}
-                        className={`${stepBtn(p === period && enabled)} ${
-                          !enabled ? "opacity-40 cursor-not-allowed" : ""
-                        }`}
-                        onClick={() => {
-                          const next = pickFirstSessionFor(day, p);
-                          if (next) setSessionId(next);
-                        }}
-                      >
-                        {p === "am" ? "오전" : "오후"}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  3단계 · 세션 선택
-                </span>
-                <div className="flex flex-col gap-2">
-                  {sessionsInScope.map((s) => {
-                    const active = s.id === sessionId;
-                    return (
-                      <button
-                        key={s.id}
-                        type="button"
-                        onClick={() => setSessionId(s.id)}
-                        className={`bounce-press text-left rounded-2xl px-4 py-3 border transition ${
-                          active
-                            ? "bg-grad-blueberry text-white border-transparent shadow-blue"
-                            : "bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40"
-                        }`}
-                      >
-                        <div className="text-xs font-semibold opacity-80">
-                          {s.timeSlot} · {s.room}
-                        </div>
-                        <div className="text-sm font-bold leading-snug">
-                          {s.title}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           );
+
         })()}
 
 
