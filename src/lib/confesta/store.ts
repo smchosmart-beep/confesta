@@ -71,7 +71,7 @@ interface ConfestaState {
   pickupFromQR: (payload: string) => ScanResult;
   resetScoops: () => void;
   generateReceipt: () => string | null;
-  addTopping: (sessionId: string, text: string) => void;
+  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => void;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
   toggleLikeTopping: (id: string) => void;
