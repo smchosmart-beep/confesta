@@ -39,7 +39,7 @@ interface Props {
 export function IceCreamCone({ scoops, size = 200 }: Props) {
   const w = size;
   const domeBox = w * 0.86; // square that contains a single dome scoop
-  const domeVisible = domeBox * 0.5; // visible dome height inside the square
+  const domeVisible = domeBox * 0.36; // overlap step — smaller = deeper overlap
   const coneW = w * 0.78;
   const coneH = coneW * 0.95;
   const coneTuck = coneH * 0.12;
