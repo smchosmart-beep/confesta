@@ -298,25 +298,43 @@ function AudienceView() {
                     }
                     return (
                       <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
-                        {list.map((t) => (
-                          <li
-                            key={t.id}
-                            className={`rounded-2xl px-4 py-3 text-sm border ${
-                              t.addressed
-                                ? "bg-muted/40 border-white/60 text-muted-foreground line-through"
-                                : "bg-white/70 border-white/80 text-foreground"
-                            }`}
-                          >
-                            <div className="flex items-start gap-2">
-                              {t.pinned && (
-                                <span className="text-xs font-bold text-pink-600 shrink-0 mt-0.5">
-                                  📌
-                                </span>
-                              )}
-                              <span className="flex-1 break-words">{t.text}</span>
-                            </div>
-                          </li>
-                        ))}
+                        {list.map((t) => {
+                          const liked = likedToppingIds.includes(t.id);
+                          const likeCount = t.likes ?? 0;
+                          return (
+                            <li
+                              key={t.id}
+                              className={`rounded-2xl px-4 py-3 text-sm border ${
+                                t.addressed
+                                  ? "bg-muted/40 border-white/60 text-muted-foreground line-through"
+                                  : "bg-white/70 border-white/80 text-foreground"
+                              }`}
+                            >
+                              <div className="flex items-start gap-2">
+                                {t.pinned && (
+                                  <span className="text-xs font-bold text-pink-600 shrink-0 mt-0.5">
+                                    📌
+                                  </span>
+                                )}
+                                <span className="flex-1 break-words">{t.text}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleLikeTopping(t.id)}
+                                  aria-pressed={liked}
+                                  aria-label={liked ? "좋아요 취소" : "좋아요"}
+                                  className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
+                                    liked
+                                      ? "bg-grad-strawberry text-white border-transparent shadow-pink"
+                                      : "bg-white/80 text-muted-foreground border-white hover:text-pink-600"
+                                  }`}
+                                >
+                                  <span aria-hidden>{liked ? "❤️" : "🤍"}</span>
+                                  <span>{likeCount}</span>
+                                </button>
+                              </div>
+                            </li>
+                          );
+                        })}
                       </ul>
                     );
                   })()}
