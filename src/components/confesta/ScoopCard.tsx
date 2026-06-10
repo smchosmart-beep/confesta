@@ -55,30 +55,45 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
       <div className="relative aspect-square w-full" style={MASK_STYLE}>
         {/* base flavor gradient */}
         <div className={`absolute inset-0 ${FLAVOR_GRAD[flavor]}`} />
-        {/* top glossy highlight */}
+
+        {/* hemisphere volume shading — body only (top→bright, bottom→dark) */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 70% 50% at 32% 18%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 60%)",
+              "radial-gradient(ellipse 75% 65% at 35% 25%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 28%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.18) 65%, rgba(0,0,0,0.30) 80%)",
+            clipPath: "inset(0 0 35% 0)",
           }}
         />
-        {/* specular highlight */}
+
+        {/* specular highlight — body only */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle 60px at 28% 20%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%)",
+              "radial-gradient(circle 70px at 28% 22%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%)",
+            clipPath: "inset(0 0 40% 0)",
           }}
         />
-        {/* bottom inner shadow → spherical volume */}
+
+        {/* body↔skirt separation band — dark notch + thin bright rim */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 90% 60% at 50% 98%, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 55%)",
+              "linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.35) 66%, rgba(0,0,0,0.22) 70%, rgba(255,255,255,0.18) 72%, transparent 78%)",
           }}
         />
+
+        {/* skirt shading — slightly darker bottom */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to bottom, transparent 65%, rgba(0,0,0,0.10) 78%, rgba(0,0,0,0.22) 100%)",
+          }}
+        />
+
         {/* edge vignette → rim shading */}
         <div
           className="absolute inset-0"
@@ -87,14 +102,7 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
               "radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.18) 100%)",
           }}
         />
-        {/* skirt separation band */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.12) 72%, transparent 82%)",
-          }}
-        />
+
         {/* topping decor */}
         <div className="absolute inset-0 opacity-90">
           <ToppingScatter density="med" seed={`scoop-${to}`} />
@@ -104,7 +112,7 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
         {/* content — sits inside the round body, above the melted skirt */}
         <div
           className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 pt-5"
-          style={{ paddingBottom: "26%" }}
+          style={{ paddingBottom: "32%" }}
         >
           <span className="w-14 h-14 rounded-full bg-white/85 ring-2 ring-white shadow-cream flex items-center justify-center mb-3">
             <Icon className="w-7 h-7 text-foreground/80" />
