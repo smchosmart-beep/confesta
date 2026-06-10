@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   getAudienceState,
   placeOrderFromQR,
@@ -10,6 +10,7 @@ import {
   type AudienceStateDTO,
   type AudienceMutationResult,
 } from "@/lib/confesta/audience.functions";
+import type { Order, StackedScoop, ScoopFlavor } from "@/lib/confesta/types";
 import { useDeviceId } from "./use-device-id";
 
 const EMPTY_STATE: AudienceStateDTO = { orders: [], scoops: [], receipt: null };
