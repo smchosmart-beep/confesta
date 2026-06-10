@@ -39,31 +39,54 @@ export function ReceiptCard() {
     .sort((a, b) => a.createdAt - b.createdAt);
 
   const receiptRef = useRef<HTMLDivElement>(null);
+  const sampleRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
+  const [savingSample, setSavingSample] = useState(false);
+
+  const captureToPng = async (
+    node: HTMLElement,
+    filenamePrefix: string,
+  ) => {
+    const dataUrl = await toPng(node, {
+      pixelRatio: 2,
+      cacheBust: true,
+      backgroundColor: "#ffffff",
+    });
+    const link = document.createElement("a");
+    const stamp = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+    link.download = `${filenamePrefix}-${stamp}.png`;
+    link.href = dataUrl;
+    link.click();
+  };
 
   const handleSaveImage = async () => {
     if (!receiptRef.current || saving) return;
     setSaving(true);
     try {
-      const dataUrl = await toPng(receiptRef.current, {
-        pixelRatio: 2,
-        cacheBust: true,
-        backgroundColor: "#ffffff",
-      });
-      const link = document.createElement("a");
-      const stamp = new Date()
-        .toISOString()
-        .replace(/[:.]/g, "-")
-        .slice(0, 19);
-      link.download = `confesta-receipt-${stamp}.png`;
-      link.href = dataUrl;
-      link.click();
+      await captureToPng(receiptRef.current, "confesta-receipt");
       toast.success("영수증 이미지를 저장했어요");
     } catch (err) {
       console.error(err);
       toast.error("이미지 저장에 실패했어요");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSampleImage = async () => {
+    if (!sampleRef.current || savingSample) return;
+    setSavingSample(true);
+    try {
+      await captureToPng(sampleRef.current, "confesta-receipt-sample");
+      toast.success("샘플 영수증 이미지를 저장했어요");
+    } catch (err) {
+      console.error(err);
+      toast.error("이미지 저장에 실패했어요");
+    } finally {
+      setSavingSample(false);
     }
   };
 
@@ -90,7 +113,21 @@ export function ReceiptCard() {
           </span>
         </div>
 
-        <SampleReceipt scoops={SAMPLE_SCOOPS} />
+        <div ref={sampleRef}>
+          <SampleReceipt scoops={SAMPLE_SCOOPS} />
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={handleSaveSampleImage}
+            disabled={savingSample}
+            className="bounce-press inline-flex items-center gap-2 rounded-full bg-grad-strawberry text-white px-5 py-2.5 text-sm font-bold shadow-pink disabled:opacity-60"
+          >
+            <Download className="w-4 h-4" />
+            {savingSample ? "저장 중..." : "샘플 이미지로 저장"}
+          </button>
+        </div>
       </div>
     );
   }
