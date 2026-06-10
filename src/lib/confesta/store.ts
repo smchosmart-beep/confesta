@@ -119,6 +119,7 @@ export const useConfestaStore = create<ConfestaState>()(
       orders: initialOrders,
       scoops: [],
       toppings: initialToppings,
+      likedToppingIds: [],
       presenterNonces: {},
       receiptToken: null,
       receiptRedeemed: null,
