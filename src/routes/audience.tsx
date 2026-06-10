@@ -333,7 +333,7 @@ function AudienceView() {
                       })}
                     </div>
                   </div>
-                  <ToppingInput sessionId={activeSessionId} kind={toppingKind} onKindChange={setToppingKind} />
+                  <ToppingInput sessionId={activeSessionId} kind={toppingKind} onKindChange={setToppingKind} disableAnswerSubmit />
                   <p className="text-xs text-muted-foreground mt-4">
                     전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
                   </p>
@@ -410,101 +410,29 @@ function AudienceView() {
                   </div>
                 </div>
               ) : (
-                <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
-                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
-                  <ToppingScatter density="low" seed="audience-topping-pie" />
-                  <div className="relative">
-                    {(() => {
-                      const answers = toppings.filter(
-                        (t) => t.sessionId === activeSessionId && t.kind === "answer",
-                      );
-                      const total = answers.length;
-                      const counts = new Map<string, number>();
-                      for (const a of answers) {
-                        const key = a.text.trim().toLowerCase();
-                        if (!key) continue;
-                        counts.set(key, (counts.get(key) ?? 0) + 1);
-                      }
-                      const sorted = [...counts.entries()]
-                        .map(([name, value]) => ({ name, value }))
-                        .sort((a, b) => b.value - a.value);
-                      const TOP = 6;
-                      let data = sorted;
-                      if (sorted.length > TOP) {
-                        const top = sorted.slice(0, TOP);
-                        const restSum = sorted.slice(TOP).reduce((s, x) => s + x.value, 0);
-                        data = [...top, { name: "기타", value: restSum }];
-                      }
-                      const PALETTE = [
-                        "var(--scoop-strawberry)",
-                        "var(--scoop-mango)",
-                        "var(--scoop-mint)",
-                        "var(--scoop-blueberry)",
-                        "var(--scoop-grape)",
-                        "var(--scoop-chocolate)",
-                        "var(--muted-foreground)",
-                      ];
+                <div className="flex flex-col gap-3">
+                  {(() => {
+                    const sessionPrompts = answerPrompts
+                      .filter((p) => p.sessionId === activeSessionId)
+                      .sort((a, b) => b.createdAt - a.createdAt);
+                    if (sessionPrompts.length === 0) {
                       return (
-                        <>
-                          <div className="flex items-baseline justify-between mb-1">
-                            <h3 className="font-bold text-lg">키워드 응답 현황</h3>
-                            <span className="text-xs text-muted-foreground">{total}개</span>
+                        <div className="relative overflow-hidden bg-card rounded-3xl p-8 shadow-cream border border-white/60 text-center">
+                          <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
+                          <ToppingScatter density="low" seed="audience-topping-empty-prompts" />
+                          <div className="relative flex flex-col items-center gap-2">
+                            <h3 className="font-bold text-base">아직 키워드 질문이 없어요</h3>
+                            <p className="text-sm text-muted-foreground max-w-xs">
+                              발표자가 질문을 열어드리면 여기에 카드로 표시돼요.
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            같은 세션 참가자들의 응답 분포예요.
-                          </p>
-                          {total === 0 ? (
-                            <div className="text-sm text-muted-foreground text-center py-10">
-                              아직 도착한 응답이 없어요 🍒
-                            </div>
-                          ) : (
-                            <div className="w-full h-64">
-                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                  <Pie
-                                    data={data}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="50%"
-                                    outerRadius="80%"
-                                    innerRadius="45%"
-                                    paddingAngle={2}
-                                    stroke="var(--card)"
-                                    strokeWidth={2}
-                                    label={(entry: { name: string; value: number }) =>
-                                      `${entry.name} ${entry.value}`
-                                    }
-                                  >
-                                    {data.map((_, i) => (
-                                      <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                                    ))}
-                                  </Pie>
-                                  <Tooltip
-                                    contentStyle={{
-                                      borderRadius: 12,
-                                      border: "1px solid var(--border)",
-                                      background: "var(--card)",
-                                      fontSize: 12,
-                                    }}
-                                    formatter={(value: number, name: string) => [
-                                      `${value}개 (${Math.round((value / total) * 100)}%)`,
-                                      name,
-                                    ]}
-                                  />
-                                  <Legend
-                                    verticalAlign="bottom"
-                                    iconType="circle"
-                                    wrapperStyle={{ fontSize: 12 }}
-                                  />
-                                </PieChart>
-                              </ResponsiveContainer>
-                            </div>
-                          )}
-                        </>
+                        </div>
                       );
-                    })()}
-                  </div>
+                    }
+                    return sessionPrompts.map((p) => (
+                      <AnswerPromptCard key={p.id} prompt={p} />
+                    ));
+                  })()}
                 </div>
               )}
             </div>
