@@ -14,6 +14,7 @@ import { useDeviceId } from "./use-device-id";
 
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
+  const channelId = useId();
   const qc = useQueryClient();
   const listFn = useServerFn(listToppings);
   const addFn = useServerFn(addToppingFn);
