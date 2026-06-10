@@ -210,6 +210,45 @@ border-2 rounded-2xl p-4 shadow-cream
 
 ## 11. 접근성
 
-- `prefers-reduced-motion: reduce` 시 `float-topping` 및 `bg-grad-sunset-anim` 애니메이션 비활성화
+- `prefers-reduced-motion: reduce` 시 `float-topping`, `topping-drop`, `bg-grad-sunset-anim` 애니메이션 비활성화
 - 모든 인터랙션 요소에 `aria-label` 제공
 - 색상 대비: oklch 기반으로 명암비 확보
+
+---
+
+## 12. 폼 컨트롤 — Select (드롭다운)
+
+네이티브 `<select>`는 OS 기본 옵션 박스(직각 모서리·푸른 하이라이트)가 떠 앱 톤과 어긋난다. **모든 세션/카테고리 선택은 shadcn `Select` (Radix Popover)** 로 통일한다.
+
+**공통 className 상수**: `src/lib/confesta/selectStyles.ts`
+
+| 상수 | 적용 위치 | 값 |
+|---|---|---|
+| `selectTriggerCls` | `<SelectTrigger>` | `rounded-full bg-card/90 border border-white/70 shadow-cream text-sm font-bold h-auto px-4 py-2.5 focus:ring-2 focus:ring-pink-300` |
+| `selectContentCls` | `<SelectContent>` | `rounded-2xl border border-white/70 bg-card/95 backdrop-blur shadow-cream p-1` |
+| `selectItemCls` | `<SelectItem>` | `rounded-xl px-3 py-2 text-sm font-semibold cursor-pointer focus:bg-grad-sunset-soft focus:text-pink-700 data-[state=checked]:bg-grad-strawberry data-[state=checked]:text-white` |
+
+**규칙**
+- 트리거: 알약(`rounded-full`) + 크림 카드 톤 + 자체 chevron (배경 SVG chevron 추가 금지)
+- 콘텐츠 패널: `rounded-2xl` + 백드롭 블러 + 크림 그림자
+- 항목 hover/focus는 `bg-grad-sunset-soft`, 선택된 항목은 `bg-grad-strawberry` 흰 글자
+- `disabled` 옵션은 `SelectItem`의 `disabled` prop 사용 (네이티브 `<option disabled>` 금지)
+
+**적용처 (현재)**
+- `routes/audience.tsx` — 청중 화면 "내 세션" 선택 (가로 스크롤 탭 → 드롭다운으로 전환)
+- `routes/presenter.tsx` — 발표자 화면 일자/시간대/세션 3개 셀렉터
+
+---
+
+## 13. 미리보기/샘플 카드
+
+빈 상태(아직 응답이 없는 키워드 프롬프트 등)에서 사용자가 "어떻게 보일지" 가늠할 수 있도록 **샘플 미리보기 카드**를 제공한다.
+
+**컴포넌트**: `src/components/confesta/SampleAnswerPromptCard.tsx`
+
+- 빈 상태 영역 아래(`audience.tsx`에서 `sessionPrompts.length === 0`)에 렌더링
+- 상단에 "예시 미리보기" 배지 + "진행 중" 상태 배지로 실제 카드와 시각적 구분
+- 더미 프롬프트("오늘 가장 인상 깊었던 단어 하나는?") + 6개 샘플 응답(배수판별법, 생성형ai, 프롬프트, 탐구, 수학적사고, 협력) + 파이 차트
+- 톤은 실제 응답 카드와 동일한 디자인 토큰 사용 (`bg-card`, `rounded-3xl`, `shadow-cream`)
+
+**원칙**: 미리보기 카드는 항상 실제 카드와 배지로 구분되며, 인터랙션은 데모용으로만 작동(전송/저장 없음).
