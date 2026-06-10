@@ -191,6 +191,12 @@ function AdminView() {
           카드의 숫자는 데모 베이스라인 + 현재 브라우저의 실시간 스캔 활동을
           합산한 값입니다.
         </div>
+
+        <div className="mt-4 flex justify-center">
+          <button className="rounded-xl bg-grad-mango px-6 py-2.5 text-sm font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity">
+            [토핑확인]
+          </button>
+        </div>
       </section>
     </main>
   );
