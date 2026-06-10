@@ -67,11 +67,8 @@ function AudienceView() {
   // Server-backed audience state (orders, scoops, receipt)
   const { orders, scoops, placeOrder, pickup } = useAudience();
 
-  // Topping/answerPrompt state still on Zustand (migrates in next steps)
-  const toppings = useConfestaStore((s) => s.toppings);
-  const answerPrompts = useConfestaStore((s) => s.answerPrompts);
-  const likedToppingIds = useConfestaStore((s) => s.likedToppingIds);
-  const toggleLikeTopping = useConfestaStore((s) => s.toggleLikeTopping);
+  // Topping/answerPrompt state server-backed via hooks (require sessionId)
+
 
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<{
