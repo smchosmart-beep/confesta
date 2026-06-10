@@ -340,74 +340,173 @@ function AudienceView() {
                 </div>
               </div>
 
-              <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
-                <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
-                <ToppingScatter density="low" seed="audience-topping-feed" />
-                <div className="relative">
-                  <div className="flex items-baseline justify-between mb-1">
-                    <h3 className="font-bold text-lg">다른 사람들의 토핑</h3>
-                    <span className="text-xs text-muted-foreground">
-                      {toppings.filter((t) => t.sessionId === activeSessionId).length}개
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    같은 세션에 전달된 질문들을 확인해보세요.
-                  </p>
-                  {(() => {
-                    const list = toppings
-                      .filter((t) => t.sessionId === activeSessionId)
-                      .sort((a, b) => b.createdAt - a.createdAt);
-                    if (list.length === 0) {
+              {toppingKind === "question" ? (
+                <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
+                  <ToppingScatter density="low" seed="audience-topping-feed" />
+                  <div className="relative">
+                    <div className="flex items-baseline justify-between mb-1">
+                      <h3 className="font-bold text-lg">궁금해요</h3>
+                      <span className="text-xs text-muted-foreground">
+                        {toppings.filter((t) => t.sessionId === activeSessionId && t.kind !== "answer").length}개
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      같은 세션에 전달된 질문들을 확인해보세요.
+                    </p>
+                    {(() => {
+                      const list = toppings
+                        .filter((t) => t.sessionId === activeSessionId && t.kind !== "answer")
+                        .sort((a, b) => b.createdAt - a.createdAt);
+                      if (list.length === 0) {
+                        return (
+                          <div className="text-sm text-muted-foreground text-center py-6">
+                            아직 도착한 질문이 없어요 🍒
+                          </div>
+                        );
+                      }
                       return (
-                        <div className="text-sm text-muted-foreground text-center py-6">
-                          아직 도착한 토핑이 없어요 🍒
-                        </div>
+                        <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+                          {list.map((t) => {
+                            const liked = likedToppingIds.includes(t.id);
+                            const likeCount = t.likes ?? 0;
+                            return (
+                              <li
+                                key={t.id}
+                                className={`rounded-2xl px-4 py-3 text-sm border ${
+                                  t.addressed
+                                    ? "bg-muted/40 border-white/60 text-muted-foreground line-through"
+                                    : "bg-white/70 border-white/80 text-foreground"
+                                }`}
+                              >
+                                <div className="flex items-start gap-2">
+                                  {t.pinned && (
+                                    <span className="text-xs font-bold text-pink-600 shrink-0 mt-0.5">
+                                      📌
+                                    </span>
+                                  )}
+                                  <span className="flex-1 break-words">{t.text}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleLikeTopping(t.id)}
+                                    aria-pressed={liked}
+                                    aria-label={liked ? "좋아요 취소" : "좋아요"}
+                                    className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
+                                      liked
+                                        ? "bg-grad-strawberry text-white border-transparent shadow-pink"
+                                        : "bg-white/80 text-muted-foreground border-white hover:text-pink-600"
+                                    }`}
+                                  >
+                                    <span aria-hidden>{liked ? "❤️" : "🤍"}</span>
+                                    <span>{likeCount}</span>
+                                  </button>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       );
-                    }
-                    return (
-                      <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
-                        {list.map((t) => {
-                          const liked = likedToppingIds.includes(t.id);
-                          const likeCount = t.likes ?? 0;
-                          return (
-                            <li
-                              key={t.id}
-                              className={`rounded-2xl px-4 py-3 text-sm border ${
-                                t.addressed
-                                  ? "bg-muted/40 border-white/60 text-muted-foreground line-through"
-                                  : "bg-white/70 border-white/80 text-foreground"
-                              }`}
-                            >
-                              <div className="flex items-start gap-2">
-                                {t.pinned && (
-                                  <span className="text-xs font-bold text-pink-600 shrink-0 mt-0.5">
-                                    📌
-                                  </span>
-                                )}
-                                <span className="flex-1 break-words">{t.text}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => toggleLikeTopping(t.id)}
-                                  aria-pressed={liked}
-                                  aria-label={liked ? "좋아요 취소" : "좋아요"}
-                                  className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
-                                    liked
-                                      ? "bg-grad-strawberry text-white border-transparent shadow-pink"
-                                      : "bg-white/80 text-muted-foreground border-white hover:text-pink-600"
-                                  }`}
-                                >
-                                  <span aria-hidden>{liked ? "❤️" : "🤍"}</span>
-                                  <span>{likeCount}</span>
-                                </button>
-                              </div>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    );
-                  })()}
+                    })()}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
+                  <ToppingScatter density="low" seed="audience-topping-pie" />
+                  <div className="relative">
+                    {(() => {
+                      const answers = toppings.filter(
+                        (t) => t.sessionId === activeSessionId && t.kind === "answer",
+                      );
+                      const total = answers.length;
+                      const counts = new Map<string, number>();
+                      for (const a of answers) {
+                        const key = a.text.trim().toLowerCase();
+                        if (!key) continue;
+                        counts.set(key, (counts.get(key) ?? 0) + 1);
+                      }
+                      const sorted = [...counts.entries()]
+                        .map(([name, value]) => ({ name, value }))
+                        .sort((a, b) => b.value - a.value);
+                      const TOP = 6;
+                      let data = sorted;
+                      if (sorted.length > TOP) {
+                        const top = sorted.slice(0, TOP);
+                        const restSum = sorted.slice(TOP).reduce((s, x) => s + x.value, 0);
+                        data = [...top, { name: "기타", value: restSum }];
+                      }
+                      const PALETTE = [
+                        "var(--scoop-strawberry)",
+                        "var(--scoop-mango)",
+                        "var(--scoop-mint)",
+                        "var(--scoop-blueberry)",
+                        "var(--scoop-grape)",
+                        "var(--scoop-chocolate)",
+                        "var(--muted-foreground)",
+                      ];
+                      return (
+                        <>
+                          <div className="flex items-baseline justify-between mb-1">
+                            <h3 className="font-bold text-lg">키워드 응답 현황</h3>
+                            <span className="text-xs text-muted-foreground">{total}개</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            같은 세션 참가자들의 응답 분포예요.
+                          </p>
+                          {total === 0 ? (
+                            <div className="text-sm text-muted-foreground text-center py-10">
+                              아직 도착한 응답이 없어요 🍒
+                            </div>
+                          ) : (
+                            <div className="w-full h-64">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={data}
+                                    dataKey="value"
+                                    nameKey="name"
+                                    cx="50%"
+                                    cy="50%"
+                                    outerRadius="80%"
+                                    innerRadius="45%"
+                                    paddingAngle={2}
+                                    stroke="var(--card)"
+                                    strokeWidth={2}
+                                    label={(entry: { name: string; value: number }) =>
+                                      `${entry.name} ${entry.value}`
+                                    }
+                                  >
+                                    {data.map((_, i) => (
+                                      <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip
+                                    contentStyle={{
+                                      borderRadius: 12,
+                                      border: "1px solid var(--border)",
+                                      background: "var(--card)",
+                                      fontSize: 12,
+                                    }}
+                                    formatter={(value: number, name: string) => [
+                                      `${value}개 (${Math.round((value / total) * 100)}%)`,
+                                      name,
+                                    ]}
+                                  />
+                                  <Legend
+                                    verticalAlign="bottom"
+                                    iconType="circle"
+                                    wrapperStyle={{ fontSize: 12 }}
+                                  />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
             </div>
             )
           )}
