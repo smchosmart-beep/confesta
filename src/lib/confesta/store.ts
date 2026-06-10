@@ -7,7 +7,9 @@ import type {
   StackedScoop,
   Topping,
   ToppingKind,
+  ToppingGate,
 } from "./types";
+import { DEFAULT_TOPPING_GATE } from "./types";
 import { SESSIONS, getCategory, SAMPLE_TOPPINGS } from "./mockData";
 
 const MAX_SCOOPS = 3;
@@ -58,6 +60,7 @@ interface ConfestaState {
   toppings: Topping[];
   likedToppingIds: string[];
   presenterNonces: Record<string, NoncePair>; // sessionId -> {order, pickup}
+  toppingGates: Record<string, ToppingGate>; // sessionId -> gate
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
   redemptionLog: RedemptionLog[];
@@ -71,10 +74,11 @@ interface ConfestaState {
   pickupFromQR: (payload: string) => ScanResult;
   resetScoops: () => void;
   generateReceipt: () => string | null;
-  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => void;
+  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => boolean;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
   toggleLikeTopping: (id: string) => void;
+  setToppingGate: (sessionId: string, partial: Partial<ToppingGate>) => void;
   rotatePresenterNonce: (sessionId: string, kind: SessionQRKind) => string;
   redeemReceipt: (token: string) => RedemptionLog;
   bumpAttendance: (sessionId: string, delta?: number) => void;
@@ -83,6 +87,13 @@ interface ConfestaState {
   toggleSlidePause: () => void;
   resetSlides: () => void;
   setSlideTotal: (n: number) => void;
+}
+
+export function getToppingGate(
+  gates: Record<string, ToppingGate>,
+  sessionId: string,
+): ToppingGate {
+  return gates[sessionId] ?? DEFAULT_TOPPING_GATE;
 }
 
 const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
@@ -122,6 +133,7 @@ export const useConfestaStore = create<ConfestaState>()(
       toppings: initialToppings,
       likedToppingIds: [],
       presenterNonces: {},
+      toppingGates: {},
       receiptToken: null,
       receiptRedeemed: null,
       redemptionLog: [],
@@ -245,7 +257,13 @@ export const useConfestaStore = create<ConfestaState>()(
         return token;
       },
 
-      addTopping: (sessionId, text, kind = "question") =>
+      addTopping: (sessionId, text, kind = "question") => {
+        const gate = getToppingGate(get().toppingGates, sessionId);
+        const open = kind === "answer" ? gate.answersOpen : gate.questionsOpen;
+        if (!open) {
+          console.warn(`[confesta] addTopping blocked — ${kind} closed for ${sessionId}`);
+          return false;
+        }
         set((s) => ({
           toppings: [
             {
@@ -257,6 +275,19 @@ export const useConfestaStore = create<ConfestaState>()(
             },
             ...s.toppings,
           ],
+        }));
+        return true;
+      },
+
+      setToppingGate: (sessionId, partial) =>
+        set((s) => ({
+          toppingGates: {
+            ...s.toppingGates,
+            [sessionId]: {
+              ...getToppingGate(s.toppingGates, sessionId),
+              ...partial,
+            },
+          },
         })),
 
       togglePinTopping: (id) =>
@@ -330,7 +361,7 @@ export const useConfestaStore = create<ConfestaState>()(
       },
     }),
     {
-      name: "confesta-state-v4",
+      name: "confesta-state-v5",
     },
   ),
 );

@@ -4,6 +4,7 @@ import QRCode from "react-qr-code";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
+import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
 import { useConfestaStore, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { QrCode, X } from "lucide-react";
@@ -198,6 +199,7 @@ function PresenterView() {
             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               토핑 키워드 (응답)
             </h2>
+            <ToppingGateControl sessionId={sessionId} />
             <p className="text-sm text-muted-foreground">
               청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
             </p>
