@@ -295,7 +295,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                 {sub.code}
               </span>
             </div>
-            <p className="text-xs text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
+            <p className="text-sm text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
             <div className="mt-auto grid grid-cols-2 gap-1.5 items-center justify-items-center">
