@@ -271,6 +271,21 @@ export const useConfestaStore = create<ConfestaState>()(
           ),
         })),
 
+      toggleLikeTopping: (id) =>
+        set((s) => {
+          const liked = s.likedToppingIds.includes(id);
+          return {
+            likedToppingIds: liked
+              ? s.likedToppingIds.filter((x) => x !== id)
+              : [...s.likedToppingIds, id],
+            toppings: s.toppings.map((t) =>
+              t.id === id
+                ? { ...t, likes: Math.max(0, (t.likes ?? 0) + (liked ? -1 : 1)) }
+                : t,
+            ),
+          };
+        }),
+
       rotatePresenterNonce: (sessionId, kind) => {
         const nonce = makeNonce();
         set((s) => {
