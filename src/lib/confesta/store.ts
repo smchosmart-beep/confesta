@@ -145,6 +145,9 @@ export const useConfestaStore = create<ConfestaState>()(
         const session = SESSIONS.find((s) => s.id === parsed.sessionId);
         if (!session) return { ok: false, reason: "알 수 없는 세션입니다" };
         const state = get();
+        if (state.orders.length >= 3) {
+          return { ok: false, reason: "주문은 최대 3개까지 가능해요" };
+        }
         if (state.orders.some((o) => o.sessionId === parsed.sessionId)) {
           return { ok: false, reason: "이미 주문한 세션입니다" };
         }
