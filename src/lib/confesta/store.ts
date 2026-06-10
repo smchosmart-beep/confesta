@@ -6,6 +6,7 @@ import type {
   SessionQRKind,
   StackedScoop,
   Topping,
+  ToppingKind,
 } from "./types";
 import { SESSIONS, getCategory, SAMPLE_TOPPINGS } from "./mockData";
 
