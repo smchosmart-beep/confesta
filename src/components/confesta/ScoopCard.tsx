@@ -74,42 +74,8 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
           }}
         />
 
-        {/* body↔skirt separation — precise U-shaped curve via SVG */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          aria-hidden="true"
-        >
-          {/* dark curved shadow band */}
-          <path
-            d="M 5,55 Q 50,82 95,55"
-            stroke="rgba(0,0,0,0.32)"
-            strokeWidth="3.5"
-            fill="none"
-            strokeLinecap="round"
-            style={{ filter: "blur(2px)" }}
-          />
-          {/* thin bright rim just below the curve */}
-          <path
-            d="M 5,58 Q 50,85 95,58"
-            stroke="rgba(255,255,255,0.22)"
-            strokeWidth="1.2"
-            fill="none"
-            strokeLinecap="round"
-            style={{ filter: "blur(0.6px)" }}
-          />
-        </svg>
 
 
-        {/* skirt shading — overall tone-down below the curve */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(to bottom, transparent 70%, rgba(0,0,0,0.10) 82%, rgba(0,0,0,0.22) 100%)",
-          }}
-        />
 
 
         {/* edge vignette → rim shading */}
