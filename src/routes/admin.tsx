@@ -270,9 +270,13 @@ function VenueCard({ venue }: { venue: VenueStat }) {
             <p className="text-sm text-foreground/80 leading-snug line-clamp-2 mb-2 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex items-center justify-between text-base font-extrabold">
-              <span className="text-grad-blueberry">주문 {sub.orders}</span>
-              <span className="text-grad-strawberry">수령 {sub.pickups}</span>
+            <div className="mt-auto flex items-center gap-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-2.5 py-1 text-sm font-extrabold text-grad-blueberry">
+                주문 <span className="tabular-nums">{sub.orders}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-2.5 py-1 text-sm font-extrabold text-grad-strawberry">
+                수령 <span className="tabular-nums">{sub.pickups}</span>
+              </span>
             </div>
           </div>
         ))}
