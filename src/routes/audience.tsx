@@ -13,9 +13,11 @@ import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
+import { MAX_SCOOPS_CONST } from "@/lib/confesta/store";
 import { parseSessionQR } from "@/lib/confesta/shared";
 import { useAudience } from "@/hooks/use-audience";
+import { useSessionToppings } from "@/hooks/use-toppings";
+import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import type { ToppingKind } from "@/lib/confesta/types";
 import {
   Select,
