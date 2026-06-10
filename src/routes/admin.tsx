@@ -265,13 +265,29 @@ function VenueCard({ venue }: { venue: VenueStat }) {
         className="relative grid gap-1.5 mt-auto flex-1 p-1.5 rounded-xl bg-muted/40 border border-dashed border-foreground/15"
         style={subGridStyle(venue.id)}
       >
-        {venue.subs.map((sub) => {
+      {venue.subs.map((sub) => {
           const pct = sub.orders > 0 ? Math.min(100, Math.round((sub.pickups / sub.orders) * 100)) : 0;
+          const isHall = venue.id === "hall";
+          const chartSize = isHall
+            ? sub.code === "A" ? 140 : sub.code === "B" ? 110 : 80
+            : 64;
+          const chartInset = isHall
+            ? sub.code === "A" ? "inset-3" : sub.code === "B" ? "inset-2.5" : "inset-2"
+            : "inset-1.5";
+          const chartText = isHall
+            ? sub.code === "A" ? "text-lg" : sub.code === "B" ? "text-base" : "text-sm"
+            : "text-xs";
+          const toppingSize = isHall
+            ? sub.code === "A" ? "text-5xl" : sub.code === "B" ? "text-4xl" : "text-3xl"
+            : "text-2xl";
+          const tagText = isHall
+            ? sub.code === "A" ? "text-xs" : "text-[10px]"
+            : "text-[10px]";
           return (
           <div
             key={sub.label}
             title={sub.sessionTitle}
-            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col min-h-[120px] shadow-sm"
+            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col justify-center min-h-[120px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
             <div className="flex items-baseline gap-1">
@@ -282,27 +298,27 @@ function VenueCard({ venue }: { venue: VenueStat }) {
             <p className="text-xs text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto grid grid-cols-2 gap-1.5 items-center">
+            <div className="mt-auto grid grid-cols-2 gap-1.5 items-center justify-items-center">
               {/* 좌측: 수령률 원그래프 */}
               <div className="flex flex-col items-center gap-1.5">
                 <div
                   className="relative shrink-0 rounded-full grid place-items-center"
                   style={{
-                    width: 64,
-                    height: 64,
+                    width: chartSize,
+                    height: chartSize,
                     background: `conic-gradient(#ec4899 ${pct * 3.6}deg, #d1d5db 0)`,
                   }}
                   aria-label={`수령률 ${pct}%`}
                 >
-                  <div className="absolute inset-1.5 rounded-full bg-white grid place-items-center">
-                    <span className="text-xs font-extrabold tabular-nums text-foreground">{pct}%</span>
+                  <div className={`absolute ${chartInset} rounded-full bg-white grid place-items-center`}>
+                    <span className={`font-extrabold tabular-nums text-foreground ${chartText}`}>{pct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 flex-wrap justify-center">
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
+                  <span className={`inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 font-extrabold text-grad-blueberry ${tagText}`}>
                     주문 <span className="tabular-nums">{sub.orders}</span>
                   </span>
-                  <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-strawberry">
+                  <span className={`inline-flex items-center gap-0.5 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-1.5 py-0.5 font-extrabold text-grad-strawberry ${tagText}`}>
                     수령 <span className="tabular-nums">{sub.pickups}</span>
                   </span>
                 </div>
@@ -312,7 +328,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                 <span className="text-[9px] font-bold text-muted-foreground leading-none mb-1">
                   토핑 (질문)
                 </span>
-                <span className="text-2xl font-extrabold tabular-nums text-grad-mango leading-none">
+                <span className={`font-extrabold tabular-nums text-grad-mango leading-none ${toppingSize}`}>
                   {sub.toppings}
                 </span>
                 <span className="text-[9px] font-bold text-muted-foreground leading-none mt-1">
