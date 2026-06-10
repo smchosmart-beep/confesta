@@ -152,6 +152,33 @@ export type Database = {
         }
         Relationships: []
       }
+      session_slots: {
+        Row: {
+          capacity: number | null
+          day: number
+          period: string
+          room: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capacity?: number | null
+          day: number
+          period: string
+          room: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          capacity?: number | null
+          day?: number
+          period?: string
+          room?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       slide_state: {
         Row: {
           id: string
