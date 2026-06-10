@@ -162,7 +162,7 @@ function AdminView() {
         </div>
 
         <div
-          className="grid gap-3 sm:gap-4 p-3 sm:p-4 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream"
+          className="grid gap-2 sm:gap-3 p-2 sm:p-3 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream"
           style={{
             gridTemplateColumns: "1.1fr 1.6fr 1.1fr",
             gridTemplateAreas: `
