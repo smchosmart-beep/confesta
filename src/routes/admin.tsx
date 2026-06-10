@@ -374,6 +374,141 @@ function subGridStyle(venueId: string): React.CSSProperties {
   }
 }
 
+// =========================
+// Slot Title Input
+// =========================
+function SlotTitleInput({
+  day,
+  period,
+  room,
+  initial,
+  placeholder,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  initial: string;
+  placeholder?: string;
+}) {
+  const qc = useQueryClient();
+  const upsertFn = useServerFn(upsertSlotTitle);
+  const [value, setValue] = useState(initial);
+  useEffect(() => {
+    setValue(initial);
+  }, [initial]);
+
+  const save = useMutation({
+    mutationFn: (title: string) =>
+      upsertFn({ data: { day, period, room, title } }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] }),
+  });
+
+  return (
+    <input
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        if (value !== initial) save.mutate(value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      placeholder={placeholder ?? "행사명 입력"}
+      className="w-full rounded-md border border-foreground/15 bg-white/80 px-2 py-1 text-sm font-semibold text-foreground/90 leading-tight outline-none focus:border-primary text-center"
+      maxLength={80}
+    />
+  );
+}
+
+// =========================
+// Slot QR Controls (issue / view / rotate)
+// =========================
+function SlotQRControls({
+  day,
+  period,
+  room,
+  slot,
+  labelForModal,
+  compact,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  slot: SlotDTO | undefined;
+  labelForModal: string;
+  compact?: boolean;
+}) {
+  const qc = useQueryClient();
+  const issueFn = useServerFn(issueOrderQR);
+  const rotateFn = useServerFn(rotateOrderQR);
+  const [open, setOpen] = useState(false);
+  const [payload, setPayload] = useState<string | null>(slot?.orderPayload ?? null);
+
+  useEffect(() => {
+    setPayload(slot?.orderPayload ?? null);
+  }, [slot?.orderPayload]);
+
+  const issue = useMutation({
+    mutationFn: () => issueFn({ data: { day, period, room } }),
+    onSuccess: (res) => {
+      setPayload(res.payload);
+      setOpen(true);
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+    },
+  });
+
+  const rotate = useMutation({
+    mutationFn: () => rotateFn({ data: { day, period, room } }),
+    onSuccess: (res) => {
+      setPayload(res.payload);
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+    },
+  });
+
+  const hasQR = !!slot?.hasOrderQR;
+  const btnSize = compact ? "text-[10px] px-2 py-0.5" : "text-[11px] px-2.5 py-1";
+
+  return (
+    <>
+      {hasQR ? (
+        <button
+          onClick={() => setOpen(true)}
+          className={`inline-flex items-center gap-1 rounded-md bg-grad-blueberry text-white font-extrabold shadow-cream whitespace-nowrap ${btnSize}`}
+        >
+          <QrCode className="w-3 h-3" />
+          QR 보기
+        </button>
+      ) : (
+        <button
+          onClick={() => issue.mutate()}
+          disabled={issue.isPending}
+          className={`inline-flex items-center gap-1 rounded-md bg-foreground/10 hover:bg-foreground/15 text-foreground font-extrabold whitespace-nowrap disabled:opacity-40 ${btnSize}`}
+        >
+          <Plus className="w-3 h-3" />
+          {issue.isPending ? "발급 중…" : "QR 발급"}
+        </button>
+      )}
+
+      <SlotQRModal
+        open={open && !!payload}
+        onClose={() => setOpen(false)}
+        title={labelForModal}
+        subtitle={`Day ${day} · ${period === "am" ? "오전" : "오후"} · ${room}`}
+        payload={payload ?? ""}
+        onRotate={() => {
+          if (confirm("기존 QR을 무효화하고 새로 발급합니다. 계속할까요?")) {
+            rotate.mutate();
+          }
+        }}
+        rotating={rotate.isPending}
+      />
+    </>
+  );
+}
+
+
+
 function VenueCard({
   venue,
   day,
