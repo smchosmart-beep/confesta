@@ -289,27 +289,15 @@ function IceCreamTub({
       />
       <text
         x="200"
-        y="184"
+        y="195"
         textAnchor="middle"
         fontFamily="ui-sans-serif, system-ui"
         fontWeight="900"
-        fontSize="22"
+        fontSize="20"
         fill="#FFFFFF"
-        style={{ letterSpacing: "0.18em" }}
+        style={{ letterSpacing: "0.12em" }}
       >
-        CONFESTA
-      </text>
-      <text
-        x="200"
-        y="210"
-        textAnchor="middle"
-        fontFamily="ui-monospace, monospace"
-        fontWeight="700"
-        fontSize="12"
-        fill="#FFF6E8"
-        style={{ letterSpacing: "0.32em" }}
-      >
-        QUESTION PINT · 1L
+        2026 Confesta
       </text>
 
       {/* Base shadow */}
