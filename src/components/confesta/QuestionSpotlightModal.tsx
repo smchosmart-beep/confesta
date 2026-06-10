@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Topping } from "@/lib/confesta/types";
-import { ToppingScatter } from "./ToppingDecor";
+
 
 interface Props {
   topping: Topping | null;
