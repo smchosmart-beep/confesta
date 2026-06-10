@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { makeOrderQR, makeSlotKey, type Period } from "./shared";
+import { makeOrderQR, makePickupQR, makeSlotKey, type Period } from "./shared";
 
 const PeriodSchema = z.enum(["am", "pm"]);
 const DaySchema = z.number().int().min(1).max(10);
@@ -9,11 +8,13 @@ const RoomSchema = z.string().min(1).max(64);
 const TitleSchema = z.string().max(120);
 
 async function assertAdmin() {
-  const { verifyCookieValue, cookieName } = await import("./pin.server");
-  const v = getCookie(cookieName("admin"));
-  if (!verifyCookieValue("admin", v)) {
-    throw new Error("Unauthorized: admin PIN required");
-  }
+  const { assertRole } = await import("./assertRole");
+  await assertRole("admin");
+}
+
+async function assertPresenter() {
+  const { assertRole } = await import("./assertRole");
+  await assertRole("presenter");
 }
 
 function newNonce() {
@@ -28,6 +29,9 @@ export type SlotDTO = {
   hasOrderQR: boolean;
   orderPayload: string | null;
   orderRotatedAt: number | null;
+  hasPickupQR: boolean;
+  pickupPayload: string | null;
+  pickupRotatedAt: number | null;
 };
 
 async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
@@ -41,27 +45,31 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
     supabaseAdmin
       .from("session_nonces")
       .select("session_id, kind, nonce, rotated_at")
-      .eq("kind", "order"),
+      .in("kind", ["order", "pickup"]),
   ]);
   if (slotsRes.error) throw slotsRes.error;
   if (noncesRes.error) throw noncesRes.error;
 
   const nonceMap = new Map<string, { nonce: string; rotated_at: string }>();
   for (const n of noncesRes.data ?? []) {
-    nonceMap.set(n.session_id, { nonce: n.nonce, rotated_at: n.rotated_at });
+    nonceMap.set(`${n.kind}:${n.session_id}`, { nonce: n.nonce, rotated_at: n.rotated_at });
   }
 
   return (slotsRes.data ?? []).map((s) => {
     const key = makeSlotKey(s.day, s.period as Period, s.room);
-    const hit = nonceMap.get(key);
+    const order = nonceMap.get(`order:${key}`);
+    const pickup = nonceMap.get(`pickup:${key}`);
     return {
       day: s.day,
       period: s.period as Period,
       room: s.room,
       title: s.title ?? "",
-      hasOrderQR: !!hit,
-      orderPayload: hit ? makeOrderQR(key, hit.nonce) : null,
-      orderRotatedAt: hit ? new Date(hit.rotated_at).getTime() : null,
+      hasOrderQR: !!order,
+      orderPayload: order ? makeOrderQR(key, order.nonce) : null,
+      orderRotatedAt: order ? new Date(order.rotated_at).getTime() : null,
+      hasPickupQR: !!pickup,
+      pickupPayload: pickup ? makePickupQR(key, pickup.nonce) : null,
+      pickupRotatedAt: pickup ? new Date(pickup.rotated_at).getTime() : null,
     };
   });
 }
@@ -159,4 +167,62 @@ export const rotateOrderQR = createServerFn({ method: "POST" })
       );
     if (error) throw error;
     return { ok: true as const, payload: makeOrderQR(key, nonce) };
+  });
+
+export const issuePickupQR = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({ day: DaySchema, period: PeriodSchema, room: RoomSchema })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertPresenter();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const key = makeSlotKey(data.day, data.period, data.room);
+
+    await supabaseAdmin
+      .from("session_slots")
+      .upsert(
+        { day: data.day, period: data.period, room: data.room },
+        { onConflict: "day,period,room", ignoreDuplicates: true },
+      );
+
+    const { data: existing } = await supabaseAdmin
+      .from("session_nonces")
+      .select("nonce")
+      .eq("session_id", key)
+      .eq("kind", "pickup")
+      .maybeSingle();
+
+    if (existing) {
+      return { ok: true as const, payload: makePickupQR(key, existing.nonce) };
+    }
+
+    const nonce = newNonce();
+    const { error } = await supabaseAdmin
+      .from("session_nonces")
+      .insert({ session_id: key, kind: "pickup", nonce });
+    if (error) throw error;
+    return { ok: true as const, payload: makePickupQR(key, nonce) };
+  });
+
+export const rotatePickupQR = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({ day: DaySchema, period: PeriodSchema, room: RoomSchema })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertPresenter();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const key = makeSlotKey(data.day, data.period, data.room);
+    const nonce = newNonce();
+    const { error } = await supabaseAdmin
+      .from("session_nonces")
+      .upsert(
+        { session_id: key, kind: "pickup", nonce, rotated_at: new Date().toISOString() },
+        { onConflict: "session_id,kind" },
+      );
+    if (error) throw error;
+    return { ok: true as const, payload: makePickupQR(key, nonce) };
   });
