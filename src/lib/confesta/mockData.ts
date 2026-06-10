@@ -17,7 +17,7 @@ export const SESSIONS: Session[] = [
     day: 1,
     title: "배수판별법으로 만나는 AI 수학 모델",
     presenter: "김민서 교수",
-    room: "Room 101",
+    room: "401-A",
     timeSlot: "10:00 - 10:50",
     category: "ai-math",
     capacity: 40,
@@ -27,7 +27,7 @@ export const SESSIONS: Session[] = [
     day: 1,
     title: "초등 수학 수업을 바꾸는 생성형 AI",
     presenter: "이지윤 박사",
-    room: "Room 202",
+    room: "403-B",
     timeSlot: "11:00 - 11:50",
     category: "edutech",
     capacity: 60,
@@ -37,7 +37,7 @@ export const SESSIONS: Session[] = [
     day: 1,
     title: "탐구 중심 교수-학습 모델 설계",
     presenter: "박서준 선생",
-    room: "Main Hall",
+    room: "LEWEST Hall A",
     timeSlot: "13:00 - 13:50",
     category: "pedagogy",
     capacity: 120,
@@ -47,7 +47,7 @@ export const SESSIONS: Session[] = [
     day: 1,
     title: "현장 연구 사례 발표",
     presenter: "정하늘 연구원",
-    room: "Room 101",
+    room: "402-A",
     timeSlot: "14:00 - 14:50",
     category: "research",
     capacity: 40,
@@ -57,7 +57,7 @@ export const SESSIONS: Session[] = [
     day: 2,
     title: "디지털 교과서 정책 동향",
     presenter: "최정훈 과장",
-    room: "Main Hall",
+    room: "LEWEST Hall B",
     timeSlot: "10:00 - 10:50",
     category: "policy",
     capacity: 120,
@@ -67,7 +67,7 @@ export const SESSIONS: Session[] = [
     day: 2,
     title: "AI 튜터와 함께하는 개별화 학습",
     presenter: "한소영 교수",
-    room: "Room 202",
+    room: "404-B",
     timeSlot: "11:00 - 11:50",
     category: "ai-math",
     capacity: 60,
@@ -77,7 +77,7 @@ export const SESSIONS: Session[] = [
     day: 2,
     title: "수업 데이터 시각화 워크숍",
     presenter: "오현우 박사",
-    room: "Room 101",
+    room: "401-C",
     timeSlot: "13:00 - 13:50",
     category: "edutech",
     capacity: 40,
@@ -87,14 +87,47 @@ export const SESSIONS: Session[] = [
     day: 2,
     title: "교사 연구 공동체 운영 사례",
     presenter: "윤다은 교사",
-    room: "Main Hall",
+    room: "LEWEST Hall C",
     timeSlot: "14:00 - 14:50",
     category: "pedagogy",
     capacity: 120,
   },
 ];
 
-export const ROOMS = ["Room 101", "Room 202", "Main Hall"] as const;
+// 행사장 평면도 기반 공간 정의 (LEWEST 4층)
+export interface Venue {
+  id: string;          // major space id, e.g. "401"
+  name: string;        // 표시 이름
+  subspaces: string[]; // 세부 공간 코드(예: "A","B"). 빈 배열이면 단일 공간
+  /** CSS grid area name for floor-plan layout */
+  area: string;
+}
+
+export const VENUES: Venue[] = [
+  { id: "402", name: "402", subspaces: ["A", "B"], area: "v402" },
+  { id: "hallC", name: "LEWEST Hall C", subspaces: [], area: "hallC" },
+  { id: "403", name: "403", subspaces: ["A", "B", "C"], area: "v403" },
+  { id: "401", name: "401", subspaces: ["A", "B", "C", "D"], area: "v401" },
+  { id: "hallAB", name: "LEWEST Hall", subspaces: ["B", "A"], area: "hallAB" },
+  { id: "404", name: "404", subspaces: ["A", "B", "C"], area: "v404" },
+  { id: "400", name: "400 VIP 보드룸", subspaces: [], area: "v400" },
+];
+
+/** 세션의 room → venue.id 매핑 (예: "401-A" → "401", "LEWEST Hall A" → "hallAB") */
+export function venueOfRoom(room: string): string | null {
+  if (room.startsWith("LEWEST Hall")) {
+    const sub = room.replace("LEWEST Hall", "").trim();
+    if (sub === "C") return "hallC";
+    if (sub === "A" || sub === "B") return "hallAB";
+    return null;
+  }
+  const major = room.split("-")[0];
+  return major || null;
+}
+
+/** 호환용: 기존 ROOMS 사용처를 위해 major venue id 목록을 노출 */
+export const ROOMS = VENUES.map((v) => v.name);
+
 
 export interface SampleTopping {
   sessionId: string;
