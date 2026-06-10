@@ -746,6 +746,8 @@ function MobileVenueCard({
             const pct = sub.orders > 0
               ? Math.min(100, Math.round((sub.pickups / sub.orders) * 100))
               : 0;
+            const slot = slotsByRoom.get(sub.label);
+            const displayTitle = slot?.title || sub.sessionTitle || "";
             return (
               <div
                 key={sub.label}
@@ -773,20 +775,33 @@ function MobileVenueCard({
                   </div>
                 </div>
 
-                {/* 가운데: 세션 + 주문/수령 */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground/90 line-clamp-2 leading-snug">
-                    {sub.sessionTitle ?? "—"}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                {/* 가운데: 행사명 입력 + 주문/수령 + QR 발급 */}
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <SlotTitleInput
+                    day={day}
+                    period={period}
+                    room={sub.label}
+                    initial={slot?.title ?? ""}
+                    placeholder={sub.sessionTitle ?? "행사명"}
+                  />
+                  <div className="flex flex-wrap items-center gap-1">
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
                       주문 <span className="tabular-nums">{sub.orders}</span>
                     </span>
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-strawberry">
                       수령 <span className="tabular-nums">{sub.pickups}</span>
                     </span>
+                    <SlotQRControls
+                      day={day}
+                      period={period}
+                      room={sub.label}
+                      slot={slot}
+                      labelForModal={displayTitle || sub.label}
+                      compact
+                    />
                   </div>
                 </div>
+
 
                 {/* 우측: 토핑 카운트 + 버튼 */}
                 <div className="flex flex-col items-center justify-center rounded-lg border border-grad-mango/30 bg-grad-mango/10 px-2 py-1.5 shrink-0 gap-1 min-w-[64px]">
