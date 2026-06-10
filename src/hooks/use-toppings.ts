@@ -36,7 +36,7 @@ export function useSessionToppings(sessionId: string | null) {
   useEffect(() => {
     if (!sessionId) return;
     const channel = supabase
-      .channel(`toppings:${sessionId}`)
+      .channel(`toppings:${sessionId}:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "toppings", filter: `session_id=eq.${sessionId}` },
