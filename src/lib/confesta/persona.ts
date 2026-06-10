@@ -8,7 +8,7 @@ export interface Persona {
   accent: string;      // tailwind bg-grad-* token for the badge
 }
 
-const PERSONA_BY_CATEGORY: Record<string, Persona> = {
+const PERSONA_BY_CATEGORY: Record<CategoryKey, Persona> = {
   "ai-math": {
     title: "열정적인 프롬프트 탐험가",
     emoji: "🧪",
