@@ -289,11 +289,11 @@ function IceCreamTub({
       />
       <text
         x="200"
-        y="195"
+        y="198"
         textAnchor="middle"
         fontFamily="'Times New Roman', Georgia, serif"
         fontWeight="900"
-        fontSize="20"
+        fontSize="28"
         fill="#FFFFFF"
         style={{ letterSpacing: "0.12em" }}
       >
