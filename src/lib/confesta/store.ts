@@ -361,7 +361,7 @@ export const useConfestaStore = create<ConfestaState>()(
       },
     }),
     {
-      name: "confesta-state-v4",
+      name: "confesta-state-v5",
     },
   ),
 );
