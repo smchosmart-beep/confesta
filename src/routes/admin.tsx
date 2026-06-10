@@ -96,13 +96,8 @@ function AdminView() {
         totalPickups,
       };
     });
-
-    function venueIdFromSessionRoom(room: string) {
-      return venueOfRoom(room);
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    venueIdFromSessionRoom;
   }, [orders, scoops]);
+
 
   const totals = useMemo(
     () =>
