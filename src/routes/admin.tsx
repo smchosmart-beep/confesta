@@ -168,14 +168,15 @@ function AdminView() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
+        {/* 데스크톱: 평면도 배치 (md 이상에서만) */}
+        <div className="hidden md:grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
           {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
           <div className="flex flex-col gap-24 self-stretch">
             {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} />)}
             {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} />)}
             {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} />)}
           </div>
-          {/* 중앙 컬럼: LEWEST Hall (402-A 아래 라인부터 시작하도록 상단 여백) */}
+          {/* 중앙 컬럼: LEWEST Hall */}
           <div className="flex flex-col self-stretch pt-[404px]">
             {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} />)}
           </div>
@@ -184,6 +185,15 @@ function AdminView() {
             {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} />)}
             {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} />)}
           </div>
+        </div>
+
+        {/* 모바일: 세로 스택 리스트 (md 미만에서만) */}
+        <div className="md:hidden flex flex-col gap-3">
+          {["402", "401", "hall", "403", "404", "400"].flatMap((id) =>
+            stats.filter((v) => v.id === id).map((v) => (
+              <MobileVenueCard key={v.id} venue={v} />
+            )),
+          )}
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-2xl p-4">
