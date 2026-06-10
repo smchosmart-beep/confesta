@@ -91,6 +91,21 @@ const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
   addressed: t.addressed,
 }));
 
+const initialOrders: Order[] = [
+  {
+    id: "seed-order-1",
+    sessionId: "s1",
+    orderedAt: Date.now() - 25 * 60_000,
+    pickedUpAt: Date.now() - 5 * 60_000,
+  },
+  {
+    id: "seed-order-2",
+    sessionId: "s2",
+    orderedAt: Date.now() - 12 * 60_000,
+    pickedUpAt: null,
+  },
+];
+
 function makeNonce() {
   return Math.random().toString(36).slice(2, 10);
 }
@@ -99,7 +114,7 @@ export const useConfestaStore = create<ConfestaState>()(
   persist(
     (set, get) => ({
       enrolledSessionIds: [],
-      orders: [],
+      orders: initialOrders,
       scoops: [],
       toppings: initialToppings,
       presenterNonces: {},
@@ -130,6 +145,9 @@ export const useConfestaStore = create<ConfestaState>()(
         const session = SESSIONS.find((s) => s.id === parsed.sessionId);
         if (!session) return { ok: false, reason: "알 수 없는 세션입니다" };
         const state = get();
+        if (state.orders.length >= 3) {
+          return { ok: false, reason: "주문은 최대 3개까지 가능해요" };
+        }
         if (state.orders.some((o) => o.sessionId === parsed.sessionId)) {
           return { ok: false, reason: "이미 주문한 세션입니다" };
         }
@@ -292,7 +310,7 @@ export const useConfestaStore = create<ConfestaState>()(
       },
     }),
     {
-      name: "confesta-state-v3",
+      name: "confesta-state-v4",
     },
   ),
 );

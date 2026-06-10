@@ -4,6 +4,7 @@ import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
 import { OrderCard } from "@/components/confesta/OrderCard";
+import { OrderSkeletonCard } from "@/components/confesta/OrderSkeletonCard";
 import { IceCreamCone } from "@/components/confesta/IceCreamCone";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingInput } from "@/components/confesta/ToppingInput";
@@ -141,66 +142,51 @@ function AudienceView() {
         <section className="px-4 mt-6">
           {section === "orders" && (
             <div className="flex flex-col gap-4">
-              {sortedOrders.length === 0 ? (
-                <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
-                  <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
-                  <ToppingScatter density="med" seed="orders-empty" />
-                  <div className="relative">
-                    <h3 className="font-bold text-lg mb-1">아직 주문이 없어요</h3>
-                    <p className="text-sm text-muted-foreground mb-5">
-                      세션 장소에 도착하면 발표자 화면의{" "}
-                      <strong>주문 QR</strong>을 스캔해 주문 카드를 만들어요.
-                      세션 종료 직전 <strong>수령 QR</strong>을 찍으면 스쿱이
-                      쌓입니다.
-                    </p>
-                    {!orderScanOpen ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setOrderScanOpen(true);
-                          setOrderFeedback(null);
-                        }}
-                        className="bounce-press w-full bg-grad-strawberry text-white rounded-3xl p-6 shadow-pink font-bold text-base flex flex-col items-center gap-2"
-                      >
-                        <Camera className="w-7 h-7" />
+              {sortedOrders.length < 3 && (
+                !orderScanOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderScanOpen(true);
+                      setOrderFeedback(null);
+                    }}
+                    className="bounce-press w-full inline-flex items-center justify-center gap-2 bg-grad-blueberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-blue"
+                  >
+                    {sortedOrders.length === 0 ? (
+                      <>
+                        <Camera className="w-4 h-4" />
                         주문 QR 스캔하기
-                      </button>
+                      </>
                     ) : (
-                      <CameraScanner
-                        onScan={handleOrderScan}
-                        onClose={() => setOrderScanOpen(false)}
-                        hintLine="세션 장소의 주문 QR을 비추세요"
-                      />
+                      <>
+                        <Plus className="w-4 h-4" />
+                        주문 QR 스캔 (새 주문 추가)
+                      </>
                     )}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {!orderScanOpen ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOrderScanOpen(true);
-                        setOrderFeedback(null);
-                      }}
-                      className="bounce-press w-full inline-flex items-center justify-center gap-2 bg-grad-blueberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-blue"
-                    >
-                      <Plus className="w-4 h-4" />
-                      주문 QR 스캔 (새 주문 추가)
-                    </button>
-                  ) : (
-                    <CameraScanner
-                      onScan={handleOrderScan}
-                      onClose={() => setOrderScanOpen(false)}
-                      hintLine="세션 장소의 주문 QR을 비추세요"
-                    />
-                  )}
-
-                  {sortedOrders.map((o) => (
-                    <OrderCard key={o.id} order={o} />
-                  ))}
-                </>
+                  </button>
+                ) : (
+                  <CameraScanner
+                    onScan={handleOrderScan}
+                    onClose={() => setOrderScanOpen(false)}
+                    hintLine="세션 장소의 주문 QR을 비추세요"
+                  />
+                )
               )}
+
+              {Array.from({ length: 3 }).map((_, i) => {
+                const order = sortedOrders[i];
+                if (order) return <OrderCard key={order.id} order={order} />;
+                return (
+                  <OrderSkeletonCard
+                    key={`skeleton-${i}`}
+                    slotNumber={i + 1}
+                  />
+                );
+              })}
+
+              <p className="text-xs text-muted-foreground text-center">
+                최대 3개까지 주문할 수 있어요 ({sortedOrders.length}/3)
+              </p>
 
               {orderFeedback && (
                 <div
