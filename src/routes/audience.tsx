@@ -62,13 +62,15 @@ type Section = "orders" | "live" | "topping" | "receipt";
 function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
 
-  // Orders tab state
-  const orders = useConfestaStore((s) => s.orders);
+  // Server-backed audience state (orders, scoops, receipt)
+  const { orders, scoops, placeOrder, pickup } = useAudience();
+
+  // Topping/answerPrompt state still on Zustand (migrates in next steps)
   const toppings = useConfestaStore((s) => s.toppings);
   const answerPrompts = useConfestaStore((s) => s.answerPrompts);
   const likedToppingIds = useConfestaStore((s) => s.likedToppingIds);
   const toggleLikeTopping = useConfestaStore((s) => s.toggleLikeTopping);
-  const placeOrder = useConfestaStore((s) => s.placeOrderFromQR);
+
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<{
     ok: boolean;
@@ -76,8 +78,6 @@ function AudienceView() {
   } | null>(null);
 
   // My cone tab state
-  const scoops = useConfestaStore((s) => s.scoops);
-  const pickup = useConfestaStore((s) => s.pickupFromQR);
   const [coneScanOpen, setConeScanOpen] = useState(false);
   const [coneFeedback, setConeFeedback] = useState<{
     ok: boolean;
