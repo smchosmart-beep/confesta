@@ -83,12 +83,13 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
         >
           <path
             d="M 3,52 Q 50,79 97,52"
-            stroke="rgba(0,0,0,0.30)"
-            strokeWidth="4"
+            stroke="rgba(0,0,0,0.35)"
+            strokeWidth="5"
             fill="none"
             strokeLinecap="round"
-            style={{ filter: "blur(2.5px)" }}
+            style={{ filter: "blur(4px)" }}
           />
+
         </svg>
 
         {/* edge vignette → rim shading */}
