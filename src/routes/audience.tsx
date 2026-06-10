@@ -118,7 +118,7 @@ function AudienceView() {
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
-  const handleOrderScan = (text: string) => {
+  const handleOrderScan = async (text: string) => {
     const parsed = parseSessionQR(text);
     if (parsed?.kind === "pickup") {
       setOrderFeedback({
@@ -127,16 +127,21 @@ function AudienceView() {
       });
       return;
     }
-    const result = placeOrder(text);
-    if (result.ok) {
-      setOrderFeedback({ ok: true, msg: "주문이 접수됐어요 🍨" });
-      setOrderScanOpen(false);
-    } else {
-      setOrderFeedback({ ok: false, msg: result.reason });
+    try {
+      const result = await placeOrder(text);
+      if (result.ok) {
+        setOrderFeedback({ ok: true, msg: result.message });
+        setOrderScanOpen(false);
+      } else {
+        setOrderFeedback({ ok: false, msg: result.message });
+      }
+    } catch (e) {
+      setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
+      console.error(e);
     }
   };
 
-  const handleConeScan = (text: string) => {
+  const handleConeScan = async (text: string) => {
     const parsed = parseSessionQR(text);
     if (parsed?.kind === "order") {
       setConeFeedback({
@@ -145,12 +150,17 @@ function AudienceView() {
       });
       return;
     }
-    const result = pickup(text);
-    if (result.ok) {
-      setConeFeedback({ ok: true, msg: "수령 완료! 스쿱이 쌓였어요 🍦" });
-      setConeScanOpen(false);
-    } else {
-      setConeFeedback({ ok: false, msg: result.reason });
+    try {
+      const result = await pickup(text);
+      if (result.ok) {
+        setConeFeedback({ ok: true, msg: result.message });
+        setConeScanOpen(false);
+      } else {
+        setConeFeedback({ ok: false, msg: result.message });
+      }
+    } catch (e) {
+      setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
+      console.error(e);
     }
   };
 
