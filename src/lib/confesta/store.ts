@@ -280,12 +280,30 @@ export const useConfestaStore = create<ConfestaState>()(
         return token;
       },
 
-      addTopping: (sessionId, text, kind = "question") => {
-        const gate = getToppingGate(get().toppingGates, sessionId);
+      addTopping: (sessionId, text, kind = "question", promptId) => {
+        const state = get();
+        const gate = getToppingGate(state.toppingGates, sessionId);
         const open = kind === "answer" ? gate.answersOpen : gate.questionsOpen;
         if (!open) {
           console.warn(`[confesta] addTopping blocked — ${kind} closed for ${sessionId}`);
           return false;
+        }
+        let resolvedPromptId = promptId;
+        if (kind === "answer") {
+          if (!resolvedPromptId) {
+            const active = getActiveAnswerPrompt(state.answerPrompts, sessionId);
+            if (!active) {
+              console.warn(`[confesta] addTopping blocked — no active prompt for ${sessionId}`);
+              return false;
+            }
+            resolvedPromptId = active.id;
+          } else {
+            const p = state.answerPrompts.find((x) => x.id === resolvedPromptId);
+            if (!p || p.sessionId !== sessionId || p.closedAt != null) {
+              console.warn(`[confesta] addTopping blocked — prompt unavailable ${resolvedPromptId}`);
+              return false;
+            }
+          }
         }
         set((s) => ({
           toppings: [
@@ -295,6 +313,9 @@ export const useConfestaStore = create<ConfestaState>()(
               text,
               createdAt: Date.now(),
               kind,
+              ...(kind === "answer" && resolvedPromptId
+                ? { promptId: resolvedPromptId }
+                : {}),
             },
             ...s.toppings,
           ],
@@ -312,6 +333,100 @@ export const useConfestaStore = create<ConfestaState>()(
             },
           },
         })),
+
+      createAnswerPrompt: (sessionId, text) => {
+        const trimmed = text.trim();
+        if (!trimmed) return null;
+        const now = Date.now();
+        const prompt: AnswerPrompt = {
+          id: `ap-${now}`,
+          sessionId,
+          text: trimmed,
+          createdAt: now,
+        };
+        set((s) => ({
+          answerPrompts: [
+            prompt,
+            ...s.answerPrompts.map((p) =>
+              p.sessionId === sessionId && p.closedAt == null
+                ? { ...p, closedAt: now }
+                : p,
+            ),
+          ],
+          toppingGates: {
+            ...s.toppingGates,
+            [sessionId]: {
+              ...getToppingGate(s.toppingGates, sessionId),
+              answersOpen: true,
+            },
+          },
+        }));
+        return prompt;
+      },
+
+      updateAnswerPrompt: (promptId, text) =>
+        set((s) => ({
+          answerPrompts: s.answerPrompts.map((p) =>
+            p.id === promptId && p.closedAt == null
+              ? { ...p, text: text.trim() || p.text }
+              : p,
+          ),
+        })),
+
+      closeAnswerPrompt: (promptId) =>
+        set((s) => {
+          const target = s.answerPrompts.find((p) => p.id === promptId);
+          if (!target) return s;
+          const closedAt = Date.now();
+          const nextPrompts = s.answerPrompts.map((p) =>
+            p.id === promptId ? { ...p, closedAt } : p,
+          );
+          const stillOpen = nextPrompts.some(
+            (p) => p.sessionId === target.sessionId && p.closedAt == null,
+          );
+          return {
+            answerPrompts: nextPrompts,
+            toppingGates: stillOpen
+              ? s.toppingGates
+              : {
+                  ...s.toppingGates,
+                  [target.sessionId]: {
+                    ...getToppingGate(s.toppingGates, target.sessionId),
+                    answersOpen: false,
+                  },
+                },
+          };
+        }),
+
+      reopenAnswerPrompt: (promptId) =>
+        set((s) => {
+          const target = s.answerPrompts.find((p) => p.id === promptId);
+          if (!target) return s;
+          const now = Date.now();
+          return {
+            answerPrompts: s.answerPrompts.map((p) => {
+              if (p.id === promptId) return { ...p, closedAt: undefined };
+              if (p.sessionId === target.sessionId && p.closedAt == null) {
+                return { ...p, closedAt: now };
+              }
+              return p;
+            }),
+            toppingGates: {
+              ...s.toppingGates,
+              [target.sessionId]: {
+                ...getToppingGate(s.toppingGates, target.sessionId),
+                answersOpen: true,
+              },
+            },
+          };
+        }),
+
+      deleteAnswerPrompt: (promptId) =>
+        set((s) => ({
+          answerPrompts: s.answerPrompts.filter((p) => p.id !== promptId),
+          toppings: s.toppings.filter((t) => t.promptId !== promptId),
+        })),
+
 
       togglePinTopping: (id) =>
         set((s) => ({
