@@ -77,7 +77,7 @@ export function ToppingGateControl({ sessionId }: Props) {
     const created = createAnswerPrompt(sessionId, text);
     if (created) {
       setNewPromptText("");
-      if (hadActive) toast("이전 질문은 자동으로 마감했어요");
+      if (hadActive) toast("이전 질문은 보관함으로 옮겼어요 (응답은 계속 받아요)");
       else toast.success("새 키워드 질문을 시작했어요");
     }
   };
@@ -106,14 +106,19 @@ export function ToppingGateControl({ sessionId }: Props) {
 
         <div className="rounded-xl bg-white/60 border border-white/70 px-3 py-2 flex flex-col gap-2">
           <label className="flex items-center justify-between gap-3">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              <Hash className="w-4 h-4 text-primary" />
-              키워드 응답 받기
+            <span className="inline-flex flex-col">
+              <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                <Hash className="w-4 h-4 text-primary" />
+                키워드 응답 받기
+              </span>
+              <span className="text-[10px] text-muted-foreground pl-6">
+                모든 질문(보관 포함)의 응답 수신을 한 번에 켜고 끕니다
+              </span>
             </span>
             <Switch
               checked={gate.answersOpen}
               onCheckedChange={(v) => setGate(sessionId, { answersOpen: v })}
-              disabled={!active}
+              disabled={sessionPrompts.length === 0}
             />
           </label>
 
@@ -174,12 +179,12 @@ export function ToppingGateControl({ sessionId }: Props) {
                     type="button"
                     onClick={() => {
                       closeAnswerPrompt(active.id);
-                      toast("질문을 마감했어요");
+                      toast("질문을 보관함으로 옮겼어요");
                     }}
                     className="bounce-press inline-flex items-center gap-1 rounded-full bg-white/80 border border-white px-2.5 py-1 text-[11px] font-bold text-pink-700 hover:bg-white"
                   >
                     <X className="w-3 h-3" />
-                    마감
+                    보관
                   </button>
                 </div>
               )}
@@ -197,7 +202,7 @@ export function ToppingGateControl({ sessionId }: Props) {
               value={newPromptText}
               onChange={(e) => setNewPromptText(e.target.value)}
               placeholder={
-                active ? "다음 질문 (보내면 현재 질문 마감)" : "발문 예: 가장 인상 깊은 단어 한 개"
+                active ? "다음 질문 (보내면 현재 질문 보관)" : "발문 예: 가장 인상 깊은 단어 한 개"
               }
               maxLength={60}
               className="flex-1 rounded-full bg-card border border-white/80 px-3 py-1.5 text-xs outline-none focus:border-primary"
@@ -216,7 +221,7 @@ export function ToppingGateControl({ sessionId }: Props) {
           {closedPrompts.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <div className="text-[11px] font-bold text-muted-foreground px-1 mt-1">
-                마감된 질문 · {closedPrompts.length}
+                보관된 질문 · {closedPrompts.length} <span className="font-normal">(응답 계속 수신 중)</span>
               </div>
               <ul className="flex flex-col gap-1.5 max-h-44 overflow-y-auto pr-1">
                 {closedPrompts.map((p) => (
@@ -234,11 +239,11 @@ export function ToppingGateControl({ sessionId }: Props) {
                       type="button"
                       onClick={() => {
                         reopenAnswerPrompt(p.id);
-                        toast("질문을 다시 열었어요");
+                        toast("질문을 다시 진행 중으로 옮겼어요");
                       }}
                       className="bounce-press inline-flex items-center justify-center rounded-full bg-white border border-white/80 w-6 h-6 text-muted-foreground hover:text-pink-600"
-                      aria-label="다시 열기"
-                      title="다시 열기"
+                      aria-label="다시 활성화"
+                      title="다시 활성화"
                     >
                       <RotateCcw className="w-3 h-3" />
                     </button>
