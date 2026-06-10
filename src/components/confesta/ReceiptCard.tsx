@@ -4,6 +4,7 @@ import { useConfestaStore } from "@/lib/confesta/store";
 import { Ticket } from "lucide-react";
 import { ToppingScatter } from "./ToppingDecor";
 import { SESSIONS } from "@/lib/confesta/mockData";
+import { derivePersona, type Persona } from "@/lib/confesta/persona";
 import type { StackedScoop } from "@/lib/confesta/types";
 
 const sessionTitle = (sessionId: string) =>
