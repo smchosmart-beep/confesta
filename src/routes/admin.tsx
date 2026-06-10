@@ -374,7 +374,17 @@ function subGridStyle(venueId: string): React.CSSProperties {
   }
 }
 
-function VenueCard({ venue }: { venue: VenueStat }) {
+function VenueCard({
+  venue,
+  day,
+  period,
+  slotsByRoom,
+}: {
+  venue: VenueStat;
+  day: number;
+  period: Period;
+  slotsByRoom: Map<string, SlotDTO>;
+}) {
   return (
     <div
       className="relative overflow-hidden bg-card rounded-2xl p-3 shadow-cream border border-white/70 flex flex-col"
