@@ -41,7 +41,7 @@ export function useToppingGate(sessionId: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, qc]);
+  }, [sessionId, qc, channelId]);
 
   const update = useMutation({
     mutationFn: (patch: { questionsOpen?: boolean; answersOpen?: boolean }) =>
