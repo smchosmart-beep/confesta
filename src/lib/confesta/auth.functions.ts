@@ -38,6 +38,11 @@ export const clearPin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ role: PinRoleSchema }).parse(input))
   .handler(async ({ data }) => {
     const { cookieName } = await import("./pin.server");
-    deleteCookie(cookieName(data.role), { path: "/" });
+    deleteCookie(cookieName(data.role), {
+      path: "/",
+      secure: true,
+      sameSite: "none",
+      partitioned: true,
+    } as Parameters<typeof deleteCookie>[1]);
     return { ok: true as const };
   });
