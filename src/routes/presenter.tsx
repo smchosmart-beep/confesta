@@ -66,32 +66,134 @@ function PresenterView() {
       />
 
       <section className="px-3 sm:px-4">
-        <div className="flex items-end gap-3 mb-4">
-          <div className="flex-1 min-w-0">
-            <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">
-              세션 선택
-            </label>
-            <select
-              value={sessionId}
-              onChange={(e) => setSessionId(e.target.value)}
-              className="w-full bg-grad-cream border border-white/70 rounded-full px-4 py-2.5 text-sm font-semibold outline-none shadow-cream"
-            >
-              {SESSIONS.map((s) => (
-                <option key={s.id} value={s.id}>
-                  Day {s.day} · {s.timeSlot} · {s.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPickupOpen(true)}
-            className="bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
-          >
-            <QrCode className="w-3.5 h-3.5" />
-            수령 QR
-          </button>
-        </div>
+        {(() => {
+          const day = session.day;
+          const startHour = parseInt(session.timeSlot.slice(0, 2), 10);
+          const period: "am" | "pm" = startHour < 12 ? "am" : "pm";
+
+          const daysAvailable = Array.from(new Set(SESSIONS.map((s) => s.day))).sort();
+          const periodsAvailable = Array.from(
+            new Set(
+              SESSIONS.filter((s) => s.day === day).map((s) =>
+                parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm",
+              ),
+            ),
+          );
+          const sessionsInScope = SESSIONS.filter((s) => {
+            const sh = parseInt(s.timeSlot.slice(0, 2), 10);
+            return s.day === day && (sh < 12 ? "am" : "pm") === period;
+          });
+
+          const pickFirstSessionFor = (d: number, p: "am" | "pm") => {
+            const first = SESSIONS.find((s) => {
+              const sh = parseInt(s.timeSlot.slice(0, 2), 10);
+              return s.day === d && (sh < 12 ? "am" : "pm") === p;
+            });
+            return first?.id;
+          };
+
+          const stepBtn = (active: boolean) =>
+            `bounce-press px-4 py-2 rounded-full text-sm font-bold border transition ${
+              active
+                ? "bg-grad-strawberry text-white border-transparent shadow-pink"
+                : "bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40"
+            }`;
+
+          return (
+            <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex flex-col gap-2">
+                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                    1단계 · 일자 선택
+                  </span>
+                  <div className="flex gap-2">
+                    {daysAvailable.map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        className={stepBtn(d === day)}
+                        onClick={() => {
+                          const next =
+                            pickFirstSessionFor(d, period) ??
+                            pickFirstSessionFor(d, period === "am" ? "pm" : "am");
+                          if (next) setSessionId(next);
+                        }}
+                      >
+                        Day {d}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickupOpen(true)}
+                  className="bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  수령 QR
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  2단계 · 시간대 선택
+                </span>
+                <div className="flex gap-2">
+                  {(["am", "pm"] as const).map((p) => {
+                    const enabled = periodsAvailable.includes(p);
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        disabled={!enabled}
+                        className={`${stepBtn(p === period && enabled)} ${
+                          !enabled ? "opacity-40 cursor-not-allowed" : ""
+                        }`}
+                        onClick={() => {
+                          const next = pickFirstSessionFor(day, p);
+                          if (next) setSessionId(next);
+                        }}
+                      >
+                        {p === "am" ? "오전" : "오후"}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  3단계 · 세션 선택
+                </span>
+                <div className="flex flex-col gap-2">
+                  {sessionsInScope.map((s) => {
+                    const active = s.id === sessionId;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setSessionId(s.id)}
+                        className={`bounce-press text-left rounded-2xl px-4 py-3 border transition ${
+                          active
+                            ? "bg-grad-blueberry text-white border-transparent shadow-blue"
+                            : "bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className="text-xs font-semibold opacity-80">
+                          {s.timeSlot} · {s.room}
+                        </div>
+                        <div className="text-sm font-bold leading-snug">
+                          {s.title}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
           {/* 토핑 키워드 */}
