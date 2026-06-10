@@ -78,7 +78,7 @@ export function ReceiptCard() {
         </div>
 
         <div className="relative flex justify-center my-4">
-          <IceCreamCone scoops={scoops} size={150} />
+          <IceCreamCone scoops={scoops} size={150} toppingCount={Math.min(myToppings.length, 3)} />
         </div>
 
         <div className="relative text-xs space-y-1 mb-4 font-mono">
@@ -104,7 +104,7 @@ export function ReceiptCard() {
 
           <div className="flex justify-between pt-2 mt-2 border-t border-dashed border-foreground/20">
             <span>발급</span>
-            <span>{new Date().toLocaleString("ko-KR")}</span>
+            <span suppressHydrationWarning>{new Date().toLocaleString("ko-KR")}</span>
           </div>
         </div>
 
@@ -160,7 +160,7 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
         </div>
 
         <div className="relative flex justify-center my-4">
-          <IceCreamCone scoops={scoops} size={150} />
+          <IceCreamCone scoops={scoops} size={150} toppingCount={3} />
         </div>
 
         <div className="relative text-xs space-y-1 mb-4 font-mono">
