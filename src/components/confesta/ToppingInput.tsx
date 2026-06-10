@@ -24,10 +24,17 @@ const COLORS = [
 
 interface Props {
   sessionId: string;
+  kind?: ToppingKind;
+  onKindChange?: (k: ToppingKind) => void;
 }
 
-export function ToppingInput({ sessionId }: Props) {
-  const [kind, setKind] = useState<ToppingKind>("question");
+export function ToppingInput({ sessionId, kind: kindProp, onKindChange }: Props) {
+  const [kindState, setKindState] = useState<ToppingKind>("question");
+  const kind = kindProp ?? kindState;
+  const setKind = (k: ToppingKind) => {
+    if (onKindChange) onKindChange(k);
+    else setKindState(k);
+  };
   const [text, setText] = useState("");
   const [sprinkles, setSprinkles] = useState<Sprinkle[]>([]);
   const addTopping = useConfestaStore((s) => s.addTopping);
