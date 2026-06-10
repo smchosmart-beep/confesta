@@ -413,7 +413,7 @@ function AudienceView() {
                                   <span className="flex-1 break-words">{t.text}</span>
                                   <button
                                     type="button"
-                                    onClick={() => toggleLikeTopping(t.id)}
+                                    onClick={() => toggleLike(t.id)}
                                     aria-pressed={liked}
                                     aria-label={liked ? "좋아요 취소" : "좋아요"}
                                     className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
