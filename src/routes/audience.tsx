@@ -50,6 +50,7 @@ function AudienceView() {
 
   // Orders tab state
   const orders = useConfestaStore((s) => s.orders);
+  const toppings = useConfestaStore((s) => s.toppings);
   const placeOrder = useConfestaStore((s) => s.placeOrderFromQR);
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<{
@@ -264,7 +265,7 @@ function AudienceView() {
           )}
 
           {section === "topping" && (
-            <div className="mx-auto">
+            <div className="mx-auto flex flex-col gap-4">
               <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
                 <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
                 <ToppingScatter density="med" seed="audience-topping" />
@@ -280,6 +281,57 @@ function AudienceView() {
                   <p className="text-xs text-muted-foreground mt-4">
                     전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
                   </p>
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
+                <div className="absolute inset-0 bg-grad-sunset-soft opacity-40" />
+                <ToppingScatter density="low" seed="audience-topping-feed" />
+                <div className="relative">
+                  <div className="flex items-baseline justify-between mb-1">
+                    <h3 className="font-bold text-lg">다른 사람들의 토핑</h3>
+                    <span className="text-xs text-muted-foreground">
+                      {toppings.filter((t) => t.sessionId === activeSessionId).length}개
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    같은 세션에 전달된 질문들을 확인해보세요.
+                  </p>
+                  {(() => {
+                    const list = toppings
+                      .filter((t) => t.sessionId === activeSessionId)
+                      .sort((a, b) => b.createdAt - a.createdAt);
+                    if (list.length === 0) {
+                      return (
+                        <div className="text-sm text-muted-foreground text-center py-6">
+                          아직 도착한 토핑이 없어요 🍒
+                        </div>
+                      );
+                    }
+                    return (
+                      <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+                        {list.map((t) => (
+                          <li
+                            key={t.id}
+                            className={`rounded-2xl px-4 py-3 text-sm border ${
+                              t.addressed
+                                ? "bg-muted/40 border-white/60 text-muted-foreground line-through"
+                                : "bg-white/70 border-white/80 text-foreground"
+                            }`}
+                          >
+                            <div className="flex items-start gap-2">
+                              {t.pinned && (
+                                <span className="text-xs font-bold text-pink-600 shrink-0 mt-0.5">
+                                  📌
+                                </span>
+                              )}
+                              <span className="flex-1 break-words">{t.text}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
