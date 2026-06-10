@@ -23,6 +23,19 @@ const FLAVOR_SHADOW: Record<Flavor, string> = {
     "drop-shadow(0 6px 10px rgba(255,138,31,0.22)) drop-shadow(0 22px 36px rgba(255,138,31,0.30))",
 };
 
+const FLAVOR_TEXT: Record<Flavor, string> = {
+  strawberry: "#5A0030",
+  blueberry: "#1A1E6B",
+  mint: "#0A4438",
+  mango: "#6B3300",
+};
+
+// 얇은 흰색 외곽선 — 진한 텍스트를 살짝 분리만 해주는 정도
+const TEXT_HALO: React.CSSProperties = {
+  textShadow:
+    "0 1px 1px rgba(255,255,255,0.55), 0 0 2px rgba(255,255,255,0.45)",
+};
+
 
 const MASK_STYLE: React.CSSProperties = {
   WebkitMaskImage: `url(${scoopMask.url})`,
@@ -114,20 +127,35 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon, device }: P
           style={{ paddingBottom: "42%" }}
         >
 
-          <div className="text-[11px] font-bold uppercase tracking-wider text-white/90 drop-shadow-sm">
+          <div
+            className="text-[11px] font-bold uppercase tracking-wider"
+            style={{ color: FLAVOR_TEXT[flavor], ...TEXT_HALO }}
+          >
             {label}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <Icon className="w-6 h-6 text-white drop-shadow" />
-            <h2 className="text-2xl font-extrabold text-white drop-shadow">
+            <Icon
+              className="w-6 h-6"
+              style={{ color: FLAVOR_TEXT[flavor], filter: "drop-shadow(0 1px 0 rgba(255,255,255,0.8))" }}
+            />
+            <h2
+              className="text-2xl font-extrabold"
+              style={{ color: FLAVOR_TEXT[flavor], ...TEXT_HALO }}
+            >
               {ko}
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-white/95 mt-1.5 max-w-[18ch] leading-snug drop-shadow-sm">
+          <p
+            className="text-xs sm:text-sm mt-1.5 max-w-[18ch] leading-snug font-semibold"
+            style={{ color: FLAVOR_TEXT[flavor], ...TEXT_HALO }}
+          >
             {desc}
           </p>
           {device && (
-            <span className="mt-2 inline-flex items-center gap-1 bg-white/90 text-foreground/80 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-cream">
+            <span
+              className="mt-2 inline-flex items-center gap-1 bg-white/95 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-cream"
+              style={{ color: FLAVOR_TEXT[flavor] }}
+            >
               {device === "mobile" ? "📱 모바일 전용" : "🖥 데스크톱 권장"}
             </span>
           )}
