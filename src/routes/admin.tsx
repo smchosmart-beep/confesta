@@ -226,10 +226,6 @@ function subGridStyle(venueId: string): React.CSSProperties {
 }
 
 function VenueCard({ venue }: { venue: VenueStat }) {
-  const rate =
-    venue.totalOrders > 0
-      ? Math.round((venue.totalPickups / venue.totalOrders) * 100)
-      : 0;
   return (
     <div
       className="relative overflow-hidden bg-card rounded-2xl p-4 shadow-cream border border-white/70 flex flex-col"
@@ -253,29 +249,6 @@ function VenueCard({ venue }: { venue: VenueStat }) {
         </div>
       ) : (
         <>
-
-
-      {/* 합계 두 카운트 + 수령률 (402호 제외) */}
-      {venue.id !== "402" && (
-        <>
-          <div className="relative grid grid-cols-2 gap-2 mb-2">
-            <MiniMetric label="주문" value={venue.totalOrders} grad="bg-grad-blueberry" />
-            <MiniMetric label="수령" value={venue.totalPickups} grad="bg-grad-strawberry" />
-          </div>
-          <div className="relative mb-3">
-            <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground mb-1">
-              <span>수령률</span>
-              <span className="text-foreground">{rate}%</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-grad-success rounded-full transition-all"
-                style={{ width: `${rate}%` }}
-              />
-            </div>
-          </div>
-        </>
-      )}
 
       {/* 서브 공간 그리드 (평면도 실제 배치 반영) */}
       <div
