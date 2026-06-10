@@ -168,7 +168,7 @@ function AdminView() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 p-2 sm:p-3 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[1.1fr_1.6fr_1.1fr] items-start">
+        <div className="grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
           {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
           <div className="flex flex-col gap-24 self-stretch">
             {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} />)}
