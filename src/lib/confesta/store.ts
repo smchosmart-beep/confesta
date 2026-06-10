@@ -55,6 +55,7 @@ interface ConfestaState {
   orders: Order[];
   scoops: StackedScoop[];
   toppings: Topping[];
+  likedToppingIds: string[];
   presenterNonces: Record<string, NoncePair>; // sessionId -> {order, pickup}
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
@@ -72,6 +73,7 @@ interface ConfestaState {
   addTopping: (sessionId: string, text: string) => void;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
+  toggleLikeTopping: (id: string) => void;
   rotatePresenterNonce: (sessionId: string, kind: SessionQRKind) => string;
   redeemReceipt: (token: string) => RedemptionLog;
   bumpAttendance: (sessionId: string, delta?: number) => void;
