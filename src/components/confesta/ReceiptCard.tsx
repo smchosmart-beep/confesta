@@ -1,7 +1,10 @@
+import { useRef, useState } from "react";
 import QRCode from "react-qr-code";
+import { toPng } from "html-to-image";
+import { toast } from "sonner";
+import { Download, Ticket } from "lucide-react";
 import { IceCreamCone } from "./IceCreamCone";
 import { useConfestaStore } from "@/lib/confesta/store";
-import { Ticket } from "lucide-react";
 // Note: floating background toppings are intentionally NOT used on the receipt tab.
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { derivePersona, type Persona } from "@/lib/confesta/persona";
@@ -34,6 +37,35 @@ export function ReceiptCard() {
     .filter((t) => !t.id.startsWith("seed-"))
     .slice()
     .sort((a, b) => a.createdAt - b.createdAt);
+
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveImage = async () => {
+    if (!receiptRef.current || saving) return;
+    setSaving(true);
+    try {
+      const dataUrl = await toPng(receiptRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: "#ffffff",
+      });
+      const link = document.createElement("a");
+      const stamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
+      link.download = `confesta-receipt-${stamp}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("영수증 이미지를 저장했어요");
+    } catch (err) {
+      console.error(err);
+      toast.error("이미지 저장에 실패했어요");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const ready = scoops.length >= 3;
 
@@ -68,7 +100,7 @@ export function ReceiptCard() {
 
   return (
     <div className="relative mx-auto max-w-sm">
-      <div className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
+      <div ref={receiptRef} className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
         <div className="absolute inset-x-0 top-0 h-2 bg-grad-sunset" />
         <div className="relative text-center border-b border-dashed border-foreground/20 pb-4 mb-4">
           <h2 className="font-extrabold text-xl tracking-tight text-grad-sunset">
@@ -129,7 +161,16 @@ export function ReceiptCard() {
         <PersonaBadge persona={derivePersona(scoops)} />
       </div>
 
-      <div className="text-center mt-4">
+      <div className="mt-5 flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSaveImage}
+          disabled={saving}
+          className="bounce-press inline-flex items-center gap-2 rounded-full bg-grad-strawberry text-white px-5 py-2.5 text-sm font-bold shadow-pink disabled:opacity-60"
+        >
+          <Download className="w-4 h-4" />
+          {saving ? "저장 중..." : "이미지로 저장"}
+        </button>
         <button
           type="button"
           onClick={() => {
