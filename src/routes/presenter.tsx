@@ -179,7 +179,7 @@ function PresenterView() {
                 <button
                   type="button"
                   onClick={() => setPickupOpen(true)}
-                  className="bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
+                  className="bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-6 text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
                 >
                   <QrCode className="w-3.5 h-3.5" />
                   수령 QR
