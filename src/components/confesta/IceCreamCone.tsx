@@ -220,6 +220,102 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
           </div>
         );
       })}
+
+      {/* Toppings on top scoop (0-3 levels based on question count) */}
+      {scoops.length > 0 && tc > 0 && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{
+            width: domeBox,
+            height: domeBox,
+            bottom: topScoopBottom,
+            zIndex: 10 + scoops.length + 5,
+          }}
+          aria-label={`토핑 ${tc}개`}
+        >
+          {/* Level 1+: cherry on top */}
+          <div
+            className="absolute"
+            style={{
+              left: "50%",
+              top: "6%",
+              transform: "translateX(-50%)",
+              fontSize: domeBox * 0.22,
+              lineHeight: 1,
+              filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.25))",
+            }}
+          >
+            🍒
+          </div>
+
+          {/* Level 2+: sprinkles ring around the dome */}
+          {tc >= 2 &&
+            Array.from({ length: 9 }).map((_, i) => {
+              const angle = (Math.PI / 9) * (i + 0.5); // 0..π across the visible dome
+              const r = domeBox * 0.36;
+              const cx = 50 + Math.cos(angle) * (r / domeBox) * 100;
+              const cy = 38 - Math.sin(angle) * (r / domeBox) * 100 * 0.55;
+              const colors = ["#ff5fa2", "#ffd166", "#7ad3a7", "#7bb7ff", "#c79bff"];
+              return (
+                <div
+                  key={`spr-${i}`}
+                  className="absolute"
+                  style={{
+                    left: `${cx}%`,
+                    top: `${cy}%`,
+                    width: domeBox * 0.05,
+                    height: domeBox * 0.018,
+                    borderRadius: 999,
+                    background: colors[i % colors.length],
+                    transform: `translate(-50%, -50%) rotate(${(angle * 180) / Math.PI - 90}deg)`,
+                    boxShadow: "0 1px 1px rgba(0,0,0,0.18)",
+                  }}
+                />
+              );
+            })}
+
+          {/* Level 3: chocolate chips + mint leaf accent */}
+          {tc >= 3 && (
+            <>
+              {[
+                { left: "28%", top: "30%" },
+                { left: "70%", top: "32%" },
+                { left: "40%", top: "44%" },
+                { left: "60%", top: "44%" },
+              ].map((p, i) => (
+                <div
+                  key={`chip-${i}`}
+                  className="absolute"
+                  style={{
+                    left: p.left,
+                    top: p.top,
+                    width: domeBox * 0.06,
+                    height: domeBox * 0.05,
+                    borderRadius: "40%",
+                    background:
+                      "radial-gradient(circle at 35% 30%, #8a5a2e 0%, #4a2a10 80%)",
+                    transform: "translate(-50%, -50%) rotate(20deg)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                  }}
+                />
+              ))}
+              <div
+                className="absolute"
+                style={{
+                  left: "58%",
+                  top: "10%",
+                  fontSize: domeBox * 0.13,
+                  lineHeight: 1,
+                  transform: "translateX(-50%) rotate(15deg)",
+                  filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
+                }}
+              >
+                🌿
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
