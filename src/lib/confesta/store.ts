@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
+  AnswerPrompt,
   Order,
   RedemptionLog,
   SessionQRKind,
@@ -61,6 +62,7 @@ interface ConfestaState {
   likedToppingIds: string[];
   presenterNonces: Record<string, NoncePair>; // sessionId -> {order, pickup}
   toppingGates: Record<string, ToppingGate>; // sessionId -> gate
+  answerPrompts: AnswerPrompt[];
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
   redemptionLog: RedemptionLog[];
@@ -74,11 +76,21 @@ interface ConfestaState {
   pickupFromQR: (payload: string) => ScanResult;
   resetScoops: () => void;
   generateReceipt: () => string | null;
-  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => boolean;
+  addTopping: (
+    sessionId: string,
+    text: string,
+    kind?: ToppingKind,
+    promptId?: string,
+  ) => boolean;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
   toggleLikeTopping: (id: string) => void;
   setToppingGate: (sessionId: string, partial: Partial<ToppingGate>) => void;
+  createAnswerPrompt: (sessionId: string, text: string) => AnswerPrompt | null;
+  updateAnswerPrompt: (promptId: string, text: string) => void;
+  closeAnswerPrompt: (promptId: string) => void;
+  reopenAnswerPrompt: (promptId: string) => void;
+  deleteAnswerPrompt: (promptId: string) => void;
   rotatePresenterNonce: (sessionId: string, kind: SessionQRKind) => string;
   redeemReceipt: (token: string) => RedemptionLog;
   bumpAttendance: (sessionId: string, delta?: number) => void;
@@ -94,6 +106,16 @@ export function getToppingGate(
   sessionId: string,
 ): ToppingGate {
   return gates[sessionId] ?? DEFAULT_TOPPING_GATE;
+}
+
+export function getActiveAnswerPrompt(
+  prompts: AnswerPrompt[],
+  sessionId: string,
+): AnswerPrompt | null {
+  const open = prompts
+    .filter((p) => p.sessionId === sessionId && p.closedAt == null)
+    .sort((a, b) => b.createdAt - a.createdAt);
+  return open[0] ?? null;
 }
 
 const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
