@@ -275,25 +275,25 @@ function VenueCard({ venue }: { venue: VenueStat }) {
 
       {/* 서브 공간 그리드 (평면도 실제 배치 반영) */}
       <div
-        className="relative grid gap-1.5 mt-auto flex-1"
+        className="relative grid gap-2 mt-auto flex-1 p-2 rounded-xl bg-muted/40 border border-dashed border-foreground/15"
         style={subGridStyle(venue.id)}
       >
         {venue.subs.map((sub) => (
           <div
             key={sub.label}
             title={sub.sessionTitle}
-            className="rounded-xl border border-white/70 bg-white/70 px-2 py-2 flex flex-col min-h-[64px]"
+            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2.5 py-2 flex flex-col min-h-[72px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
             <div className="flex items-baseline justify-between gap-1 mb-1">
-              <span className="text-sm font-extrabold leading-none">
+              <span className="text-base font-extrabold leading-none">
                 {sub.code}
               </span>
               <span className="text-[9px] font-bold text-muted-foreground">
                 {sub.label}
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-1.5 min-h-[1.5em] flex-1">
+            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-1.5 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
             <div className="mt-auto flex items-center justify-between text-[10px] font-extrabold">
