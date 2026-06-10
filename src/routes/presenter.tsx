@@ -11,7 +11,7 @@ import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { AttendanceGauge } from "@/components/confesta/AttendanceGauge";
 import { StageMarquee } from "@/components/confesta/StageMarquee";
-import { useConfestaStore, makeAttendanceQR } from "@/lib/confesta/store";
+import { useConfestaStore, makeOrderQR, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { useFullscreen } from "@/hooks/use-fullscreen";
 import { usePresenterShortcuts } from "@/hooks/use-presenter-shortcuts";
@@ -56,7 +56,7 @@ function PresenterView() {
   const [sessionId, setSessionId] = useState(SESSIONS[0].id);
   const session = SESSIONS.find((s) => s.id === sessionId)!;
   const rotate = useConfestaStore((s) => s.rotatePresenterNonce);
-  const nonce = useConfestaStore((s) => s.presenterNonces[sessionId]);
+  const noncePair = useConfestaStore((s) => s.presenterNonces[sessionId]);
   const attendanceCount = useConfestaStore(
     (s) => s.attendanceCounts[sessionId] ?? 0,
   );
@@ -81,9 +81,10 @@ function PresenterView() {
   // Force stage mode while in fullscreen
   const effectiveMode: PresenterMode = isFullscreen ? "stage" : mode;
 
-  // Rotate nonce
+  // Rotate both nonces (order + pickup)
   useEffect(() => {
-    rotate(sessionId);
+    rotate(sessionId, "order");
+    rotate(sessionId, "pickup");
     setProgress(100);
     const start = Date.now();
     const tickId = window.setInterval(() => {
@@ -91,7 +92,8 @@ function PresenterView() {
       setProgress(100 - (elapsed / QR_INTERVAL_MS) * 100);
     }, 100);
     const rotateId = window.setInterval(() => {
-      rotate(sessionId);
+      rotate(sessionId, "order");
+      rotate(sessionId, "pickup");
     }, QR_INTERVAL_MS);
     return () => {
       window.clearInterval(tickId);
@@ -109,7 +111,16 @@ function PresenterView() {
     return () => window.clearInterval(id);
   }, [sessionId, session.capacity, attendanceCount, bumpAttendance]);
 
-  const qrValue = nonce ? makeAttendanceQR(sessionId, nonce) : "";
+  const orderQR = noncePair?.order
+    ? makeOrderQR(sessionId, noncePair.order)
+    : "";
+  const pickupQR = noncePair?.pickup
+    ? makePickupQR(sessionId, noncePair.pickup)
+    : "";
+  const [handheldQRKind, setHandheldQRKind] = useState<"order" | "pickup">(
+    "order",
+  );
+  const handheldQRValue = handheldQRKind === "order" ? orderQR : pickupQR;
 
 
   const modeToggle = (
