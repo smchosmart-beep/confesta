@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Camera, Check } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
 import { SESSIONS, getCategory } from "@/lib/confesta/mockData";
-import { useConfestaStore, parseSessionQR } from "@/lib/confesta/store";
+import { parseSessionQR } from "@/lib/confesta/shared";
+import { useAudience } from "@/hooks/use-audience";
 import { CameraScanner } from "./CameraScanner";
 import { ToppingScatter } from "./ToppingDecor";
 
