@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useConfestaStore } from "@/lib/confesta/store";
+import { useSessionToppings } from "@/hooks/use-toppings";
 import { extractKeywords } from "@/lib/confesta/keywords";
 import { Cherry, ChocChip, StarSprinkle, Heart, Sprinkle } from "./ToppingDecor";
 
