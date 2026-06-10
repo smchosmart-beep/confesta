@@ -261,7 +261,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           <div
             key={sub.label}
             title={sub.sessionTitle}
-            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-3 py-2.5 flex flex-col min-h-[88px] shadow-sm"
+            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col min-h-[68px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
             <div className="flex items-baseline gap-1.5 mb-1">
