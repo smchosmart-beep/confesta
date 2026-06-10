@@ -27,11 +27,9 @@ const SAMPLE_TOPPING_TEXTS = [
 ];
 
 export function ReceiptCard() {
-  const scoops = useConfestaStore((s) => s.scoops);
-  const token = useConfestaStore((s) => s.receiptToken);
-  const generate = useConfestaStore((s) => s.generateReceipt);
-  const redeemed = useConfestaStore((s) => s.receiptRedeemed);
-  const reset = useConfestaStore((s) => s.resetScoops);
+  const { scoops, receipt, issueReceipt, reset, issuingReceipt } = useAudience();
+  const token = receipt?.token ?? null;
+  const redeemed = receipt?.redeemedAt ? { at: receipt.redeemedAt } : null;
   const allToppings = useConfestaStore((s) => s.toppings);
   // user-created toppings only (seed ids start with "seed-")
   const myToppings = allToppings
