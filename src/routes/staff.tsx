@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
-import { useConfestaStore } from "@/lib/confesta/store";
-import type { RedemptionLog } from "@/lib/confesta/types";
+import { PinAuthGate } from "@/components/confesta/PinAuthGate";
+import {
+  redeemReceipt,
+  listRecentRedemptions,
+  type RedemptionResult,
+} from "@/lib/confesta/staff.functions";
 import { Check, AlertOctagon, X } from "lucide-react";
 
 export const Route = createFileRoute("/staff")({
@@ -23,13 +29,38 @@ export const Route = createFileRoute("/staff")({
       },
     ],
   }),
-  component: StaffView,
+  component: StaffPage,
 });
 
+function StaffPage() {
+  return (
+    <PinAuthGate role="staff" title="운영 스태프 인증" description="영수증 검증을 위해 인증이 필요해요." accent="mint">
+      <StaffView />
+    </PinAuthGate>
+  );
+}
+
 function StaffView() {
-  const redeem = useConfestaStore((s) => s.redeemReceipt);
-  const log = useConfestaStore((s) => s.redemptionLog);
-  const [result, setResult] = useState<RedemptionLog | null>(null);
+  const qc = useQueryClient();
+  const redeemFn = useServerFn(redeemReceipt);
+  const listFn = useServerFn(listRecentRedemptions);
+  const [result, setResult] = useState<RedemptionResult | null>(null);
+
+  const logQuery = useQuery({
+    queryKey: ["staff-log"],
+    queryFn: () => listFn({ data: { limit: 20 } }),
+    refetchInterval: 5_000,
+  });
+
+  const redeem = useMutation({
+    mutationFn: (token: string) => redeemFn({ data: { token } }),
+    onSuccess: (res) => {
+      setResult(res);
+      qc.invalidateQueries({ queryKey: ["staff-log"] });
+    },
+  });
+
+  const log = logQuery.data?.log ?? [];
 
   return (
     <main className="min-h-screen pb-16">
@@ -42,12 +73,11 @@ function StaffView() {
       <DeviceFrame device="mobile">
         <section className="px-4 max-w-md mx-auto">
           <CameraScanner
-            onScan={(text) => setResult(redeem(text))}
+            onScan={(text) => redeem.mutate(text)}
             hintLine="청중의 영수증 QR을 비추세요"
           />
         </section>
 
-        {/* Recent log */}
         <section className="px-4 max-w-md mx-auto mt-8">
           <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-3">
             최근 검증 로그
@@ -69,20 +99,8 @@ function StaffView() {
                     <span className="text-xs text-muted-foreground">
                       {new Date(l.redeemedAt).toLocaleTimeString("ko-KR")}
                     </span>
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded-full text-white shadow-cream ${
-                        l.status === "success"
-                          ? "bg-grad-success"
-                          : l.status === "duplicate"
-                            ? "bg-grad-danger"
-                            : "bg-grad-muted text-foreground"
-                      }`}
-                    >
-                      {l.status === "success"
-                        ? "성공"
-                        : l.status === "duplicate"
-                          ? "중복"
-                          : "무효"}
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white shadow-cream bg-grad-success">
+                      성공
                     </span>
                   </span>
                 </li>
@@ -92,8 +110,6 @@ function StaffView() {
         </section>
       </DeviceFrame>
 
-
-      {/* Result overlay */}
       {result && (
         <div
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur flex items-center justify-center p-6"
@@ -103,17 +119,13 @@ function StaffView() {
             className="relative overflow-hidden max-w-sm w-full bg-card rounded-3xl p-8 text-center shadow-pink border border-white/60"
             style={{
               animation:
-                result.status !== "success"
-                  ? "var(--animate-shake)"
-                  : undefined,
+                result.status !== "success" ? "var(--animate-shake)" : undefined,
             }}
             onClick={(e) => e.stopPropagation()}
           >
             <div
               className={`absolute inset-0 opacity-60 ${
-                result.status === "success"
-                  ? "bg-grad-aurora-soft"
-                  : "bg-grad-sunset-soft"
+                result.status === "success" ? "bg-grad-aurora-soft" : "bg-grad-sunset-soft"
               }`}
             />
             <ToppingScatter density="med" seed={`staff-${result.status}`} />
@@ -143,9 +155,7 @@ function StaffView() {
                     <AlertOctagon className="w-12 h-12" />
                   </div>
                   <h3 className="text-2xl font-extrabold text-grad-strawberry">
-                    {result.status === "duplicate"
-                      ? "이미 수령됨"
-                      : "무효 토큰"}
+                    {result.status === "duplicate" ? "이미 수령됨" : "무효 토큰"}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-2">
                     {result.status === "duplicate"
