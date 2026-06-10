@@ -33,7 +33,7 @@ export function AnswerPromptCard({ prompt }: Props) {
   const gate = getToppingGate(gates, prompt.sessionId);
 
   const isActive = prompt.closedAt == null;
-  const canSubmit = isActive && gate.answersOpen;
+  const canSubmit = gate.answersOpen;
 
   const [text, setText] = useState("");
 
@@ -76,7 +76,11 @@ export function AnswerPromptCard({ prompt }: Props) {
   };
 
   return (
-    <div className="relative overflow-hidden bg-card rounded-3xl p-5 shadow-cream border border-white/60">
+    <div
+      className={`relative overflow-hidden bg-card rounded-3xl p-5 shadow-cream border ${
+        isActive ? "border-white/60" : "border-muted/50 opacity-90"
+      }`}
+    >
       <div
         className={`absolute inset-0 ${isActive ? "bg-grad-sunset-soft opacity-50" : "bg-grad-muted opacity-30"}`}
       />
@@ -94,7 +98,7 @@ export function AnswerPromptCard({ prompt }: Props) {
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isActive ? "활성" : "마감"}
+                {isActive ? "진행 중" : "보관됨"}
               </span>
               <span className="text-[11px] font-mono text-muted-foreground">
                 응답 {total}
@@ -106,41 +110,42 @@ export function AnswerPromptCard({ prompt }: Props) {
           </div>
         </div>
 
-        {isActive && (
-          <form onSubmit={handleSubmit} className="relative">
-            <div
-              className={`flex items-center gap-2 bg-card border border-white/60 rounded-full p-1.5 pl-4 shadow-pink ${
-                !canSubmit ? "opacity-60" : ""
-              }`}
-            >
-              {canSubmit ? (
-                <Megaphone className="w-4 h-4 text-primary shrink-0" />
-              ) : (
-                <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-              )}
-              <input
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={
-                  canSubmit
+        <form onSubmit={handleSubmit} className="relative">
+          <div
+            className={`flex items-center gap-2 bg-card border border-white/60 rounded-full p-1.5 pl-4 shadow-pink ${
+              !canSubmit ? "opacity-60" : ""
+            }`}
+          >
+            {canSubmit ? (
+              <Megaphone className="w-4 h-4 text-primary shrink-0" />
+            ) : (
+              <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+            )}
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={
+                canSubmit
+                  ? isActive
                     ? "한 단어로 응답해 보세요"
-                    : "발표자가 입력을 잠시 잠갔어요"
-                }
-                disabled={!canSubmit}
-                maxLength={24}
-                className="flex-1 bg-transparent outline-none text-sm py-1.5 disabled:cursor-not-allowed"
-              />
-              <button
-                type="submit"
-                disabled={!text.trim() || !canSubmit}
-                className="bounce-press bg-grad-strawberry text-white rounded-full p-2 shadow-pink disabled:opacity-40 disabled:hover:scale-100"
-                aria-label="응답 보내기"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </form>
-        )}
+                    : "보관된 질문에도 응답할 수 있어요"
+                  : "응답 수신이 꺼져 있어요"
+              }
+              disabled={!canSubmit}
+              maxLength={24}
+              className="flex-1 bg-transparent outline-none text-sm py-1.5 disabled:cursor-not-allowed"
+            />
+            <button
+              type="submit"
+              disabled={!text.trim() || !canSubmit}
+              className="bounce-press bg-grad-strawberry text-white rounded-full p-2 shadow-pink disabled:opacity-40 disabled:hover:scale-100"
+              aria-label="응답 보내기"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </form>
+
 
         {total === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-6">
