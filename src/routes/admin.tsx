@@ -282,21 +282,18 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           <div
             key={sub.label}
             title={sub.sessionTitle}
-            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2.5 py-2 flex flex-col min-h-[72px] shadow-sm"
+            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-3 py-2.5 flex flex-col min-h-[88px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
-            <div className="flex items-baseline justify-between gap-1 mb-1">
-              <span className="text-base font-extrabold leading-none">
+            <div className="flex items-baseline gap-1.5 mb-1">
+              <span className="text-xl font-extrabold leading-none">
                 {sub.code}
               </span>
-              <span className="text-[9px] font-bold text-muted-foreground">
-                {sub.label}
-              </span>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-1.5 flex-1">
+            <p className="text-xs text-foreground/70 leading-snug line-clamp-2 mb-2 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex items-center justify-between text-[10px] font-extrabold">
+            <div className="mt-auto flex items-center justify-between text-xs font-extrabold">
               <span className="text-grad-blueberry">주문 {sub.orders}</span>
               <span className="text-grad-strawberry">수령 {sub.pickups}</span>
             </div>
