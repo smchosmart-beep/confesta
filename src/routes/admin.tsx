@@ -1,10 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  selectTriggerCls,
+  selectContentCls,
+  selectItemCls,
+} from "@/lib/confesta/selectStyles";
+
+type Period = "am" | "pm";
+const periodOf = (s: { timeSlot: string }): Period =>
+  parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm";
+
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -51,6 +68,30 @@ function AdminView() {
   const scoops = useConfestaStore((s) => s.scoops);
   const toppings = useConfestaStore((s) => s.toppings);
 
+  const daysAvailable = useMemo(
+    () => Array.from(new Set(SESSIONS.map((s) => s.day))).sort(),
+    [],
+  );
+  const [selectedDay, setSelectedDay] = useState<number>(
+    daysAvailable[0] ?? 1,
+  );
+  const periodsAvailable = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          SESSIONS.filter((s) => s.day === selectedDay).map(periodOf),
+        ),
+      ) as Period[],
+    [selectedDay],
+  );
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>(
+    (periodsAvailable[0] ?? "am") as Period,
+  );
+  // 일자 변경 시 현재 시간대가 없으면 첫 시간대로 보정
+  if (!periodsAvailable.includes(selectedPeriod) && periodsAvailable[0]) {
+    queueMicrotask(() => setSelectedPeriod(periodsAvailable[0]));
+  }
+
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
       if (v.noMetrics) {
@@ -71,7 +112,13 @@ function AdminView() {
           : code
             ? `${v.id}-${code}`
             : v.id;
-        const session = SESSIONS.find((s) => s.room === roomLabel);
+        const session = SESSIONS.find(
+          (s) =>
+            s.room === roomLabel &&
+            s.day === selectedDay &&
+            periodOf(s) === selectedPeriod,
+        );
+
 
         // demo baseline + live signals
         const seed =
@@ -116,7 +163,7 @@ function AdminView() {
         totalPickups,
       };
     });
-  }, [orders, scoops, toppings]);
+  }, [orders, scoops, toppings, selectedDay, selectedPeriod]);
 
 
 
@@ -167,6 +214,51 @@ function AdminView() {
             <Legend color="bg-grad-strawberry" label="수령 QR" />
           </div>
         </div>
+
+        {/* Day / 시간대 필터 */}
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 sm:p-4 shadow-cream">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              1단계 · 일자 선택
+            </span>
+            <Select
+              value={String(selectedDay)}
+              onValueChange={(v) => setSelectedDay(parseInt(v, 10))}
+            >
+              <SelectTrigger className={selectTriggerCls}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className={selectContentCls}>
+                {daysAvailable.map((d) => (
+                  <SelectItem key={d} value={String(d)} className={selectItemCls}>
+                    Day {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              2단계 · 시간대 선택
+            </span>
+            <Select
+              value={selectedPeriod}
+              onValueChange={(v) => setSelectedPeriod(v as Period)}
+            >
+              <SelectTrigger className={selectTriggerCls}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className={selectContentCls}>
+                {periodsAvailable.map((p) => (
+                  <SelectItem key={p} value={p} className={selectItemCls}>
+                    {p === "am" ? "오전" : "오후"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
 
         {/* 데스크톱: 평면도 배치 (md 이상에서만) */}
         <div className="hidden md:grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
