@@ -19,6 +19,18 @@ import {
 } from "@/lib/confesta/store";
 import type { ToppingKind } from "@/lib/confesta/types";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  selectTriggerCls,
+  selectContentCls,
+  selectItemCls,
+} from "@/lib/confesta/selectStyles";
+import {
   Camera,
   Plus,
   Receipt,
