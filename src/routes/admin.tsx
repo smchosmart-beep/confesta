@@ -291,12 +291,12 @@ function VenueCard({ venue }: { venue: VenueStat }) {
             className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col justify-center min-h-[120px] shadow-sm"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
-            <div className="flex items-baseline justify-center gap-1">
+            <div className={`flex items-baseline justify-center gap-1 ${isHall ? 'mb-2' : ''}`}>
               <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
             </div>
-            <p className="text-sm text-foreground/80 leading-snug line-clamp-2 mb-2 text-center">
+            <p className={`text-sm text-foreground/80 leading-snug line-clamp-2 text-center ${isHall ? 'mb-4' : 'mb-2'}`}>
               {sub.sessionTitle ?? "—"}
             </p>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center">
