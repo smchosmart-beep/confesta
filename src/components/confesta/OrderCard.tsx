@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Camera, Check } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
 import { SESSIONS, getCategory } from "@/lib/confesta/mockData";
-import { useConfestaStore, parseSessionQR } from "@/lib/confesta/store";
+import { parseSessionQR } from "@/lib/confesta/shared";
+import { useAudience } from "@/hooks/use-audience";
 import { CameraScanner } from "./CameraScanner";
 import { ToppingScatter } from "./ToppingDecor";
 
@@ -27,7 +28,7 @@ function fmtTime(ts: number) {
 
 export function OrderCard({ order }: Props) {
   const session = SESSIONS.find((s) => s.id === order.sessionId);
-  const pickup = useConfestaStore((s) => s.pickupFromQR);
+  const { pickup } = useAudience();
   const [scanning, setScanning] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(
     null,
@@ -37,7 +38,7 @@ export function OrderCard({ order }: Props) {
   const cat = getCategory(session.category);
   const picked = !!order.pickedUpAt;
 
-  const handleScan = (text: string) => {
+  const handleScan = async (text: string) => {
     const parsed = parseSessionQR(text);
     if (parsed?.kind === "order") {
       setFeedback({ ok: false, msg: "이건 주문 QR이에요 (수령 QR을 스캔하세요)" });
@@ -47,12 +48,17 @@ export function OrderCard({ order }: Props) {
       setFeedback({ ok: false, msg: "다른 세션의 수령 QR입니다" });
       return;
     }
-    const result = pickup(text);
-    if (result.ok) {
-      setFeedback({ ok: true, msg: "수령 완료! 스쿱이 콘에 쌓였어요 🍦" });
-      setScanning(false);
-    } else {
-      setFeedback({ ok: false, msg: result.reason });
+    try {
+      const result = await pickup(text);
+      if (result.ok) {
+        setFeedback({ ok: true, msg: "수령 완료! 스쿱이 콘에 쌓였어요 🍦" });
+        setScanning(false);
+      } else {
+        setFeedback({ ok: false, msg: result.message });
+      }
+    } catch (e) {
+      setFeedback({ ok: false, msg: "오류가 발생했어요" });
+      console.error(e);
     }
   };
 

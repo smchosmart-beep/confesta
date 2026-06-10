@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { Download, Ticket } from "lucide-react";
 import { IceCreamCone } from "./IceCreamCone";
 import { useConfestaStore } from "@/lib/confesta/store";
+import { useAudience } from "@/hooks/use-audience";
 // Note: floating background toppings are intentionally NOT used on the receipt tab.
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { derivePersona, type Persona } from "@/lib/confesta/persona";
@@ -26,11 +27,9 @@ const SAMPLE_TOPPING_TEXTS = [
 ];
 
 export function ReceiptCard() {
-  const scoops = useConfestaStore((s) => s.scoops);
-  const token = useConfestaStore((s) => s.receiptToken);
-  const generate = useConfestaStore((s) => s.generateReceipt);
-  const redeemed = useConfestaStore((s) => s.receiptRedeemed);
-  const reset = useConfestaStore((s) => s.resetScoops);
+  const { scoops, receipt, issueReceipt, reset, issuingReceipt } = useAudience();
+  const token = receipt?.token ?? null;
+  const redeemed = receipt?.redeemedAt ? { at: receipt.redeemedAt } : null;
   const allToppings = useConfestaStore((s) => s.toppings);
   // user-created toppings only (seed ids start with "seed-")
   const myToppings = allToppings
@@ -92,6 +91,13 @@ export function ReceiptCard() {
 
   const ready = scoops.length >= 3;
 
+  // Auto-issue receipt as soon as the third scoop arrives and no token exists.
+  useEffect(() => {
+    if (ready && !token && !issuingReceipt) {
+      void issueReceipt().catch((e) => console.error(e));
+    }
+  }, [ready, token, issuingReceipt, issueReceipt]);
+
   if (!ready) {
     return (
       <div className="flex flex-col gap-6">
@@ -133,7 +139,7 @@ export function ReceiptCard() {
   }
 
 
-  const activeToken = token ?? generate();
+  const activeToken = token;
 
   return (
     <div className="relative mx-auto max-w-sm">

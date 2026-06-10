@@ -13,11 +13,9 @@ import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import {
-  useConfestaStore,
-  MAX_SCOOPS_CONST,
-  parseSessionQR,
-} from "@/lib/confesta/store";
+import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
+import { parseSessionQR } from "@/lib/confesta/shared";
+import { useAudience } from "@/hooks/use-audience";
 import type { ToppingKind } from "@/lib/confesta/types";
 import {
   Select,
@@ -64,13 +62,15 @@ type Section = "orders" | "live" | "topping" | "receipt";
 function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
 
-  // Orders tab state
-  const orders = useConfestaStore((s) => s.orders);
+  // Server-backed audience state (orders, scoops, receipt)
+  const { orders, scoops, placeOrder, pickup } = useAudience();
+
+  // Topping/answerPrompt state still on Zustand (migrates in next steps)
   const toppings = useConfestaStore((s) => s.toppings);
   const answerPrompts = useConfestaStore((s) => s.answerPrompts);
   const likedToppingIds = useConfestaStore((s) => s.likedToppingIds);
   const toggleLikeTopping = useConfestaStore((s) => s.toggleLikeTopping);
-  const placeOrder = useConfestaStore((s) => s.placeOrderFromQR);
+
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<{
     ok: boolean;
@@ -78,8 +78,6 @@ function AudienceView() {
   } | null>(null);
 
   // My cone tab state
-  const scoops = useConfestaStore((s) => s.scoops);
-  const pickup = useConfestaStore((s) => s.pickupFromQR);
   const [coneScanOpen, setConeScanOpen] = useState(false);
   const [coneFeedback, setConeFeedback] = useState<{
     ok: boolean;
@@ -120,7 +118,7 @@ function AudienceView() {
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
-  const handleOrderScan = (text: string) => {
+  const handleOrderScan = async (text: string) => {
     const parsed = parseSessionQR(text);
     if (parsed?.kind === "pickup") {
       setOrderFeedback({
@@ -129,16 +127,21 @@ function AudienceView() {
       });
       return;
     }
-    const result = placeOrder(text);
-    if (result.ok) {
-      setOrderFeedback({ ok: true, msg: "주문이 접수됐어요 🍨" });
-      setOrderScanOpen(false);
-    } else {
-      setOrderFeedback({ ok: false, msg: result.reason });
+    try {
+      const result = await placeOrder(text);
+      if (result.ok) {
+        setOrderFeedback({ ok: true, msg: result.message });
+        setOrderScanOpen(false);
+      } else {
+        setOrderFeedback({ ok: false, msg: result.message });
+      }
+    } catch (e) {
+      setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
+      console.error(e);
     }
   };
 
-  const handleConeScan = (text: string) => {
+  const handleConeScan = async (text: string) => {
     const parsed = parseSessionQR(text);
     if (parsed?.kind === "order") {
       setConeFeedback({
@@ -147,12 +150,17 @@ function AudienceView() {
       });
       return;
     }
-    const result = pickup(text);
-    if (result.ok) {
-      setConeFeedback({ ok: true, msg: "수령 완료! 스쿱이 쌓였어요 🍦" });
-      setConeScanOpen(false);
-    } else {
-      setConeFeedback({ ok: false, msg: result.reason });
+    try {
+      const result = await pickup(text);
+      if (result.ok) {
+        setConeFeedback({ ok: true, msg: result.message });
+        setConeScanOpen(false);
+      } else {
+        setConeFeedback({ ok: false, msg: result.message });
+      }
+    } catch (e) {
+      setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
+      console.error(e);
     }
   };
 
