@@ -31,7 +31,7 @@ export function QuestionStream({ sessionId }: Props) {
     list.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
-      if (sort === "likes") return mockLikes(b.id) - mockLikes(a.id);
+      if (sort === "likes") return (b.likes ?? 0) - (a.likes ?? 0);
       return b.createdAt - a.createdAt;
     });
     return list;
