@@ -313,13 +313,35 @@ function PresenterView() {
               <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
               <ToppingScatter density="med" seed="hh-qr" />
               <div className="relative flex items-center justify-between mb-3">
-                <h3 className="font-bold bg-clip-text text-transparent bg-grad-sunset">출석 QR</h3>
+                <h3 className="font-bold bg-clip-text text-transparent bg-grad-sunset">
+                  {handheldQRKind === "order" ? "① 주문 QR" : "② 수령 QR"}
+                </h3>
                 <span className="text-xs bg-grad-blueberry text-white font-bold px-2.5 py-1 rounded-full shadow-blue">
                   15초마다 갱신
                 </span>
               </div>
+              <div className="relative inline-flex p-1 bg-grad-muted rounded-full shadow-cream border border-white/60 mb-3">
+                {(["order", "pickup"] as const).map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setHandheldQRKind(k)}
+                    className={`bounce-press rounded-full px-4 py-1.5 text-xs font-bold ${
+                      handheldQRKind === k
+                        ? k === "order"
+                          ? "bg-grad-blueberry text-white shadow-blue"
+                          : "bg-grad-strawberry text-white shadow-pink"
+                        : "text-foreground/70"
+                    }`}
+                  >
+                    {k === "order" ? "주문(도착)" : "수령(종료)"}
+                  </button>
+                ))}
+              </div>
               <div className="relative bg-white p-5 rounded-2xl flex justify-center border-2 border-white shadow-cream">
-                {qrValue && <QRCode value={qrValue} size={200} level="M" />}
+                {handheldQRValue && (
+                  <QRCode value={handheldQRValue} size={200} level="M" />
+                )}
               </div>
               <div className="relative mt-3 h-2.5 rounded-full bg-white/60 overflow-hidden">
                 <div
@@ -331,6 +353,7 @@ function PresenterView() {
                 다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
               </p>
             </div>
+
 
             <SlideControlPanel />
           </div>
