@@ -31,7 +31,7 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-foreground/85 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in"
+      className="fixed inset-0 z-[200] bg-foreground/85 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -39,7 +39,7 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 bg-grad-strawberry text-white rounded-full p-2 shadow-pink z-10"
+        className="absolute top-4 right-4 bg-grad-strawberry text-white rounded-full p-2 shadow-pink z-[210]"
         aria-label="닫기"
       >
         <X className="w-5 h-5" />
@@ -53,7 +53,7 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
             e.stopPropagation();
             onPrev();
           }}
-          className="fixed left-4 sm:left-8 top-1/2 -translate-y-1/2 z-10 bounce-press bg-white/90 hover:bg-white rounded-full p-3 shadow-pink"
+          className="fixed left-4 sm:left-8 top-1/2 -translate-y-1/2 z-[210] bounce-press bg-white/90 hover:bg-white rounded-full p-3 shadow-pink"
           aria-label="이전 질문"
         >
           <ChevronLeft className="w-8 h-8 text-foreground" />
@@ -68,7 +68,7 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
             e.stopPropagation();
             onNext();
           }}
-          className="fixed right-4 sm:right-8 top-1/2 -translate-y-1/2 z-10 bounce-press bg-white/90 hover:bg-white rounded-full p-3 shadow-pink"
+          className="fixed right-4 sm:right-8 top-1/2 -translate-y-1/2 z-[210] bounce-press bg-white/90 hover:bg-white rounded-full p-3 shadow-pink"
           aria-label="다음 질문"
         >
           <ChevronRight className="w-8 h-8 text-foreground" />
