@@ -163,7 +163,7 @@ function AdminView() {
         totalPickups,
       };
     });
-  }, [orders, scoops, toppings]);
+  }, [orders, scoops, toppings, selectedDay, selectedPeriod]);
 
 
 
