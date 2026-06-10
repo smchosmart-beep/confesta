@@ -228,7 +228,7 @@ function subGridStyle(venueId: string): React.CSSProperties {
 function VenueCard({ venue }: { venue: VenueStat }) {
   return (
     <div
-      className="relative overflow-hidden bg-card rounded-2xl p-4 shadow-cream border border-white/70 flex flex-col"
+      className="relative overflow-hidden bg-card rounded-2xl p-3 shadow-cream border border-white/70 flex flex-col"
       style={{ gridArea: venue.area }}
     >
       <ToppingScatter density="low" seed={`v-${venue.id}`} />
