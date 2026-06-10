@@ -42,6 +42,18 @@ export interface Topping {
   likes?: number;
 }
 
+export interface ToppingGate {
+  questionsOpen: boolean;
+  answersOpen: boolean;
+  answerPrompt: string;
+}
+
+export const DEFAULT_TOPPING_GATE: ToppingGate = {
+  questionsOpen: true,
+  answersOpen: false,
+  answerPrompt: "",
+};
+
 export interface StackedScoop {
   id: string;
   sessionId: string;
