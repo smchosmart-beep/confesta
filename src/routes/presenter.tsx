@@ -65,8 +65,8 @@ function PresenterView() {
         color="blue"
       />
 
-      <section className="px-4 sm:px-6 max-w-7xl mx-auto">
-        <div className="flex items-end gap-3 mb-5">
+      <section className="px-3 sm:px-4">
+        <div className="flex items-end gap-3 mb-4">
           <div className="flex-1 min-w-0">
             <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">
               세션 선택
@@ -93,24 +93,28 @@ function PresenterView() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
           {/* 토핑 키워드 */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex flex-col h-full">
             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               토핑 키워드
             </h2>
             <p className="text-sm text-muted-foreground">
               청중 질문에서 명사 키워드를 골라 토핑처럼 통 위에 쌓입니다. 5초마다 갱신.
             </p>
-            <ToppingTubScene sessionId={sessionId} />
+            <div className="flex-1 min-h-0">
+              <ToppingTubScene sessionId={sessionId} />
+            </div>
           </div>
 
           {/* 질문 목록 */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex flex-col h-full overflow-hidden">
             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               질문 목록
             </h2>
-            <QuestionStream sessionId={sessionId} />
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <QuestionStream sessionId={sessionId} />
+            </div>
           </div>
         </div>
       </section>
