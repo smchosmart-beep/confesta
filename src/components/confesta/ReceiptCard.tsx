@@ -173,7 +173,17 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
               <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
             </div>
           ))}
-          <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
+
+          <div className="pt-2 mt-2 border-t border-dashed border-foreground/20 space-y-1">
+            {SAMPLE_TOPPING_TEXTS.map((text, i) => (
+              <div key={i} className="flex justify-between gap-3 items-start">
+                <span className="shrink-0">토핑 #{i + 1}</span>
+                <span className="text-right break-keep leading-snug">{text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between pt-2 mt-2 border-t border-dashed border-foreground/20">
             <span>발급</span>
             <span>2026-06-10 14:00</span>
           </div>
