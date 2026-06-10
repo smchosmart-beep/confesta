@@ -269,6 +269,19 @@
   }
 }
 
+@keyframes toppingSnow {
+  0%   { top: -10%; opacity: 0; transform: translate(-50%, 0) rotate(var(--rot, 0deg)); }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; transform: translate(-50%, 0) rotate(calc(var(--rot, 0deg) + 24deg)); }
+}
+
+@keyframes toppingSway {
+  0%, 100% { margin-left: -8px; }
+  50%      { margin-left: 8px; }
+}
+
+
 /* ─── Gradient background utilities ─── */
 @utility bg-grad-strawberry { background-image: var(--gradient-strawberry); }
 @utility bg-grad-mint       { background-image: var(--gradient-mint); }
