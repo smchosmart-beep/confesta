@@ -215,6 +215,51 @@ function AdminView() {
           </div>
         </div>
 
+        {/* Day / 시간대 필터 */}
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 sm:p-4 shadow-cream">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              1단계 · 일자 선택
+            </span>
+            <Select
+              value={String(selectedDay)}
+              onValueChange={(v) => setSelectedDay(parseInt(v, 10))}
+            >
+              <SelectTrigger className={selectTriggerCls}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className={selectContentCls}>
+                {daysAvailable.map((d) => (
+                  <SelectItem key={d} value={String(d)} className={selectItemCls}>
+                    Day {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              2단계 · 시간대 선택
+            </span>
+            <Select
+              value={selectedPeriod}
+              onValueChange={(v) => setSelectedPeriod(v as Period)}
+            >
+              <SelectTrigger className={selectTriggerCls}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className={selectContentCls}>
+                {periodsAvailable.map((p) => (
+                  <SelectItem key={p} value={p} className={selectItemCls}>
+                    {p === "am" ? "오전" : "오후"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+
         {/* 데스크톱: 평면도 배치 (md 이상에서만) */}
         <div className="hidden md:grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
           {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
