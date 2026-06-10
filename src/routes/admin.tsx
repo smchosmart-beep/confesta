@@ -165,12 +165,13 @@ function AdminView() {
           style={{
             gridTemplateColumns: "1.1fr 1.6fr 1.1fr",
             gridTemplateAreas: `
-              "v402  hallC  v403"
-              "v401  hallAB v404"
-              "v400  hallAB ."
+              "v402  hall  v403"
+              "v401  hall  v404"
+              "v400  .     ."
             `,
           }}
         >
+
           {stats.map((v) => (
             <VenueCard key={v.id} venue={v} />
           ))}
