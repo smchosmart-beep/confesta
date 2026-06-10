@@ -89,7 +89,7 @@ export function OrderCard({ order }: Props) {
 
       <div className="relative">
         {picked ? (
-          <div className="inline-flex items-center gap-2 bg-grad-success text-white rounded-full px-4 py-2 text-sm font-bold shadow-cream">
+          <div className="inline-flex items-center gap-2 bg-grad-success text-white rounded-full px-4 py-2 text-sm font-bold shadow-cream" suppressHydrationWarning>
             <Check className="w-4 h-4" />
             {fmtTime(order.pickedUpAt!)} 수령 완료
           </div>
