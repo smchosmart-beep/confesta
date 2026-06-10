@@ -1,4 +1,4 @@
-import type { StackedScoop } from "./types";
+import type { StackedScoop, CategoryKey } from "./types";
 import { SESSIONS } from "./mockData";
 
 export interface Persona {
