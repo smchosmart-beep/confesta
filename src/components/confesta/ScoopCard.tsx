@@ -56,42 +56,51 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
         {/* base flavor gradient */}
         <div className={`absolute inset-0 ${FLAVOR_GRAD[flavor]}`} />
 
-        {/* hemisphere volume shading — body only (top→bright, bottom→dark) */}
+        {/* hemisphere volume shading — gradient fades naturally, no hard cut */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 75% 65% at 35% 25%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 28%, rgba(255,255,255,0) 45%, rgba(0,0,0,0.18) 65%, rgba(0,0,0,0.30) 80%)",
-            clipPath: "inset(0 0 35% 0)",
+              "radial-gradient(ellipse 70% 55% at 35% 22%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 35%, rgba(255,255,255,0) 55%, rgba(0,0,0,0.18) 75%, rgba(0,0,0,0) 100%)",
           }}
         />
 
-        {/* specular highlight — body only */}
+        {/* specular highlight */}
         <div
           className="absolute inset-0"
           style={{
             background:
               "radial-gradient(circle 70px at 28% 22%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%)",
-            clipPath: "inset(0 0 40% 0)",
           }}
         />
 
-        {/* body↔skirt separation — curved dark ring along sphere's bottom edge */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 62% 62% at 50% 32%, transparent 0%, transparent 92%, rgba(0,0,0,0.40) 96%, rgba(0,0,0,0.25) 99%, transparent 102%)",
-          }}
-        />
-        {/* thin bright rim just below the curve → step highlight */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse 62% 62% at 50% 32%, transparent 0%, transparent 99%, rgba(255,255,255,0.22) 101%, transparent 105%)",
-          }}
-        />
+        {/* body↔skirt separation — precise U-shaped curve via SVG */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          {/* dark curved shadow band */}
+          <path
+            d="M 5,55 Q 50,82 95,55"
+            stroke="rgba(0,0,0,0.32)"
+            strokeWidth="3.5"
+            fill="none"
+            strokeLinecap="round"
+            style={{ filter: "blur(2px)" }}
+          />
+          {/* thin bright rim just below the curve */}
+          <path
+            d="M 5,58 Q 50,85 95,58"
+            stroke="rgba(255,255,255,0.22)"
+            strokeWidth="1.2"
+            fill="none"
+            strokeLinecap="round"
+            style={{ filter: "blur(0.6px)" }}
+          />
+        </svg>
+
 
         {/* skirt shading — overall tone-down below the curve */}
         <div
