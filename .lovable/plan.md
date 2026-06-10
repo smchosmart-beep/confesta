@@ -1,60 +1,39 @@
-# 청중 세션 인지 개선 계획
+## 변경 요약
 
-## 목표
+`audience.tsx`의 "토핑 추가" 섹션 하단 카드(현재 "다른 사람들의 토핑")를 위쪽 `ToppingInput`의 현재 서브탭(`질문하기` / `키워드 응답`)에 따라 다른 콘텐츠를 보여주도록 바꿉니다.
 
-1. 주문 QR 미스캔 상태에서 토핑이 엉뚱한 세션(s1 폴백)으로 전송되는 문제 차단
-2. 여러 세션에 주문/수령한 청중이 현재 어느 세션에 토핑을 보내는지 명확히 알고 직접 전환할 수 있도록
+- **질문하기 탭** → 제목만 `"다른 사람들의 토핑"` → **`"궁금해요"`** 로 변경, 나머지 리스트 구조/좋아요 동작은 그대로 유지.
+- **키워드 응답 탭** → 리스트(다른 사람들의 토핑) **삭제**. 대신 같은 세션의 `kind === "answer"` 토핑을 **키워드별 빈도 파이차트(원그래프)** 로 표시.
 
-## 변경 사항
+## 구현 방법
 
-### 1. `src/routes/audience.tsx` — 토핑 탭 재구성
+### 1) `src/components/confesta/ToppingInput.tsx`
+- `kind` 상태를 **선택적 controlled prop** 으로 승격:
+  - props에 `kind?: ToppingKind`, `onKindChange?: (k: ToppingKind) => void` 추가.
+  - 내부 `useState`는 fallback(미제공 시)로만 사용. 부모가 넘기면 부모 값 사용.
+- 자동 전환 `useEffect`도 `onKindChange` 가 있으면 그것으로 호출.
+- 기존 UI/제출/sprinkle 로직 변경 없음.
 
-**(A) 활성 세션 도출 로직 변경**
+### 2) `src/routes/audience.tsx`
+- `AudienceView` 안에 `const [toppingKind, setToppingKind] = useState<ToppingKind>("question")` 추가.
+- `<ToppingInput sessionId={activeSessionId} kind={toppingKind} onKindChange={setToppingKind} />` 로 호출.
+- 하단 카드(현재 339~406행)를 조건부 렌더:
+  - `toppingKind === "question"`: 기존 리스트 카드 그대로, 단 `h3` 텍스트를 **`"궁금해요"`** 로 변경. 카운트/설명/리스트/좋아요 동작 유지.
+  - `toppingKind === "answer"`: 새 카드 — 제목 `"키워드 응답 현황"`, 같은 세션 + `kind === "answer"` 토핑들을 텍스트(소문자/trim) 기준으로 그룹핑해 빈도 집계 후 `recharts` `PieChart` 로 표시.
 
-기존:
-```
-activeSessionId = 최근 수령 → 최근 주문 → SESSIONS[0]
-```
+### 3) 파이차트 (recharts, 이미 설치됨)
+- import: `PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend` from `recharts`.
+- 데이터: `{ name: keyword, value: count }[]`, 빈도순 정렬 후 상위 6개 + 나머지 `"기타"` 묶음(7개 이상일 때).
+- 색상: 기존 디자인 토큰 활용 — `var(--scoop-strawberry|mango|mint|blueberry|grape|chocolate)` 순환.
+- 컨테이너: `h-64`, `ResponsiveContainer width="100%" height="100%"`.
+- 빈 상태: `아직 도착한 응답이 없어요 🍒` (기존 톤 유지).
+- 총 응답 수 우측 상단 표시(`{total}개`).
 
-신규:
-- `mySessionIds = uniq([...scoops.sessionId, ...orders.sessionId])` — 청중이 실제로 스캔한 세션만
-- `selectedSessionId` 로컬 state 추가 (기본값: `mySessionIds[0] ?? null`)
-- `mySessionIds`가 비면 `selectedSessionId === null` → 미스캔 상태
+### 4) 기타
+- types/store/mockData/다른 컴포넌트 변경 없음.
+- 발표자 뷰 변경 없음.
+- `useState`/`useMemo` 외 신규 의존성 없음.
 
-**(B) 미스캔 상태 (mySessionIds.length === 0)**
-
-토핑 탭 진입 시 입력 카드 대신 가드 카드 표시:
-- 자물쇠/카메라 아이콘 + 헤드라인 "아직 참여 중인 세션이 없어요"
-- 본문: "주문 QR을 먼저 스캔하면 해당 세션에 토핑을 보낼 수 있어요."
-- CTA 버튼: "주문 탭으로 이동" → `setSection("orders")`
-- `ToppingInput`은 렌더하지 않음 (전송 자체가 불가능하도록)
-- "다른 사람들의 토핑" 피드도 숨김 (보여줄 세션이 없음)
-
-**(C) 스캔 완료 상태 (mySessionIds.length ≥ 1)**
-
-토핑 카드 상단에 세션 전환 칩(pill) 행 추가:
-- `mySessionIds`를 순회하며 각 세션 제목 칩 렌더
-- 선택된 칩은 `bg-grad-strawberry text-white shadow-pink`, 비선택은 `bg-white/70 border` 스타일
-- 클릭 시 `setSelectedSessionId(id)` → 즉시 `ToppingInput`과 아래 피드가 그 세션으로 갱신
-- 칩이 1개뿐이면 그래도 비활성 상태로 노출(현재 세션을 명시)
-- 기존 "현재 세션: <strong>제목</strong>" 줄은 칩으로 대체되므로 제거
-
-**(D) 신규 주문/수령 시 자동 추종**
-
-`useEffect`로 `mySessionIds`가 변할 때 `selectedSessionId`가 더 이상 목록에 없으면(또는 null인데 새로 생겼으면) 최신 항목으로 설정. 이미 유효한 선택이면 건드리지 않음(사용자 의도 보존).
-
-### 2. `src/components/confesta/ToppingInput.tsx`
-
-변경 없음. 호출 측에서 `sessionId`가 항상 유효한 값(미스캔이면 컴포넌트 자체를 렌더하지 않음)이 되도록 보장하므로 내부 로직 변동 불필요.
-
-### 3. 영향 없는 영역
-
-- 주문 탭, My 콘 탭, 영수증 탭, 발표자/스태프/관리자 뷰: 수정 없음
-- store, types, mockData: 수정 없음 (`selectedSessionId`는 라우트 로컬 state)
-- 폴백 `SESSIONS[0]` 로직은 토핑 탭에서만 제거. My 콘 탭은 어차피 `scoops`가 비면 빈 콘이 나오므로 별도 처리 불필요.
-
-## 기술 메모
-
-- `mySessionIds`는 `useMemo`로 계산
-- 칩 행은 가로 스크롤 가능하게 `overflow-x-auto flex gap-2` (세션이 많아질 경우 대비)
-- 디자인 토큰 준수: 기존 `bg-grad-*`, `shadow-*`, `text-muted-foreground` 사용, 커스텀 색상 신규 추가 없음
+## 영향받는 파일
+- `src/routes/audience.tsx` (하단 카드 분기 + state)
+- `src/components/confesta/ToppingInput.tsx` (kind controlled prop 지원)
