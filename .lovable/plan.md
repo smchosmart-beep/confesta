@@ -1,71 +1,24 @@
-## 진단
-사용자가 빨간 펜으로 그린 곡선 = **양 끝 위, 가운데 아래로 푹 꺼진 U자(스마일)** 곡선.
-지금 직선처럼 보이는 진짜 원인은 두 가지:
-1. 반구 셰이딩/스페큘러 레이어의 `clipPath: inset(0 0 35% 0)` / `inset(0 0 40% 0)` — **65~60% 지점에 수평 하드 컷**이 생김. 이게 가장 도드라지는 직선.
-2. 현재 radial-gradient 분리 링이 너무 옅고 부드러워 곡선이 시각적으로 약함.
+## 옵션 B 진행
+기존 마스크 PNG에서 **스커트(녹는 부분)만 잘라낸 새 마스크** 생성 → 본체 자연스러운 곡선은 유지, 아래 찌글찌글한 부분 제거.
 
-## 변경 파일
-- `src/components/confesta/ScoopCard.tsx`
+## 작업
+1. **새 마스크 생성** (`/tmp/scoop-mask-dome.png`)
+   - 원본 `/mnt/user-uploads/스쿱.png` 알파 채널 로드
+   - 각 컬럼에서 SVG U자 곡선 라인 `y = 55 + 27·(1 − 4(x−0.5)²)` (0~100 normalized) 아래 픽셀을 모두 알파 0으로 마스킹
+   - 곡선 경계는 0.8px 가우시안 블러로 부드럽게
+   - 흰색 실루엣 + 투명 배경 PNG로 저장
 
-## 수정 내용
+2. **CDN 업로드**
+   - `lovable-assets create --file /tmp/scoop-mask-dome.png --filename scoop-mask.png > src/assets/scoop-mask.png.asset.json` (덮어쓰기)
+   - 기존 에셋은 `assets--delete_asset`으로 정리
 
-### (A) 하드 수평 컷 제거
-반구 셰이딩 두 레이어에서 `clipPath` 제거. 대신 radial-gradient 자체의 페이드로 본체 영역만 자연스럽게 밝아지게 한다.
+3. **ScoopCard.tsx 정리**
+   - 마스크는 자동으로 새 URL 사용 (import 그대로)
+   - **SVG U자 곡선 path 제거** — 마스크가 이미 그 모양으로 잘려있으니 경계선 불필요
+   - 컨텐츠 padding 조정: `paddingBottom: "32%"` → `"18%"` (스커트 사라졌으니 텍스트가 본체 안에 자연스럽게 자리)
+   - 스커트 음영용 `linear-gradient`도 제거(또는 약하게)
 
-```jsx
-// 반구 볼륨 셰이딩 (clipPath 제거, 그라데이션만으로 본체 영역 한정)
-background: radial-gradient(ellipse 70% 55% at 35% 22%,
-  rgba(255,255,255,0.55) 0%,
-  rgba(255,255,255,0.15) 35%,
-  rgba(255,255,255,0) 55%,
-  rgba(0,0,0,0.18) 75%,
-  rgba(0,0,0,0) 100%)
-
-// specular (clipPath 제거)
-background: radial-gradient(circle 70px at 28% 22%, rgba(255,255,255,0.95), transparent 70%)
-```
-
-### (B) 곡선 분리 경계선 — SVG로 정확한 U자 곡선
-CSS radial은 타원이라 곡률 제어가 거칠다. **SVG `<path>` 두 개**로 정확한 U자 곡선을 그린다 — 어두운 메인 그림자 + 바로 아래 얇은 밝은 림. 마스크 안쪽에 `absolute inset-0` overlay로 배치.
-
-곡선 패스 (viewBox `0 0 100 100`): 양 끝 y≈55, 중간 y≈75 지점을 부드러운 베지에로 연결.
-```
-M 5,55 Q 50,82 95,55
-```
-
-```jsx
-<svg
-  className="absolute inset-0 w-full h-full pointer-events-none"
-  viewBox="0 0 100 100"
-  preserveAspectRatio="none"
->
-  {/* 어두운 곡선 그림자 띠 */}
-  <path
-    d="M 5,55 Q 50,82 95,55"
-    stroke="rgba(0,0,0,0.32)"
-    strokeWidth="3.5"
-    fill="none"
-    strokeLinecap="round"
-    style={{ filter: "blur(2px)" }}
-  />
-  {/* 곡선 바로 아래 얇은 밝은 림 */}
-  <path
-    d="M 5,58 Q 50,85 95,58"
-    stroke="rgba(255,255,255,0.22)"
-    strokeWidth="1.2"
-    fill="none"
-    strokeLinecap="round"
-    style={{ filter: "blur(0.6px)" }}
-  />
-</svg>
-```
-
-기존 radial-gradient 기반 곡선 링 2개는 제거.
-
-### (C) 스커트 음영 (유지)
-linear-gradient로 본체 아래 영역 톤다운 — 그대로.
-
-## 기대 효과
-- 수평 하드 컷이 사라져, **곡선만 시각적으로 남음**
-- SVG path로 그린 U자 곡선이 사용자가 그린 빨간 선과 동일한 형태로 본체 바닥을 따라 휘어 보임
-- 곡선 아래 얇은 밝은 림 → 단차 강조
+## 결과
+- 본체는 약간 비대칭의 organic한 돔 형태 유지
+- 아래 찌글찌글한 부분 없이 곡선 바닥
+- 입체 셰이딩(반구 볼륨, 스페큘러, 엣지 비네팅, drop-shadow)은 그대로
