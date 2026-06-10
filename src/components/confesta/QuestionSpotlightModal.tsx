@@ -81,7 +81,7 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
       >
         <div className="absolute inset-0 bg-grad-cream" />
         <div className="absolute inset-0 bg-grad-sunset-soft opacity-60" />
-        <ToppingScatter density="high" seed={`spot-${topping.id}`} />
+        
         <p className="relative text-xs uppercase tracking-widest font-bold mb-4 bg-clip-text text-transparent bg-grad-strawberry">
           청중 질문 스포트라이트
         </p>
