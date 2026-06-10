@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { useConfestaStore } from "@/lib/confesta/store";
@@ -38,12 +39,13 @@ function StaffView() {
         color="mint"
       />
 
-      <section className="px-4 sm:px-6 max-w-md mx-auto">
-        <CameraScanner
-          onScan={(text) => setResult(redeem(text))}
-          hintLine="청중의 영수증 QR을 비추세요"
-        />
-      </section>
+      <DeviceFrame device="mobile">
+        <section className="px-4 max-w-md mx-auto">
+          <CameraScanner
+            onScan={(text) => setResult(redeem(text))}
+            hintLine="청중의 영수증 QR을 비추세요"
+          />
+        </section>
 
       {/* Recent log */}
       <section className="px-4 sm:px-6 max-w-md mx-auto mt-8">
