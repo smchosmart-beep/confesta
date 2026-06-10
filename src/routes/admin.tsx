@@ -49,6 +49,7 @@ interface VenueStat {
 function AdminView() {
   const orders = useConfestaStore((s) => s.orders);
   const scoops = useConfestaStore((s) => s.scoops);
+  const toppings = useConfestaStore((s) => s.toppings);
 
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
@@ -85,9 +86,13 @@ function AdminView() {
         const livePickups = session
           ? scoops.filter((sc) => sc.sessionId === session.id).length
           : 0;
+        const liveToppings = session
+          ? toppings.filter((t) => t.sessionId === session.id).length
+          : 0;
 
         const ord = baseOrders + liveOrders;
         const pick = Math.min(basePickups + livePickups, ord);
+        const baseToppings = session ? 3 + (seed % 9) : seed % 5;
 
         return {
           code: code || "—",
@@ -96,6 +101,7 @@ function AdminView() {
           pickups: pick,
           capacity,
           sessionTitle: session?.title,
+          toppings: baseToppings + liveToppings,
         };
       });
 
