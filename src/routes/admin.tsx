@@ -272,21 +272,21 @@ function VenueCard({ venue }: { venue: VenueStat }) {
             <p className="text-xs text-foreground/80 leading-snug line-clamp-2 mb-1 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex flex-col items-center gap-1">
+            <div className="mt-auto flex flex-col items-center gap-2">
               <div
                 className="relative shrink-0 rounded-full grid place-items-center"
                 style={{
-                  width: 40,
-                  height: 40,
+                  width: 72,
+                  height: 72,
                   background: `conic-gradient(#ec4899 ${pct * 3.6}deg, #d1d5db 0)`,
                 }}
                 aria-label={`수령률 ${pct}%`}
               >
-                <div className="absolute inset-1 rounded-full bg-white grid place-items-center">
-                  <span className="text-[10px] font-extrabold tabular-nums text-foreground">{pct}%</span>
+                <div className="absolute inset-2 rounded-full bg-white grid place-items-center">
+                  <span className="text-sm font-extrabold tabular-nums text-foreground">{pct}%</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap justify-center w-14">
+              <div className="flex items-center gap-1.5 flex-wrap justify-center w-20">
                 <span className="inline-flex items-center gap-1 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-2 py-0.5 text-xs font-extrabold text-grad-blueberry">
                   주문 <span className="tabular-nums">{sub.orders}</span>
                 </span>
