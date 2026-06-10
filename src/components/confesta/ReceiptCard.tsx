@@ -139,7 +139,7 @@ export function ReceiptCard() {
   }
 
 
-  const activeToken = token ?? generate();
+  const activeToken = token;
 
   return (
     <div className="relative mx-auto max-w-sm">
