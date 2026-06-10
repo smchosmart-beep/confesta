@@ -1,10 +1,13 @@
 import { useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Topping } from "@/lib/confesta/types";
 
+interface SpotlightTopping {
+  id: string;
+  text: string;
+}
 
 interface Props {
-  topping: Topping | null;
+  topping: SpotlightTopping | null;
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
