@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
-import { makeOrderQR, makeSlotKey, type Period } from "./shared";
+import { makeOrderQR, makePickupQR, makeSlotKey, type Period } from "./shared";
 
 const PeriodSchema = z.enum(["am", "pm"]);
 const DaySchema = z.number().int().min(1).max(10);
@@ -9,11 +8,13 @@ const RoomSchema = z.string().min(1).max(64);
 const TitleSchema = z.string().max(120);
 
 async function assertAdmin() {
-  const { verifyCookieValue, cookieName } = await import("./pin.server");
-  const v = getCookie(cookieName("admin"));
-  if (!verifyCookieValue("admin", v)) {
-    throw new Error("Unauthorized: admin PIN required");
-  }
+  const { assertRole } = await import("./assertRole");
+  await assertRole("admin");
+}
+
+async function assertPresenter() {
+  const { assertRole } = await import("./assertRole");
+  await assertRole("presenter");
 }
 
 function newNonce() {
