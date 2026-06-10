@@ -114,6 +114,19 @@ function AdminView() {
     queueMicrotask(() => setSelectedPeriod(periodsAvailable[0]));
   }
 
+  // Server-backed slot data for the selected day/period
+  const listSlotsFn = useServerFn(listSlots);
+  const slotsQuery = useQuery({
+    queryKey: ["admin-slots", selectedDay, selectedPeriod],
+    queryFn: () => listSlotsFn({ data: { day: selectedDay, period: selectedPeriod } }),
+  });
+  const slotsByRoom = useMemo(() => {
+    const m = new Map<string, SlotDTO>();
+    for (const s of slotsQuery.data?.slots ?? []) m.set(s.room, s);
+    return m;
+  }, [slotsQuery.data]);
+
+
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
       if (v.noMetrics) {
