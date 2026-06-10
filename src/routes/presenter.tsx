@@ -134,8 +134,14 @@ function PresenterView() {
           />
         )}
 
+        {!isFullscreen && (
+          <DeviceFrame device="desktop">
+            <></>
+          </DeviceFrame>
+        )}
+
         <div
-          className={`flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 px-4 sm:px-6 ${
+          className={`flex-1 grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6 px-4 sm:px-6 xl:px-10 ${
             isFullscreen ? "pt-6" : ""
           } pb-4`}
         >
