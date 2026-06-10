@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type React from "react";
 import { useMemo } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
@@ -187,6 +188,43 @@ function AdminView() {
   );
 }
 
+/** 실제 평면도 배치를 반영한 서브공간 그리드 스타일 */
+function subGridStyle(venueId: string): React.CSSProperties {
+  switch (venueId) {
+    case "401":
+      // 위→아래: D, C, B, A (세로 1열)
+      return {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(4, minmax(0, 1fr))",
+        gridTemplateAreas: `"d" "c" "b" "a"`,
+      };
+    case "402":
+      // 위→아래: B, A
+      return {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridTemplateAreas: `"b" "a"`,
+      };
+    case "403":
+    case "404":
+      // 위→아래: C, B, A
+      return {
+        gridTemplateColumns: "1fr",
+        gridTemplateRows: "repeat(3, minmax(0, 1fr))",
+        gridTemplateAreas: `"c" "b" "a"`,
+      };
+    case "hall":
+      // 좌상 C, 우측 전체 A, 좌하 B (A가 우측 컬럼 두 행 모두 차지)
+      return {
+        gridTemplateColumns: "1fr 1.4fr",
+        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridTemplateAreas: `"c a" "b a"`,
+      };
+    default:
+      return { gridTemplateColumns: "1fr" };
+  }
+}
+
 function VenueCard({ venue }: { venue: VenueStat }) {
   const rate =
     venue.totalOrders > 0
@@ -235,23 +273,17 @@ function VenueCard({ venue }: { venue: VenueStat }) {
         </div>
       </div>
 
-      {/* 서브 공간 그리드 (평면도 분할) */}
+      {/* 서브 공간 그리드 (평면도 실제 배치 반영) */}
       <div
-        className="relative grid gap-1.5 mt-auto"
-        style={{
-          gridTemplateColumns:
-            venue.subs.length === 4
-              ? "repeat(2, minmax(0, 1fr))"
-              : venue.subs.length === 2
-                ? "repeat(2, minmax(0, 1fr))"
-                : "repeat(3, minmax(0, 1fr))",
-        }}
+        className="relative grid gap-1.5 mt-auto flex-1"
+        style={subGridStyle(venue.id)}
       >
         {venue.subs.map((sub) => (
           <div
             key={sub.label}
             title={sub.sessionTitle}
-            className="rounded-xl border border-white/70 bg-white/70 px-2 py-2 flex flex-col min-h-[88px]"
+            className="rounded-xl border border-white/70 bg-white/70 px-2 py-2 flex flex-col min-h-[64px]"
+            style={{ gridArea: sub.code.toLowerCase() }}
           >
             <div className="flex items-baseline justify-between gap-1 mb-1">
               <span className="text-sm font-extrabold leading-none">
@@ -261,7 +293,7 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                 {sub.label}
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-1.5 min-h-[1.5em]">
+            <p className="text-[10px] text-muted-foreground leading-tight line-clamp-2 mb-1.5 min-h-[1.5em] flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
             <div className="mt-auto flex items-center justify-between text-[10px] font-extrabold">
