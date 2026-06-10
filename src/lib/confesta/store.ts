@@ -299,10 +299,11 @@ export const useConfestaStore = create<ConfestaState>()(
             resolvedPromptId = active.id;
           } else {
             const p = state.answerPrompts.find((x) => x.id === resolvedPromptId);
-            if (!p || p.sessionId !== sessionId || p.closedAt != null) {
+            if (!p || p.sessionId !== sessionId) {
               console.warn(`[confesta] addTopping blocked — prompt unavailable ${resolvedPromptId}`);
               return false;
             }
+            // 보관된 질문에도 응답 허용 — closedAt 체크 없음
           }
         }
         set((s) => ({
@@ -378,23 +379,11 @@ export const useConfestaStore = create<ConfestaState>()(
           const target = s.answerPrompts.find((p) => p.id === promptId);
           if (!target) return s;
           const closedAt = Date.now();
-          const nextPrompts = s.answerPrompts.map((p) =>
-            p.id === promptId ? { ...p, closedAt } : p,
-          );
-          const stillOpen = nextPrompts.some(
-            (p) => p.sessionId === target.sessionId && p.closedAt == null,
-          );
           return {
-            answerPrompts: nextPrompts,
-            toppingGates: stillOpen
-              ? s.toppingGates
-              : {
-                  ...s.toppingGates,
-                  [target.sessionId]: {
-                    ...getToppingGate(s.toppingGates, target.sessionId),
-                    answersOpen: false,
-                  },
-                },
+            answerPrompts: s.answerPrompts.map((p) =>
+              p.id === promptId ? { ...p, closedAt } : p,
+            ),
+            // 보관해도 응답은 계속 수신 — answersOpen 자동 변경 없음
           };
         }),
 
