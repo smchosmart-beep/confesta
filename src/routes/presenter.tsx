@@ -4,6 +4,7 @@ import QRCode from "react-qr-code";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
+import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
 import { useConfestaStore, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { QrCode, X } from "lucide-react";
