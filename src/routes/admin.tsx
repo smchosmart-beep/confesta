@@ -68,6 +68,30 @@ function AdminView() {
   const scoops = useConfestaStore((s) => s.scoops);
   const toppings = useConfestaStore((s) => s.toppings);
 
+  const daysAvailable = useMemo(
+    () => Array.from(new Set(SESSIONS.map((s) => s.day))).sort(),
+    [],
+  );
+  const [selectedDay, setSelectedDay] = useState<number>(
+    daysAvailable[0] ?? 1,
+  );
+  const periodsAvailable = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          SESSIONS.filter((s) => s.day === selectedDay).map(periodOf),
+        ),
+      ) as Period[],
+    [selectedDay],
+  );
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>(
+    (periodsAvailable[0] ?? "am") as Period,
+  );
+  // 일자 변경 시 현재 시간대가 없으면 첫 시간대로 보정
+  if (!periodsAvailable.includes(selectedPeriod) && periodsAvailable[0]) {
+    queueMicrotask(() => setSelectedPeriod(periodsAvailable[0]));
+  }
+
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
       if (v.noMetrics) {
@@ -88,7 +112,13 @@ function AdminView() {
           : code
             ? `${v.id}-${code}`
             : v.id;
-        const session = SESSIONS.find((s) => s.room === roomLabel);
+        const session = SESSIONS.find(
+          (s) =>
+            s.room === roomLabel &&
+            s.day === selectedDay &&
+            periodOf(s) === selectedPeriod,
+        );
+
 
         // demo baseline + live signals
         const seed =
