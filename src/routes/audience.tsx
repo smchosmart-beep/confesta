@@ -333,7 +333,7 @@ function AudienceView() {
                       })}
                     </div>
                   </div>
-                  <ToppingInput sessionId={activeSessionId} />
+                  <ToppingInput sessionId={activeSessionId} kind={toppingKind} onKindChange={setToppingKind} />
                   <p className="text-xs text-muted-foreground mt-4">
                     전송한 토핑은 발표자 뷰의 질문 그리드에서 확인할 수 있어요.
                   </p>
