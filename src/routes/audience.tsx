@@ -117,6 +117,10 @@ function AudienceView() {
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
+  const { toppings, toggleLike } = useSessionToppings(activeSessionId);
+  const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
+
+
   const handleOrderScan = async (text: string) => {
     const parsed = parseSessionQR(text);
     if (parsed?.kind === "pickup") {
