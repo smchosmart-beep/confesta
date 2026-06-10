@@ -18,6 +18,7 @@ export function useToppingGate(sessionId: string | null) {
   const qc = useQueryClient();
   const getFn = useServerFn(getToppingGate);
   const setFn = useServerFn(setGateFn);
+  const channelId = useId();
 
   const queryKey = ["gate", sessionId] as const;
   const { data } = useQuery({
