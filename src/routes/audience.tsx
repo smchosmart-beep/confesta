@@ -415,7 +415,12 @@ function AudienceView() {
                   {(() => {
                     const sessionPrompts = answerPrompts
                       .filter((p) => p.sessionId === activeSessionId)
-                      .sort((a, b) => b.createdAt - a.createdAt);
+                      .sort((a, b) => {
+                        const aActive = a.closedAt == null ? 1 : 0;
+                        const bActive = b.closedAt == null ? 1 : 0;
+                        if (aActive !== bActive) return bActive - aActive;
+                        return b.createdAt - a.createdAt;
+                      });
                     if (sessionPrompts.length === 0) {
                       return (
                         <div className="relative overflow-hidden bg-card rounded-3xl p-8 shadow-cream border border-white/60 text-center">
