@@ -51,7 +51,7 @@ export function useSessionToppings(sessionId: string | null) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [sessionId, qc]);
+  }, [sessionId, qc, channelId]);
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
 
