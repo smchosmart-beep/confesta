@@ -198,19 +198,21 @@ function AdminView() {
 
 /** 실제 평면도 배치를 반영한 서브공간 그리드 스타일 */
 function subGridStyle(venueId: string): React.CSSProperties {
+  // 401~404: 모든 서브공간 타일을 동일한 고정 높이로 (A,B,C,D 카드 크기 균일)
+  const tileRow = "168px";
   switch (venueId) {
     case "401":
       // 위→아래: D, C, B, A (세로 1열)
       return {
         gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(4, minmax(0, 1fr))",
+        gridAutoRows: tileRow,
         gridTemplateAreas: `"d" "c" "b" "a"`,
       };
     case "402":
       // 위→아래: B, A
       return {
         gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(2, minmax(0, 1fr))",
+        gridAutoRows: tileRow,
         gridTemplateAreas: `"b" "a"`,
       };
     case "403":
@@ -218,7 +220,7 @@ function subGridStyle(venueId: string): React.CSSProperties {
       // 위→아래: C, B, A
       return {
         gridTemplateColumns: "1fr",
-        gridTemplateRows: "repeat(3, minmax(0, 1fr))",
+        gridAutoRows: tileRow,
         gridTemplateAreas: `"c" "b" "a"`,
       };
     case "hall":
