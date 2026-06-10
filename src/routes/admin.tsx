@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { SESSIONS, ROOMS, getCategory } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
@@ -70,7 +71,11 @@ function AdminView() {
         color="mango"
       />
 
-      <section className="px-4 sm:px-6 max-w-7xl mx-auto">
+      <DeviceFrame device="desktop">
+        <></>
+      </DeviceFrame>
+
+      <section className="px-4 sm:px-6 max-w-[1400px] mx-auto">
         {/* Totals */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
           <TotalCard label="등록 (신청)" value={totals.registered} grad="bg-grad-blueberry" />
@@ -79,7 +84,7 @@ function AdminView() {
         </div>
 
         {/* Bento grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5">
           {stats.map((room) => (
             <div
               key={room.room}

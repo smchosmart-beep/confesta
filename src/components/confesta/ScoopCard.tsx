@@ -42,9 +42,10 @@ interface Props {
   ko: string;
   desc: string;
   icon: LucideIcon;
+  device?: "mobile" | "desktop";
 }
 
-export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
+export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon, device }: Props) {
   return (
     <Link
       to={to}
@@ -125,6 +126,11 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
           <p className="text-xs sm:text-sm text-white/95 mt-1.5 max-w-[18ch] leading-snug drop-shadow-sm">
             {desc}
           </p>
+          {device && (
+            <span className="mt-2 inline-flex items-center gap-1 bg-white/90 text-foreground/80 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-cream">
+              {device === "mobile" ? "📱 모바일 전용" : "🖥 데스크톱 권장"}
+            </span>
+          )}
         </div>
       </div>
     </Link>

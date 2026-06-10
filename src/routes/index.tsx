@@ -30,6 +30,7 @@ const ROLES = [
     desc: "수강신청 · 스쿱 적립 · 토핑 질문 · 디지털 영수증",
     icon: IceCream,
     flavor: "strawberry" as const,
+    device: "mobile" as const,
   },
   {
     to: "/presenter" as const,
@@ -38,6 +39,7 @@ const ROLES = [
     desc: "동적 QR 브로드캐스트 · 실시간 질문 피드",
     icon: Mic,
     flavor: "blueberry" as const,
+    device: "desktop" as const,
   },
   {
     to: "/staff" as const,
@@ -46,6 +48,7 @@ const ROLES = [
     desc: "모바일 영수증 스캐너 · 굿즈 수령 검증",
     icon: ScanLine,
     flavor: "mint" as const,
+    device: "mobile" as const,
   },
   {
     to: "/admin" as const,
@@ -54,6 +57,7 @@ const ROLES = [
     desc: "벤토 그리드 운영 현황 · 실시간 깔때기 지표",
     icon: LayoutGrid,
     flavor: "mango" as const,
+    device: "desktop" as const,
   },
 ];
 
@@ -90,6 +94,7 @@ function Home() {
               ko={r.ko}
               desc={r.desc}
               icon={r.icon}
+              device={r.device}
             />
           ))}
         </div>

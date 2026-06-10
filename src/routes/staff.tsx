@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { useConfestaStore } from "@/lib/confesta/store";
@@ -38,56 +39,59 @@ function StaffView() {
         color="mint"
       />
 
-      <section className="px-4 sm:px-6 max-w-md mx-auto">
-        <CameraScanner
-          onScan={(text) => setResult(redeem(text))}
-          hintLine="청중의 영수증 QR을 비추세요"
-        />
-      </section>
+      <DeviceFrame device="mobile">
+        <section className="px-4 max-w-md mx-auto">
+          <CameraScanner
+            onScan={(text) => setResult(redeem(text))}
+            hintLine="청중의 영수증 QR을 비추세요"
+          />
+        </section>
 
-      {/* Recent log */}
-      <section className="px-4 sm:px-6 max-w-md mx-auto mt-8">
-        <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-3">
-          최근 검증 로그
-        </h3>
-        {log.length === 0 ? (
-          <p className="text-sm text-muted-foreground">아직 기록이 없습니다.</p>
-        ) : (
-          <ul className="space-y-2">
-            {log.slice(0, 6).map((l, i) => (
-              <li
-                key={i}
-                className="relative overflow-hidden flex items-center justify-between bg-card border border-white/60 rounded-2xl px-4 py-2.5 text-sm shadow-cream"
-              >
-                <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
-                <span className="relative font-mono text-xs truncate max-w-[55%]">
-                  {l.token.slice(0, 24)}…
-                </span>
-                <span className="relative flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(l.redeemedAt).toLocaleTimeString("ko-KR")}
+        {/* Recent log */}
+        <section className="px-4 max-w-md mx-auto mt-8">
+          <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider mb-3">
+            최근 검증 로그
+          </h3>
+          {log.length === 0 ? (
+            <p className="text-sm text-muted-foreground">아직 기록이 없습니다.</p>
+          ) : (
+            <ul className="space-y-2">
+              {log.slice(0, 6).map((l, i) => (
+                <li
+                  key={i}
+                  className="relative overflow-hidden flex items-center justify-between bg-card border border-white/60 rounded-2xl px-4 py-2.5 text-sm shadow-cream"
+                >
+                  <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
+                  <span className="relative font-mono text-xs truncate max-w-[55%]">
+                    {l.token.slice(0, 24)}…
                   </span>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full text-white shadow-cream ${
-                      l.status === "success"
-                        ? "bg-grad-success"
+                  <span className="relative flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(l.redeemedAt).toLocaleTimeString("ko-KR")}
+                    </span>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full text-white shadow-cream ${
+                        l.status === "success"
+                          ? "bg-grad-success"
+                          : l.status === "duplicate"
+                            ? "bg-grad-danger"
+                            : "bg-grad-muted text-foreground"
+                      }`}
+                    >
+                      {l.status === "success"
+                        ? "성공"
                         : l.status === "duplicate"
-                          ? "bg-grad-danger"
-                          : "bg-grad-muted text-foreground"
-                    }`}
-                  >
-                    {l.status === "success"
-                      ? "성공"
-                      : l.status === "duplicate"
-                        ? "중복"
-                        : "무효"}
+                          ? "중복"
+                          : "무효"}
+                    </span>
                   </span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </DeviceFrame>
+
 
       {/* Result overlay */}
       {result && (
