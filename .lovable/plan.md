@@ -1,61 +1,37 @@
-# 스쿱 카드: 알파 PNG 마스크로 전환 (깨끗한 흑백 실루엣)
-
-## 1) 마스크 PNG 가공
-- 입력: `/mnt/user-uploads/스쿱.png`
-- Python(PIL)로 처리:
-  1. RGBA로 열어 알파 채널 추출
-  2. 알파 < 30 → 0, 알파 ≥ 30 → 255 로 임계 처리 (안티앨리어싱 가장자리는 살짝 유지하기 위해 가우시안 블러 0.7px 후 임계 적용)
-  3. RGB는 전부 흰색(255,255,255), 알파만 위 값으로 → **흰색 실루엣 + 투명 배경 PNG**
-  4. 정사각형으로 트리밍/패딩하여 컨테이너 비율과 일치
-- 출력: `/tmp/scoop-mask.png`
-- CDN 업로드:
-  ```
-  lovable-assets create --file /tmp/scoop-mask.png --filename scoop-mask.png \
-    > src/assets/scoop-mask.png.asset.json
-  ```
-
-## 2) `ScoopCard.tsx` 리팩토링
-- 기존 SVG `<clipPath>` 정의 / `SCOOP_PATH` 상수 / `CLIP_ID_COUNTER` 전부 제거
-- 마스크 에셋 import:
-  ```ts
-  import scoopMask from "@/assets/scoop-mask.png.asset.json";
-  ```
-- 카드 컨테이너:
-  ```tsx
-  <div
-    className="relative aspect-square w-full"
-    style={{
-      WebkitMaskImage: `url(${scoopMask.url})`,
-      maskImage: `url(${scoopMask.url})`,
-      WebkitMaskSize: "contain",
-      maskSize: "contain",
-      WebkitMaskRepeat: "no-repeat",
-      maskRepeat: "no-repeat",
-      WebkitMaskPosition: "center",
-      maskPosition: "center",
-    }}
-  >
-    {/* 기존 그라데이션 + 하이라이트 + 토핑 + 콘텐츠 */}
-  </div>
-  ```
-- 부모 `<Link>`에 동일 PNG로 그림자 부여:
-  ```ts
-  filter: `drop-shadow(0 14px 26px ${shadowColor})`
-  ```
-  (드롭섀도는 마스크된 실루엣 그대로 적용되므로 별도 처리 필요 없음 — 기존 `FLAVOR_SHADOW`를 유지하되 마스크된 자식의 alpha를 따라가도록 부모에 그대로 둠.)
-- 텍스트/아이콘 padding: 본체 원형 영역(상단 ~75%)에 위치하도록 `pt-5 pb-[26%] px-10`로 조정
-- `max-w-[340px] mx-auto`, `aspect-square` 유지
-
-## 3) `design.md` 8.5 ScoopCard 갱신
-- "구현" 항목 다시 작성:
-  - 알파 채널 PNG(`src/assets/scoop-mask.png.asset.json`)를 CSS `mask-image`로 적용
-  - 마스크는 흰색 실루엣 + 투명 배경 → 컨테이너 내부의 그라데이션/토핑/콘텐츠를 스쿱 모양으로 잘라냄
-  - 동일 실루엣 그림자는 부모 `<Link>`에 `filter: drop-shadow(...)`로 부여
-  - 마스크 PNG 교체만으로 카드 실루엣을 변경할 수 있음
+## 목표
+현재 알파 PNG 마스크 기반 스쿱 카드에 **입체감(3D depth)** 을 강화. 모양/마스크는 그대로 유지.
 
 ## 변경 파일
-- 신규: `src/assets/scoop-mask.png.asset.json`
-- 수정: `src/components/confesta/ScoopCard.tsx`, `design.md`
+- `src/components/confesta/ScoopCard.tsx` — 마스크 안쪽에 입체 레이어 추가
+- `design.md` — 8.5 ScoopCard 섹션 입체 효과 노트 보강
 
-## 변경하지 않음
-- 색/그라데이션 토큰, ToppingScatter, 다른 카드 컴포넌트, 라우트 코드
+## 입체감 레시피 (마스크 내부에 합성)
+
+마스크는 box-shadow를 자르므로, **마스크 내부의 absolute 레이어들**로 라이팅을 합성한다. 위에서부터 z-stack:
+
+1. **베이스 그라데이션** (기존) — 평면 베이스 색
+2. **상단 글로시 하이라이트 (강화)** — 현재 30% 22% 위치를 키우고 밝기↑
+   `radial-gradient(ellipse 70% 50% at 32% 18%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 60%)`
+3. **광택 스팟 (신규)** — 작고 선명한 specular highlight
+   `radial-gradient(circle 60px at 28% 20%, rgba(255,255,255,0.9), transparent 70%)`
+4. **하단 그림자/볼륨 (신규)** — 안쪽 아래를 어둡게 → 구체감
+   `radial-gradient(ellipse 90% 60% at 50% 95%, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 55%)`
+5. **림 라이트/엣지 음영 (신규)** — 가장자리 부드러운 비네팅
+   `radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.18) 100%)`
+6. **스커트(녹는 부분) 음영 (신규)** — 본체와 스커트 경계를 진하게 → 두 덩어리로 분리되어 보임
+   `linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.12) 72%, transparent 80%)`
+7. 토핑 + 컨텐츠 (기존)
+
+## 외부 drop-shadow 강화
+`FLAVOR_SHADOW`를 이중 그림자로 → 가까운 sharp shadow + 멀고 부드러운 ambient shadow:
+```
+drop-shadow(0 6px 10px rgba(c, 0.22)) drop-shadow(0 22px 36px rgba(c, 0.30))
+```
+
+## 결과
+- 위쪽에 반짝이는 하이라이트 → 광택 있는 아이스크림 느낌
+- 아래쪽 안쪽 그림자 → 구(球) 볼륨감
+- 본체와 흘러내린 스커트 경계 음영 → 입체적 분리
+- 외부 이중 그림자 → 떠있는 듯한 깊이
+
+마스크/실루엣은 변경 없음, 색 토큰도 그대로 유지.
