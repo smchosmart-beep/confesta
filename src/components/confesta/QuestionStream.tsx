@@ -167,6 +167,20 @@ export function QuestionStream({ sessionId }: Props) {
       <QuestionSpotlightModal
         topping={spotlight}
         onClose={() => setSpotlight(null)}
+        onPrev={() => {
+          if (!spotlight) return;
+          const idx = filtered.findIndex((t) => t.id === spotlight.id);
+          if (idx === -1) return;
+          const prevIdx = idx === 0 ? filtered.length - 1 : idx - 1;
+          setSpotlight(filtered[prevIdx]);
+        }}
+        onNext={() => {
+          if (!spotlight) return;
+          const idx = filtered.findIndex((t) => t.id === spotlight.id);
+          if (idx === -1) return;
+          const nextIdx = idx === filtered.length - 1 ? 0 : idx + 1;
+          setSpotlight(filtered[nextIdx]);
+        }}
       />
     </div>
   );
