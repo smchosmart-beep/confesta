@@ -1,10 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { QrCode, Plus } from "lucide-react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
+import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
+import {
+  listSlots,
+  upsertSlotTitle,
+  issueOrderQR,
+  rotateOrderQR,
+  type SlotDTO,
+} from "@/lib/confesta/slots.functions";
 import {
   Select,
   SelectContent,
@@ -21,6 +33,7 @@ import {
 type Period = "am" | "pm";
 const periodOf = (s: { timeSlot: string }): Period =>
   parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm";
+
 
 
 export const Route = createFileRoute("/admin")({
