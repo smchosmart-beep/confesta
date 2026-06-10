@@ -133,6 +133,7 @@ export const useConfestaStore = create<ConfestaState>()(
       toppings: initialToppings,
       likedToppingIds: [],
       presenterNonces: {},
+      toppingGates: {},
       receiptToken: null,
       receiptRedeemed: null,
       redemptionLog: [],
