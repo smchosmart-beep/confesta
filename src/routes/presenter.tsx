@@ -6,7 +6,7 @@ import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { useConfestaStore, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import { Sparkles, MessageSquareText, QrCode } from "lucide-react";
+import { QrCode, X } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 
 export const Route = createFileRoute("/presenter")({
@@ -26,21 +26,19 @@ export const Route = createFileRoute("/presenter")({
 
 const QR_INTERVAL_MS = 15_000;
 
-type PresenterTab = "cloud" | "questions" | "pickup";
-
 function PresenterView() {
   const [sessionId, setSessionId] = useState(SESSIONS[0].id);
   const session = SESSIONS.find((s) => s.id === sessionId)!;
-  const [tab, setTab] = useState<PresenterTab>("cloud");
+  const [pickupOpen, setPickupOpen] = useState(false);
 
   const rotate = useConfestaStore((s) => s.rotatePresenterNonce);
   const noncePair = useConfestaStore((s) => s.presenterNonces[sessionId]);
 
   const [progress, setProgress] = useState(100);
 
-  // 수령 QR은 탭이 활성화된 동안에만 갱신
+  // 수령 QR은 모달이 열린 동안에만 갱신
   useEffect(() => {
-    if (tab !== "pickup") return;
+    if (!pickupOpen) return;
     rotate(sessionId, "pickup");
     setProgress(100);
     const start = Date.now();
@@ -55,118 +53,121 @@ function PresenterView() {
       window.clearInterval(tickId);
       window.clearInterval(rotateId);
     };
-  }, [sessionId, rotate, tab]);
+  }, [sessionId, rotate, pickupOpen]);
 
   const pickupQR = noncePair?.pickup ? makePickupQR(sessionId, noncePair.pickup) : "";
 
-  const tabs: { value: PresenterTab; label: string; icon: React.ReactNode }[] = [
-    { value: "cloud", label: "토핑 키워드", icon: <Sparkles className="w-3.5 h-3.5" /> },
-    { value: "questions", label: "질문 목록", icon: <MessageSquareText className="w-3.5 h-3.5" /> },
-    { value: "pickup", label: "수령 QR", icon: <QrCode className="w-3.5 h-3.5" /> },
-  ];
-
   return (
-    <main className="min-h-screen pb-16">
+    <main className="min-h-screen pb-6">
       <RoleHeader
         role="발표자 (Presenter)"
         description={`${session.title} · ${session.room}`}
         color="blue"
       />
 
-      <section className="px-4 sm:px-6 max-w-4xl mx-auto">
-        <div className="mb-4">
-          <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">
-            세션 선택
-          </label>
-          <select
-            value={sessionId}
-            onChange={(e) => setSessionId(e.target.value)}
-            className="w-full bg-grad-cream border border-white/70 rounded-full px-4 py-2.5 text-sm font-semibold outline-none shadow-cream"
-          >
-            {SESSIONS.map((s) => (
-              <option key={s.id} value={s.id}>
-                Day {s.day} · {s.timeSlot} · {s.title}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="mb-5 overflow-x-auto -mx-1 px-1">
-          <div className="inline-flex p-1 bg-grad-muted rounded-full shadow-cream border border-white/60">
-            {tabs.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setTab(t.value)}
-                className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold whitespace-nowrap ${
-                  tab === t.value
-                    ? "bg-grad-strawberry text-white shadow-pink"
-                    : "text-foreground/70"
-                }`}
-              >
-                {t.icon}
-                {t.label}
-              </button>
-            ))}
+      <section className="px-4 sm:px-6 max-w-7xl mx-auto">
+        <div className="flex items-end gap-3 mb-5">
+          <div className="flex-1 min-w-0">
+            <label className="text-xs font-bold text-muted-foreground uppercase mb-1.5 block">
+              세션 선택
+            </label>
+            <select
+              value={sessionId}
+              onChange={(e) => setSessionId(e.target.value)}
+              className="w-full bg-grad-cream border border-white/70 rounded-full px-4 py-2.5 text-sm font-semibold outline-none shadow-cream"
+            >
+              {SESSIONS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  Day {s.day} · {s.timeSlot} · {s.title}
+                </option>
+              ))}
+            </select>
           </div>
+          <button
+            type="button"
+            onClick={() => setPickupOpen(true)}
+            className="bounce-press inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0"
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            수령 QR
+          </button>
         </div>
 
-        {tab === "cloud" && (
-          <div className="animate-fade-in space-y-3">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* 토핑 키워드 */}
+          <div className="space-y-2">
+            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              토핑 키워드
+            </h2>
             <p className="text-sm text-muted-foreground">
-              청중 질문에서 명사 키워드만 골라 토핑처럼 통 위에 쌓입니다. 5초마다 갱신.
+              청중 질문에서 명사 키워드를 골라 토핑처럼 통 위에 쌓입니다. 5초마다 갱신.
             </p>
             <ToppingTubScene sessionId={sessionId} />
           </div>
-        )}
 
-        {tab === "questions" && (
-          <div className="animate-fade-in">
+          {/* 질문 목록 */}
+          <div className="space-y-2">
+            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              질문 목록
+            </h2>
             <QuestionStream sessionId={sessionId} />
           </div>
-        )}
+        </div>
+      </section>
 
-        {tab === "pickup" && (
-          <div className="animate-fade-in">
-            <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 shadow-pink border border-white/60">
-              <div className="absolute inset-0 bg-grad-cream" />
-              <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
-              <ToppingScatter density="med" seed="presenter-pickup" />
-              <div className="relative flex items-center justify-between mb-3">
+      {/* 수령 QR 모달 */}
+      {pickupOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setPickupOpen(false)}
+          />
+          <div className="relative w-full max-w-lg bg-grad-cream rounded-3xl p-5 sm:p-8 shadow-2xl border border-white/60 overflow-hidden">
+            <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
+            <ToppingScatter density="med" seed="presenter-pickup" />
+            <button
+              type="button"
+              onClick={() => setPickupOpen(false)}
+              className="absolute top-4 right-4 z-10 bounce-press bg-white/80 rounded-full p-1.5 shadow-cream"
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5 text-foreground" />
+            </button>
+            <div className="relative">
+              <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-extrabold bg-clip-text text-transparent bg-grad-sunset">
-                  ② 수령 QR
+                  수령 QR
                 </h3>
                 <span className="text-xs bg-grad-strawberry text-white font-bold px-2.5 py-1 rounded-full shadow-pink">
                   15초마다 갱신
                 </span>
               </div>
-              <p className="relative text-xs sm:text-sm text-muted-foreground mb-4">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-4">
                 세션 <strong className="text-foreground">종료 직전</strong>에만 잠깐 띄워서 청중이 스캔하도록 하세요.
-                주문 QR은 세션 입구에 인쇄된 것을 사용합니다.
               </p>
-              <div className="relative bg-white p-5 sm:p-6 rounded-2xl flex justify-center border-2 border-white shadow-cream">
+              <div className="bg-white p-5 sm:p-6 rounded-2xl flex justify-center border-2 border-white shadow-cream">
                 {pickupQR && (
                   <QRCode
                     value={pickupQR}
-                    size={360}
+                    size={320}
                     level="M"
                     style={{ maxWidth: "100%", height: "auto", width: "100%" }}
                   />
                 )}
               </div>
-              <div className="relative mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
+              <div className="mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-[width] duration-100 ease-linear bg-grad-sunset"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="relative text-center mt-2 text-xs text-muted-foreground font-mono">
+              <p className="text-center mt-2 text-xs text-muted-foreground font-mono">
                 다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
               </p>
             </div>
           </div>
-        )}
-      </section>
+        </div>
+      )}
     </main>
   );
 }
