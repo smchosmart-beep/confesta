@@ -164,39 +164,86 @@ function IceCreamTub({
           <stop offset="50%" stopColor="#FF4D9D" />
           <stop offset="100%" stopColor="#FF8A1F" />
         </linearGradient>
-        <radialGradient id={`mound-straw-${sessionId}`} cx="35%" cy="30%">
-          <stop offset="0%" stopColor="#FFE4EE" />
-          <stop offset="60%" stopColor="#FFA8C7" />
-          <stop offset="100%" stopColor="#FF4D9D" />
-        </radialGradient>
-        <radialGradient id={`mound-mint-${sessionId}`} cx="65%" cy="35%">
-          <stop offset="0%" stopColor="#E4FBF2" />
-          <stop offset="70%" stopColor="#7EE0C8" />
-          <stop offset="100%" stopColor="#2FB99A" />
-        </radialGradient>
-        <radialGradient id={`mound-van-${sessionId}`} cx="50%" cy="30%">
-          <stop offset="0%" stopColor="#FFFCEF" />
-          <stop offset="100%" stopColor="#F2D898" />
-        </radialGradient>
+        <linearGradient id={`scoop-straw-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#FFB6C1" />
+          <stop offset="100%" stopColor="#FF6B95" />
+        </linearGradient>
+        <linearGradient id={`scoop-mint-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#B2F5EA" />
+          <stop offset="100%" stopColor="#4FD1C5" />
+        </linearGradient>
+        <linearGradient id={`scoop-mango-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#FFE082" />
+          <stop offset="100%" stopColor="#F6AD55" />
+        </linearGradient>
+        <filter
+          id={`mound-soft-${sessionId}`}
+          x="-20%"
+          y="-20%"
+          width="140%"
+          height="140%"
+        >
+          <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+          <feOffset dy="2" dx="1" />
+          <feComposite
+            in2="SourceAlpha"
+            operator="arithmetic"
+            k2={-1}
+            k3={1}
+            result="shadowDiff"
+          />
+          <feFlood floodColor="white" floodOpacity="0.45" />
+          <feComposite in2="shadowDiff" operator="in" />
+          <feComposite in2="SourceGraphic" operator="over" />
+        </filter>
       </defs>
 
-      {/* Ice cream mound — soft scoop bulging out the top of the tub */}
+      {/* Three round overlapping scoops sitting on the tub rim */}
+      {/* Left: mint */}
       <path
-        d="M 60,90 Q 80,30 200,20 Q 320,30 340,90 Q 340,110 200,110 Q 60,110 60,90 Z"
-        fill={`url(#mound-van-${sessionId})`}
+        d="M 40,112 Q 40,30 130,30 Q 220,30 220,112 Z"
+        fill={`url(#scoop-mint-${sessionId})`}
+        filter={`url(#mound-soft-${sessionId})`}
       />
       <path
-        d="M 80,88 Q 100,42 180,38 Q 260,46 270,90 Q 270,108 180,108 Q 80,108 80,88 Z"
-        fill={`url(#mound-straw-${sessionId})`}
-        opacity="0.85"
+        d="M 70,58 Q 90,42 120,46"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="4"
+        strokeLinecap="round"
+        opacity="0.45"
+      />
+
+      {/* Right: mango */}
+      <path
+        d="M 180,112 Q 180,38 270,38 Q 360,38 360,112 Z"
+        fill={`url(#scoop-mango-${sessionId})`}
+        filter={`url(#mound-soft-${sessionId})`}
       />
       <path
-        d="M 210,92 Q 230,52 290,52 Q 330,62 335,95 Q 335,110 270,110 Q 210,110 210,92 Z"
-        fill={`url(#mound-mint-${sessionId})`}
-        opacity="0.85"
+        d="M 270,60 Q 295,48 335,58"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="4"
+        strokeLinecap="round"
+        opacity="0.4"
       />
-      {/* Mound highlight */}
-      <ellipse cx="160" cy="55" rx="50" ry="10" fill="#FFFFFF" opacity="0.45" />
+
+      {/* Center front: strawberry (largest, on top) */}
+      <path
+        d="M 100,112 Q 100,12 200,12 Q 300,12 300,112 Z"
+        fill={`url(#scoop-straw-${sessionId})`}
+        filter={`url(#mound-soft-${sessionId})`}
+      />
+      <path
+        d="M 150,40 Q 200,22 250,40"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="5"
+        strokeLinecap="round"
+        opacity="0.5"
+      />
+
 
       {/* Tub rim (lid edge) */}
       <ellipse cx="200" cy="110" rx="150" ry="14" fill="#F4ECDE" />
