@@ -21,7 +21,7 @@ export function useSlideState() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("slide_state")
+      .channel(`slide_state:${channelId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "slide_state" },
