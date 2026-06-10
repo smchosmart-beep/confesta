@@ -10,6 +10,7 @@ export function useSlideState() {
   const qc = useQueryClient();
   const getFn = useServerFn(getSlideState);
   const setFn = useServerFn(setSlideState);
+  const channelId = useId();
 
   const queryKey = ["slide-state"] as const;
   const { data } = useQuery({
