@@ -51,20 +51,17 @@ const MIXED: Persona = {
 export function derivePersona(scoops: StackedScoop[]): Persona {
   if (scoops.length === 0) return MIXED;
 
-  const counts = new Map<string, number>();
+  const counts = new Map<CategoryKey, number>();
   for (const s of scoops) {
     const session = SESSIONS.find((x) => x.id === s.sessionId);
-    const cat = session?.category ?? "ai-math";
+    const cat: CategoryKey = session?.category ?? "ai-math";
     counts.set(cat, (counts.get(cat) ?? 0) + 1);
   }
 
-  // 3 different categories → mixed
   if (counts.size >= 3) return MIXED;
 
-  // pick dominant (most frequent, tiebreaker = first stacked)
-  let best = scoops[0]
-    ? SESSIONS.find((x) => x.id === scoops[0].sessionId)?.category ?? "ai-math"
-    : "ai-math";
+  let best: CategoryKey =
+    SESSIONS.find((x) => x.id === scoops[0].sessionId)?.category ?? "ai-math";
   let bestCount = 0;
   for (const [cat, n] of counts) {
     if (n > bestCount) {
