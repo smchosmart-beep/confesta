@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
-import { SESSIONS, VENUES, venueOfRoom, getCategory } from "@/lib/confesta/mockData";
+import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { useConfestaStore } from "@/lib/confesta/store";
 
 export const Route = createFileRoute("/admin")({
