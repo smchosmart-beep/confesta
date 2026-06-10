@@ -60,6 +60,7 @@ interface ConfestaState {
   toppings: Topping[];
   likedToppingIds: string[];
   presenterNonces: Record<string, NoncePair>; // sessionId -> {order, pickup}
+  toppingGates: Record<string, ToppingGate>; // sessionId -> gate
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
   redemptionLog: RedemptionLog[];
@@ -73,10 +74,11 @@ interface ConfestaState {
   pickupFromQR: (payload: string) => ScanResult;
   resetScoops: () => void;
   generateReceipt: () => string | null;
-  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => void;
+  addTopping: (sessionId: string, text: string, kind?: ToppingKind) => boolean;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
   toggleLikeTopping: (id: string) => void;
+  setToppingGate: (sessionId: string, partial: Partial<ToppingGate>) => void;
   rotatePresenterNonce: (sessionId: string, kind: SessionQRKind) => string;
   redeemReceipt: (token: string) => RedemptionLog;
   bumpAttendance: (sessionId: string, delta?: number) => void;
@@ -85,6 +87,13 @@ interface ConfestaState {
   toggleSlidePause: () => void;
   resetSlides: () => void;
   setSlideTotal: (n: number) => void;
+}
+
+export function getToppingGate(
+  gates: Record<string, ToppingGate>,
+  sessionId: string,
+): ToppingGate {
+  return gates[sessionId] ?? DEFAULT_TOPPING_GATE;
 }
 
 const initialToppings: Topping[] = SAMPLE_TOPPINGS.map((t, i) => ({
