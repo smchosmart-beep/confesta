@@ -214,7 +214,7 @@ function AudienceView() {
           )}
 
           {section === "live" && (
-            <div className="grid grid-cols-1 gap-6 items-start">
+            <div className="grid grid-cols-1 gap-6 items-start pb-8">
               <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
                 <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
                 <ToppingScatter density="med" seed="audience-cone" />
