@@ -198,32 +198,40 @@ function PresenterView() {
         })()}
 
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-          {/* 토핑 키워드 */}
-          <div className="space-y-2 flex flex-col h-full">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              토핑 키워드 (응답)
-            </h2>
-            <ToppingGateControl sessionId={sessionId} />
-            <p className="text-sm text-muted-foreground">
-              청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
-            </p>
-            <div className="flex-1 min-h-0">
-              <ToppingTubScene sessionId={sessionId} />
+        {!isUnlocked ? (
+          <PresenterAuthGate
+            session={session}
+            onUnlock={() => setUnlockedSessionId(sessionId)}
+          />
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
+            {/* 토핑 키워드 */}
+            <div className="space-y-2 flex flex-col h-full">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                토핑 키워드 (응답)
+              </h2>
+              <ToppingGateControl sessionId={sessionId} />
+              <p className="text-sm text-muted-foreground">
+                청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
+              </p>
+              <div className="flex-1 min-h-0">
+                <ToppingTubScene sessionId={sessionId} />
+              </div>
             </div>
-          </div>
 
-          {/* 질문 목록 */}
-          <div className="space-y-2 flex flex-col h-full overflow-hidden">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              질문 목록
-            </h2>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <QuestionStream sessionId={sessionId} />
+            {/* 질문 목록 */}
+            <div className="space-y-2 flex flex-col h-full overflow-hidden">
+              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                질문 목록
+              </h2>
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <QuestionStream sessionId={sessionId} />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
+
 
       {/* 수령 QR 모달 */}
       {pickupOpen && (
