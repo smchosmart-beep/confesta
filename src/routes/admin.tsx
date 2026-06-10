@@ -168,14 +168,15 @@ function AdminView() {
           </div>
         </div>
 
-        <div className="grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
+        {/* 데스크톱: 평면도 배치 (md 이상에서만) */}
+        <div className="hidden md:grid gap-3 sm:gap-4 p-1 sm:p-1.5 rounded-3xl border border-white/60 bg-grad-aurora-soft/30 shadow-cream grid-cols-[0.9fr_2.2fr_0.9fr] items-start">
           {/* 좌측 컬럼: 402 (위) / 401 (아래) + 400 VIP */}
           <div className="flex flex-col gap-24 self-stretch">
             {stats.filter((v) => v.id === "402").map((v) => <VenueCard key={v.id} venue={v} />)}
             {stats.filter((v) => v.id === "401").map((v) => <VenueCard key={v.id} venue={v} />)}
             {stats.filter((v) => v.id === "400").map((v) => <VenueCard key={v.id} venue={v} />)}
           </div>
-          {/* 중앙 컬럼: LEWEST Hall (402-A 아래 라인부터 시작하도록 상단 여백) */}
+          {/* 중앙 컬럼: LEWEST Hall */}
           <div className="flex flex-col self-stretch pt-[404px]">
             {stats.filter((v) => v.id === "hall").map((v) => <VenueCard key={v.id} venue={v} />)}
           </div>
@@ -184,6 +185,15 @@ function AdminView() {
             {stats.filter((v) => v.id === "403").map((v) => <VenueCard key={v.id} venue={v} />)}
             {stats.filter((v) => v.id === "404").map((v) => <VenueCard key={v.id} venue={v} />)}
           </div>
+        </div>
+
+        {/* 모바일: 세로 스택 리스트 (md 미만에서만) */}
+        <div className="md:hidden flex flex-col gap-3">
+          {["402", "401", "hall", "403", "404", "400"].flatMap((id) =>
+            stats.filter((v) => v.id === id).map((v) => (
+              <MobileVenueCard key={v.id} venue={v} />
+            )),
+          )}
         </div>
 
         <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-2xl p-4">
@@ -407,6 +417,94 @@ function MiniMetric({
         </p>
         <p className="text-xl font-extrabold leading-tight">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function MobileVenueCard({ venue }: { venue: VenueStat }) {
+  return (
+    <div className="relative overflow-hidden bg-card rounded-2xl p-3 shadow-cream border border-white/70">
+      <ToppingScatter density="low" seed={`mv-${venue.id}`} />
+      <div className="relative flex items-baseline justify-between mb-2">
+        <h3 className="font-extrabold text-base leading-none">{venue.name}</h3>
+        {!venue.noMetrics && (
+          <span className="text-[10px] font-bold text-muted-foreground">
+            주문 <span className="text-grad-blueberry">{venue.totalOrders}</span>
+            {" · "}
+            수령 <span className="text-grad-strawberry">{venue.totalPickups}</span>
+          </span>
+        )}
+      </div>
+
+      {venue.noMetrics ? (
+        <div className="text-center text-[11px] text-muted-foreground py-3">
+          주문/수령 집계 없음
+        </div>
+      ) : (
+        <div className="relative flex flex-col gap-2">
+          {venue.subs.map((sub) => {
+            const pct = sub.orders > 0
+              ? Math.min(100, Math.round((sub.pickups / sub.orders) * 100))
+              : 0;
+            return (
+              <div
+                key={sub.label}
+                className="rounded-xl border border-foreground/10 bg-gradient-to-br from-white to-white/70 p-2.5 flex items-center gap-3"
+              >
+                {/* 코드 + 도넛 */}
+                <div className="flex flex-col items-center shrink-0 w-14">
+                  <span className="text-sm font-extrabold leading-none mb-1">
+                    {sub.code}
+                  </span>
+                  <div
+                    className="relative rounded-full grid place-items-center"
+                    style={{
+                      width: 52,
+                      height: 52,
+                      background: `conic-gradient(#ec4899 ${pct * 3.6}deg, #d1d5db 0)`,
+                    }}
+                    aria-label={`수령률 ${pct}%`}
+                  >
+                    <div className="absolute inset-1 rounded-full bg-white grid place-items-center">
+                      <span className="text-[11px] font-extrabold tabular-nums">
+                        {pct}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 가운데: 세션 + 주문/수령 */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground/90 line-clamp-2 leading-snug">
+                    {sub.sessionTitle ?? "—"}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
+                      주문 <span className="tabular-nums">{sub.orders}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-strawberry/15 border border-grad-strawberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-strawberry">
+                      수령 <span className="tabular-nums">{sub.pickups}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* 우측: 토핑 카운트 + 버튼 */}
+                <div className="flex flex-col items-center justify-center rounded-lg border border-grad-mango/30 bg-grad-mango/10 px-2 py-1.5 shrink-0 gap-1 min-w-[64px]">
+                  <span className="text-[9px] font-bold text-muted-foreground leading-none">
+                    토핑
+                  </span>
+                  <span className="text-xl font-extrabold tabular-nums text-grad-mango leading-none">
+                    {sub.toppings}
+                  </span>
+                  <button className="rounded-md bg-grad-mango px-2 py-0.5 text-[9px] font-extrabold text-white whitespace-nowrap">
+                    확인
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
