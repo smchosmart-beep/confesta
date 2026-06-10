@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import QRCode from "react-qr-code";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PresenterModeToggle, type PresenterMode } from "@/components/confesta/PresenterModeToggle";
 import { SlideControlPanel } from "@/components/confesta/SlideControlPanel";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
@@ -48,7 +49,7 @@ type HandheldTab = "control" | "questions" | "cloud" | "attendance";
 function PresenterView() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/presenter" });
-  const mode: PresenterMode = search.mode ?? "handheld";
+  const mode: PresenterMode = search.mode ?? "stage";
   const setMode = (m: PresenterMode) =>
     navigate({ search: { mode: m }, replace: true });
 
