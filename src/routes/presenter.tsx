@@ -10,6 +10,18 @@ import { useConfestaStore, makePickupQR } from "@/lib/confesta/store";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { QrCode, X } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  selectTriggerCls,
+  selectContentCls,
+  selectItemCls,
+} from "@/lib/confesta/selectStyles";
 
 export const Route = createFileRoute("/presenter")({
   head: () => ({
@@ -101,14 +113,6 @@ function PresenterView() {
             return first?.id;
           };
 
-          const selectCls =
-            "bounce-press w-full appearance-none rounded-full px-4 py-2.5 text-sm font-bold border bg-card text-foreground border-white/70 shadow-cream hover:bg-muted/40 transition cursor-pointer bg-no-repeat pr-10";
-          const selectStyle = {
-            backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
-            backgroundPosition: "right 14px center",
-          } as const;
-
           return (
             <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
               <div className="flex items-start justify-between gap-3">
@@ -118,24 +122,27 @@ function PresenterView() {
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       1단계 · 일자 선택
                     </span>
-                    <select
-                      className={selectCls}
-                      style={selectStyle}
-                      value={day}
-                      onChange={(e) => {
-                        const d = parseInt(e.target.value, 10);
+                    <Select
+                      value={String(day)}
+                      onValueChange={(v) => {
+                        const d = parseInt(v, 10);
                         const next =
                           pickFirstSessionFor(d, period) ??
                           pickFirstSessionFor(d, period === "am" ? "pm" : "am");
                         if (next) setSessionId(next);
                       }}
                     >
-                      {daysAvailable.map((d) => (
-                        <option key={d} value={d}>
-                          Day {d}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={selectContentCls}>
+                        {daysAvailable.map((d) => (
+                          <SelectItem key={d} value={String(d)} className={selectItemCls}>
+                            Day {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* 2단계 */}
@@ -143,26 +150,30 @@ function PresenterView() {
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       2단계 · 시간대 선택
                     </span>
-                    <select
-                      className={selectCls}
-                      style={selectStyle}
+                    <Select
                       value={period}
-                      onChange={(e) => {
-                        const p = e.target.value as "am" | "pm";
+                      onValueChange={(v) => {
+                        const p = v as "am" | "pm";
                         const next = pickFirstSessionFor(day, p);
                         if (next) setSessionId(next);
                       }}
                     >
-                      {(["am", "pm"] as const).map((p) => (
-                        <option
-                          key={p}
-                          value={p}
-                          disabled={!periodsAvailable.includes(p)}
-                        >
-                          {p === "am" ? "오전" : "오후"}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={selectContentCls}>
+                        {(["am", "pm"] as const).map((p) => (
+                          <SelectItem
+                            key={p}
+                            value={p}
+                            disabled={!periodsAvailable.includes(p)}
+                            className={selectItemCls}
+                          >
+                            {p === "am" ? "오전" : "오후"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* 3단계 */}
@@ -170,20 +181,24 @@ function PresenterView() {
                     <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
                       3단계 · 세션 선택
                     </span>
-                    <select
-                      className={selectCls}
-                      style={selectStyle}
+                    <Select
                       value={sessionId}
-                      onChange={(e) => setSessionId(e.target.value)}
+                      onValueChange={(v) => setSessionId(v)}
                     >
-                      {sessionsInScope.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.timeSlot} · {s.room} — {s.title}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className={selectTriggerCls}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className={selectContentCls}>
+                        {sessionsInScope.map((s) => (
+                          <SelectItem key={s.id} value={s.id} className={selectItemCls}>
+                            {s.timeSlot} · {s.room} — {s.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+
 
                 {isUnlocked && (
                   <button
