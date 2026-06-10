@@ -36,6 +36,7 @@ export interface Topping {
   createdAt: number;
   pinned?: boolean;
   addressed?: boolean;
+  likes?: number;
 }
 
 export interface StackedScoop {

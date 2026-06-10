@@ -55,6 +55,7 @@ interface ConfestaState {
   orders: Order[];
   scoops: StackedScoop[];
   toppings: Topping[];
+  likedToppingIds: string[];
   presenterNonces: Record<string, NoncePair>; // sessionId -> {order, pickup}
   receiptToken: string | null;
   receiptRedeemed: { at: number } | null;
@@ -72,6 +73,7 @@ interface ConfestaState {
   addTopping: (sessionId: string, text: string) => void;
   togglePinTopping: (id: string) => void;
   toggleAddressedTopping: (id: string) => void;
+  toggleLikeTopping: (id: string) => void;
   rotatePresenterNonce: (sessionId: string, kind: SessionQRKind) => string;
   redeemReceipt: (token: string) => RedemptionLog;
   bumpAttendance: (sessionId: string, delta?: number) => void;
@@ -117,6 +119,7 @@ export const useConfestaStore = create<ConfestaState>()(
       orders: initialOrders,
       scoops: [],
       toppings: initialToppings,
+      likedToppingIds: [],
       presenterNonces: {},
       receiptToken: null,
       receiptRedeemed: null,
@@ -267,6 +270,21 @@ export const useConfestaStore = create<ConfestaState>()(
             t.id === id ? { ...t, addressed: !t.addressed } : t,
           ),
         })),
+
+      toggleLikeTopping: (id) =>
+        set((s) => {
+          const liked = s.likedToppingIds.includes(id);
+          return {
+            likedToppingIds: liked
+              ? s.likedToppingIds.filter((x) => x !== id)
+              : [...s.likedToppingIds, id],
+            toppings: s.toppings.map((t) =>
+              t.id === id
+                ? { ...t, likes: Math.max(0, (t.likes ?? 0) + (liked ? -1 : 1)) }
+                : t,
+            ),
+          };
+        }),
 
       rotatePresenterNonce: (sessionId, kind) => {
         const nonce = makeNonce();
