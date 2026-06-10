@@ -1,14 +1,25 @@
-## 변경
-돔 마스크를 SVG 경계선 곡선과 정확히 일치하도록 다시 잘라, 경계선 아래로 마스크가 삐져나오지 않게 한다. 경계선 SVG path는 건드리지 않음.
+## 문제
+컨텐츠 영역이 정사각 컨테이너 기준 `pt-5 pb-[18%]`라 중심이 y≈41% 부근. 돔 바닥이 y≈65%(가장자리는 y≈52%)인데 컨텐츠가 중앙 아래로 내려가 있어 텍스트/설명 일부가 경계선에 닿거나 밖으로 보인다.
 
-## 새 컷 곡선
-현재 SVG path: `M 3,52 Q 50,79 97,52` (viewBox 0-100)
-→ 마스크 컷 정규식: `y_norm = 0.52 + 0.27·(1 − 4(x−0.5)²)`
-  - 양 끝(x=0,1): y=0.52
-  - 가운데(x=0.5): y=0.79
-(기존 0.55 / 0.82에서 0.03 위로)
+## 목표
+모든 컨텐츠(아이콘 + label + 제목 + desc)가 돔 실루엣 안에 들어오도록 위치 조정. 컨텐츠 중심을 y≈32%로 올리고, 좁아지는 가장자리에 맞춰 가로 패딩도 살짝 조정.
 
-## 작업
-1. Python 스크립트로 `/tmp/scoop-mask-dome.png` 재생성 — 위 새 곡선으로 컷
-2. `lovable-assets create` 로 같은 파일명 업로드, `src/assets/scoop-mask.png.asset.json` 덮어쓰기
-3. ScoopCard.tsx 변경 없음 (SVG path, padding 그대로)
+## 파일
+- `src/components/confesta/ScoopCard.tsx` (컨텐츠 컨테이너 한 줄)
+
+## 수정
+```jsx
+// before
+className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 pt-5"
+style={{ paddingBottom: "18%" }}
+
+// after
+className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 pt-4"
+style={{ paddingBottom: "42%" }}
+```
+
+- `paddingBottom: 42%` → 컨텐츠 영역 0..58%, 중심 y≈29% → 돔 안쪽 상단~중앙
+- `pt-4` → 아이콘이 너무 위로 붙지 않게 살짝 여유
+- `px-8` (40→32px) → 가로는 여유. 돔 가장 넓은 부분이 y≈30%라 여기서는 거의 100% 폭 사용 가능
+
+요소 간격은 그대로 유지 (`mb-3`, `mt-0.5`, `mt-1.5`).
