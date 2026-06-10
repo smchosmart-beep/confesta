@@ -96,7 +96,7 @@ export function ScoopCard({ to, flavor, label, ko, desc, icon: Icon }: Props) {
         {/* content — sits inside the round body, above the melted skirt */}
         <div
           className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 pt-5"
-          style={{ paddingBottom: "32%" }}
+          style={{ paddingBottom: "18%" }}
         >
           <span className="w-14 h-14 rounded-full bg-white/85 ring-2 ring-white shadow-cream flex items-center justify-center mb-3">
             <Icon className="w-7 h-7 text-foreground/80" />
