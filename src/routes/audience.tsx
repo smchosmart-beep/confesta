@@ -10,6 +10,7 @@ import { CameraScanner } from "@/components/confesta/CameraScanner";
 import { ToppingInput } from "@/components/confesta/ToppingInput";
 import { ReceiptCard } from "@/components/confesta/ReceiptCard";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import {
   useConfestaStore,
@@ -17,7 +18,6 @@ import {
   parseSessionQR,
 } from "@/lib/confesta/store";
 import type { ToppingKind } from "@/lib/confesta/types";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import {
   Camera,
   Plus,
