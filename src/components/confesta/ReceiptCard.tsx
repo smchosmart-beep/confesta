@@ -16,12 +16,24 @@ const SAMPLE_SCOOPS: StackedScoop[] = [
   { id: "sample-3", sessionId: "s3", flavor: "mango", stackedAt: 0 },
 ];
 
+const SAMPLE_TOPPING_TEXTS = [
+  "배수판별법을 초3 수업에 어떻게 녹이나요?",
+  "프롬프트 한 줄로 배수 패턴 찾기 데모 가능할까요?",
+  "AI 모델이 틀린 배수를 줄 때 대처법은?",
+];
+
 export function ReceiptCard() {
   const scoops = useConfestaStore((s) => s.scoops);
   const token = useConfestaStore((s) => s.receiptToken);
   const generate = useConfestaStore((s) => s.generateReceipt);
   const redeemed = useConfestaStore((s) => s.receiptRedeemed);
   const reset = useConfestaStore((s) => s.resetScoops);
+  const allToppings = useConfestaStore((s) => s.toppings);
+  // user-created toppings only (seed ids start with "seed-")
+  const myToppings = allToppings
+    .filter((t) => !t.id.startsWith("seed-"))
+    .slice()
+    .sort((a, b) => a.createdAt - b.createdAt);
 
   const ready = scoops.length >= 3;
 
@@ -78,7 +90,21 @@ export function ReceiptCard() {
               <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
             </div>
           ))}
-          <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
+
+          {myToppings.length > 0 && (
+            <div className="pt-2 mt-2 border-t border-dashed border-foreground/20 space-y-1">
+              {myToppings.map((t, i) => (
+                <div key={t.id} className="flex justify-between gap-3 items-start">
+                  <span className="shrink-0">토핑 #{i + 1}</span>
+                  <span className="text-right break-keep leading-snug">
+                    {t.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex justify-between pt-2 mt-2 border-t border-dashed border-foreground/20">
             <span>발급</span>
             <span>{new Date().toLocaleString("ko-KR")}</span>
           </div>
@@ -147,7 +173,17 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
               <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
             </div>
           ))}
-          <div className="flex justify-between pt-2 border-t border-dashed border-foreground/20">
+
+          <div className="pt-2 mt-2 border-t border-dashed border-foreground/20 space-y-1">
+            {SAMPLE_TOPPING_TEXTS.map((text, i) => (
+              <div key={i} className="flex justify-between gap-3 items-start">
+                <span className="shrink-0">토핑 #{i + 1}</span>
+                <span className="text-right break-keep leading-snug">{text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-between pt-2 mt-2 border-t border-dashed border-foreground/20">
             <span>발급</span>
             <span>2026-06-10 14:00</span>
           </div>
