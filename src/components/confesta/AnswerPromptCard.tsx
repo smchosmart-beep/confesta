@@ -9,8 +9,9 @@ import {
   Legend,
 } from "recharts";
 import { Send, Lock, Megaphone } from "lucide-react";
-import { useConfestaStore, getToppingGate } from "@/lib/confesta/store";
-import type { AnswerPrompt } from "@/lib/confesta/types";
+import type { AnswerPromptDTO } from "@/lib/confesta/prompts.functions";
+import { useSessionToppings } from "@/hooks/use-toppings";
+import { useToppingGate } from "@/hooks/use-topping-gate";
 
 const PALETTE = [
   "var(--scoop-strawberry)",
@@ -23,14 +24,12 @@ const PALETTE = [
 ];
 
 interface Props {
-  prompt: AnswerPrompt;
+  prompt: AnswerPromptDTO;
 }
 
 export function AnswerPromptCard({ prompt }: Props) {
-  const toppings = useConfestaStore((s) => s.toppings);
-  const gates = useConfestaStore((s) => s.toppingGates);
-  const addTopping = useConfestaStore((s) => s.addTopping);
-  const gate = getToppingGate(gates, prompt.sessionId);
+  const { toppings, submit } = useSessionToppings(prompt.sessionId);
+  const { gate } = useToppingGate(prompt.sessionId);
 
   const isActive = prompt.closedAt == null;
   const canSubmit = gate.answersOpen;
@@ -38,10 +37,7 @@ export function AnswerPromptCard({ prompt }: Props) {
   const [text, setText] = useState("");
 
   const answers = useMemo(
-    () =>
-      toppings.filter(
-        (t) => t.kind === "answer" && t.promptId === prompt.id,
-      ),
+    () => toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id),
     [toppings, prompt.id],
   );
   const total = answers.length;
@@ -63,13 +59,19 @@ export function AnswerPromptCard({ prompt }: Props) {
     return [...top, { name: "기타", value: restSum }];
   }, [answers]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const t = text.trim();
     if (!t || !canSubmit) return;
-    const ok = addTopping(prompt.sessionId, t, "answer", prompt.id);
-    if (!ok) {
-      toast.error("응답을 보낼 수 없어요");
+    try {
+      const r = await submit(t, "answer", prompt.id);
+      if (!r.ok) {
+        toast.error(r.message ?? "응답을 보낼 수 없어요");
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("전송 중 오류가 발생했어요");
       return;
     }
     setText("");
@@ -145,7 +147,6 @@ export function AnswerPromptCard({ prompt }: Props) {
             </button>
           </div>
         </form>
-
 
         {total === 0 ? (
           <div className="text-xs text-muted-foreground text-center py-6">

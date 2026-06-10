@@ -1,18 +1,15 @@
 import { ChevronLeft, ChevronRight, Pause, Play, Square } from "lucide-react";
-import { useConfestaStore } from "@/lib/confesta/store";
+import { useSlideState } from "@/hooks/use-slide-state";
 
 interface Props {
   compact?: boolean;
 }
 
 export function SlideControlPanel({ compact = false }: Props) {
-  const slideIndex = useConfestaStore((s) => s.slideIndex);
-  const slideTotal = useConfestaStore((s) => s.slideTotal);
-  const paused = useConfestaStore((s) => s.slidePaused);
-  const next = useConfestaStore((s) => s.nextSlide);
-  const prev = useConfestaStore((s) => s.prevSlide);
-  const togglePause = useConfestaStore((s) => s.toggleSlidePause);
-  const reset = useConfestaStore((s) => s.resetSlides);
+  const { state, next, prev, togglePause, reset } = useSlideState();
+  const slideIndex = state.slideIndex;
+  const slideTotal = state.slideTotal;
+  const paused = state.paused;
 
   const progress = ((slideIndex + 1) / Math.max(slideTotal, 1)) * 100;
 

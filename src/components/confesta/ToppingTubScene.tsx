@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useConfestaStore } from "@/lib/confesta/store";
+import { useSessionToppings } from "@/hooks/use-toppings";
 import { extractKeywords } from "@/lib/confesta/keywords";
 import { Cherry, ChocChip, StarSprinkle, Heart, Sprinkle } from "./ToppingDecor";
 
@@ -29,13 +29,10 @@ function hashStr(s: string) {
 }
 
 export function ToppingTubScene({ sessionId, compact = false }: Props) {
-  const allToppings = useConfestaStore((s) => s.toppings);
+  const { toppings: allToppings } = useSessionToppings(sessionId);
   const toppings = useMemo(
-    () =>
-      allToppings.filter(
-        (t) => t.sessionId === sessionId && t.kind === "answer",
-      ),
-    [allToppings, sessionId],
+    () => allToppings.filter((t) => t.kind === "answer"),
+    [allToppings],
   );
   const [tick, setTick] = useState(0);
 

@@ -13,9 +13,11 @@ import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import { useConfestaStore, MAX_SCOOPS_CONST } from "@/lib/confesta/store";
+import { MAX_SCOOPS_CONST } from "@/lib/confesta/store";
 import { parseSessionQR } from "@/lib/confesta/shared";
 import { useAudience } from "@/hooks/use-audience";
+import { useSessionToppings } from "@/hooks/use-toppings";
+import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import type { ToppingKind } from "@/lib/confesta/types";
 import {
   Select,
@@ -65,11 +67,8 @@ function AudienceView() {
   // Server-backed audience state (orders, scoops, receipt)
   const { orders, scoops, placeOrder, pickup } = useAudience();
 
-  // Topping/answerPrompt state still on Zustand (migrates in next steps)
-  const toppings = useConfestaStore((s) => s.toppings);
-  const answerPrompts = useConfestaStore((s) => s.answerPrompts);
-  const likedToppingIds = useConfestaStore((s) => s.likedToppingIds);
-  const toggleLikeTopping = useConfestaStore((s) => s.toggleLikeTopping);
+  // Topping/answerPrompt state server-backed via hooks (require sessionId)
+
 
   const [orderScanOpen, setOrderScanOpen] = useState(false);
   const [orderFeedback, setOrderFeedback] = useState<{
@@ -117,6 +116,10 @@ function AudienceView() {
   const activeSessionId = selectedSessionId;
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
+
+  const { toppings, toggleLike } = useSessionToppings(activeSessionId);
+  const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
+
 
   const handleOrderScan = async (text: string) => {
     const parsed = parseSessionQR(text);
@@ -390,7 +393,7 @@ function AudienceView() {
                       return (
                         <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
                           {list.map((t) => {
-                            const liked = likedToppingIds.includes(t.id);
+                            const liked = t.likedByMe;
                             const likeCount = t.likes ?? 0;
                             return (
                               <li
@@ -410,7 +413,7 @@ function AudienceView() {
                                   <span className="flex-1 break-words">{t.text}</span>
                                   <button
                                     type="button"
-                                    onClick={() => toggleLikeTopping(t.id)}
+                                    onClick={() => toggleLike(t.id)}
                                     aria-pressed={liked}
                                     aria-label={liked ? "좋아요 취소" : "좋아요"}
                                     className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${

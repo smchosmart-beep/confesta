@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
-import type { Topping } from "@/lib/confesta/types";
 
+interface SpotlightTopping {
+  id: string;
+  text: string;
+  createdAt?: number;
+}
 
 interface Props {
-  topping: Topping | null;
+  topping: SpotlightTopping | null;
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
@@ -88,9 +92,11 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
         <p className="relative text-3xl sm:text-5xl font-extrabold leading-tight text-foreground">
           “{topping.text}”
         </p>
-        <p className="relative mt-6 text-sm text-muted-foreground font-mono">
-          {new Date(topping.createdAt).toLocaleString("ko-KR")}
-        </p>
+        {topping.createdAt && (
+          <p className="relative mt-6 text-sm text-muted-foreground font-mono">
+            {new Date(topping.createdAt).toLocaleString("ko-KR")}
+          </p>
+        )}
       </div>
     </div>
   );
