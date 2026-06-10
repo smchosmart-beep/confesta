@@ -290,10 +290,10 @@ function VenueCard({ venue }: { venue: VenueStat }) {
                 {sub.code}
               </span>
             </div>
-            <p className="text-xs text-foreground/70 leading-snug line-clamp-2 mb-2 flex-1">
+            <p className="text-sm text-foreground/80 leading-snug line-clamp-2 mb-2 flex-1">
               {sub.sessionTitle ?? "—"}
             </p>
-            <div className="mt-auto flex items-center justify-between text-xs font-extrabold">
+            <div className="mt-auto flex items-center justify-between text-base font-extrabold">
               <span className="text-grad-blueberry">주문 {sub.orders}</span>
               <span className="text-grad-strawberry">수령 {sub.pickups}</span>
             </div>
