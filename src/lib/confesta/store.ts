@@ -114,7 +114,7 @@ export const useConfestaStore = create<ConfestaState>()(
   persist(
     (set, get) => ({
       enrolledSessionIds: [],
-      orders: [],
+      orders: initialOrders,
       scoops: [],
       toppings: initialToppings,
       presenterNonces: {},
