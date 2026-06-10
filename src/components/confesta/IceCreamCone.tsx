@@ -1,6 +1,6 @@
 import type { StackedScoop } from "@/lib/confesta/types";
 import scoopMask from "@/assets/scoop-mask.png.asset.json";
-import { ToppingScatter } from "./ToppingDecor";
+
 
 type Flavor = "mint" | "strawberry" | "mango" | "blueberry" | "chocolate";
 
@@ -213,9 +213,6 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
                     "radial-gradient(circle at 50% 50%, transparent 55%, rgba(0,0,0,0.18) 100%)",
                 }}
               />
-              <div className="absolute inset-0 opacity-90">
-                <ToppingScatter density="low" seed={`cone-${scoop.id}`} />
-              </div>
             </div>
           </div>
         );
