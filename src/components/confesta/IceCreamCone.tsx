@@ -44,7 +44,8 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
   const coneH = coneW * 0.95;
   const coneTuck = coneH * 0.12;
 
-  const count = Math.max(scoops.length, 1);
+  const placeholderCount = scoops.length === 0 ? 3 : 0;
+  const count = Math.max(scoops.length + placeholderCount, 1);
   const totalHeight =
     domeVisible * count + (coneH - coneTuck) + domeBox * 0.04;
 
