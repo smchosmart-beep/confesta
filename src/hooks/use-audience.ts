@@ -64,11 +64,33 @@ export function useAudience() {
 
   const state = data ?? EMPTY_STATE;
 
+  const orders: Order[] = useMemo(
+    () =>
+      state.orders.map((o) => ({
+        id: o.id,
+        sessionId: o.sessionId,
+        orderedAt: o.orderedAt,
+        pickedUpAt: o.pickedUpAt,
+      })),
+    [state.orders],
+  );
+
+  const scoops: StackedScoop[] = useMemo(
+    () =>
+      state.scoops.map((s) => ({
+        id: s.id,
+        sessionId: s.sessionId,
+        flavor: s.flavor as ScoopFlavor,
+        stackedAt: s.stackedAt,
+      })),
+    [state.scoops],
+  );
+
   return {
     deviceId,
     isLoading: isLoading || !deviceId,
-    orders: state.orders,
-    scoops: state.scoops,
+    orders,
+    scoops,
     receipt: state.receipt,
     placeOrder: placeOrder.mutateAsync,
     pickup: pickup.mutateAsync,
