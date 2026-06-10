@@ -1,34 +1,33 @@
-## 문제
+## 진단
 
-`IceCreamCone`의 스쿱 마스크는 정사각형의 위쪽 절반만 보이는 돔이라, 현재 `marginTop: -domeW * 0.52` 정도의 음수 마진으로는 스쿱끼리 그리고 스쿱과 콘 사이에 큰 빈 공간이 생긴다. 화면에서도 스쿱끼리, 스쿱-콘이 분리되어 떠 있다.
+현재 `IceCreamCone`의 와플콘은 SVG `<defs>` 안의 `linearGradient`/`pattern`을 `fill="url(#cone-grad)"` 로 참조하는 구조입니다. 영수증 카드는 `overflow-hidden` 안에서 `<IceCreamCone size=150>` 을 렌더하는데, 화면에서 콘이 사라진 원인은 다음 둘 중 하나입니다.
 
-## 해결 방침
+1. 위쪽 스쿱들이 z-index 우위(10+ vs 5)로 콘 자리를 덮음 — 스쿱 사각형(transparent mask 바깥)이 콘 위에 올라와도 보일 줄 알았지만, 실제로는 같은 컨테이너 내 음영/필터 스택 때문에 시각적으로 가려짐.
+2. SVG 내부 gradient id(`cone-grad`, `cone-rim`, `waffle`)가 같은 페이지에 여러 인스턴스가 동시에 마운트될 때(영수증 본체 + 샘플 영수증 등) 충돌해 fill이 비어버림.
 
-`flex-col-reverse` + margin 방식 대신 **절대 위치(top px 계산)** 로 모든 요소를 쌓는다. 돔의 시각적 높이는 정사각형의 약 0.52배(SVG의 `M3,52 Q50,79 97,52` 기준)이므로 이 값을 기준으로 스쿱 간 간격과 콘 위치를 계산한다.
+두 위험을 한 번에 없애려면 SVG + url() 참조 방식을 버리고 **순수 div + clip-path + CSS 그라데이션**으로 콘을 그리고, 컨테이너 높이/스쿱 위치를 콘이 항상 보이도록 보정합니다.
 
-### 레이아웃 규칙
+## 변경 내용
 
-- 컨테이너: `position: relative`, 너비 `w`, 높이 = `domeVisible * scoops.length + coneH * 0.92`
-- 각 스쿱(아래→위, i=0이 맨 아래):
-  - `position: absolute`, `left: 50%`, `transform: translateX(-50%)`
-  - `bottom = coneTuck + i * domeVisible` (여기서 `domeVisible ≈ domeW * 0.5`)
-  - `zIndex = i + 10` (위쪽 스쿱이 앞)
-- 콘:
-  - `position: absolute`, `bottom: 0`, 중앙 정렬
-  - 너비 `w * 0.78`, 시각적으로 맨 아래 스쿱 돔의 평평한 밑선과 콘 상단 림이 살짝 겹치도록 `coneTuck`(약 `coneW * 0.08`)만큼 스쿱들을 위로 올림
-  - `zIndex: 5` (맨 아래 스쿱보다 뒤, 윗 스쿱들보단 뒤)
+`src/components/confesta/IceCreamCone.tsx`
 
-### 빈 상태
+1. 콘을 SVG가 아닌 div로 교체:
+   - 컨테이너: `position: absolute`, `bottom: 0`, `left: 50%`, `translateX(-50%)`, 폭 `coneW`, 높이 `coneH`, `zIndex: 5`.
+   - 본체 div: `clip-path: polygon(0% 6%, 100% 6%, 50% 100%)`, 배경 `linear-gradient(180deg, #EBC18A 0%, #B07B3F 60%, #6E4416 100%)`.
+   - 와플 패턴: 본체 위에 같은 clip-path를 가진 div, 배경 `repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.18) 6px 7px), repeating-linear-gradient(-45deg, transparent 0 6px, rgba(0,0,0,0.18) 6px 7px)`.
+   - 림(rim): 상단 가로 div, 폭 100%, 높이 `coneH * 0.08`, `linear-gradient(180deg, #F4D9A8, #B07B3F)`, `border-radius: 6px`, 위치 `top: 0`.
 
-스쿱이 없을 때는 기존의 점선 원형 안내를 컨테이너 중앙(콘 위)에 절대 위치로 배치.
+2. 높이/위치 보정:
+   - `coneH = coneW * 0.95` 로 살짝 키워 콘이 명확히 보이도록.
+   - `coneTuck = coneH * 0.12` — 맨 아래 스쿱이 콘 림에 살짝 박히는 정도.
+   - `totalHeight = domeVisible * count + (coneH - coneTuck) + domeBox * 0.04`.
+   - 각 스쿱 `bottom = (coneH - coneTuck) - domeBox * 0.5 + i * domeVisible` (기존과 동일 로직, 새 `coneH` 기준 자동 보정).
 
-### 부수 정리
+3. z-index 정리:
+   - 콘: 5
+   - 스쿱: 10 + i (위쪽이 더 큼)
+   - 스쿱 마스크 박스 자체는 그대로 — transparent 영역에선 자연스럽게 콘이 비쳐 보임.
 
-- 사이즈 변경 시 자동 비례하도록 모든 값은 `w` 기반 계산.
-- 영수증/샘플 영수증 모두 동일 컴포넌트를 쓰므로 양쪽 모두 자동 반영.
+4. 빈 상태 안내 점선 원형의 `bottom` 값도 새 `coneH - coneTuck` 기준으로 갱신.
 
-## 변경 파일
-
-- `src/components/confesta/IceCreamCone.tsx` — 위 레이아웃으로 리팩터링 (스쿱 마스크/쉐이딩 스타일 자체는 유지).
-
-런타임 하이드레이션 경고(audience의 시간 표시)는 이 작업과 무관하므로 이번 플랜에는 포함하지 않습니다.
+영수증/샘플 영수증 둘 다 동일 컴포넌트라 자동 반영됩니다. 적용 후 `/audience` 영수증 탭 모바일 뷰포트에서 콘이 보이고 맨 아래 스쿱과 자연스럽게 겹치는지 스크린샷으로 확인합니다.
