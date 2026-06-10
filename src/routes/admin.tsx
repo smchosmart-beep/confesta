@@ -40,7 +40,9 @@ interface VenueStat {
   subs: SubStat[];
   totalOrders: number;
   totalPickups: number;
+  noMetrics?: boolean;
 }
+
 
 function AdminView() {
   const orders = useConfestaStore((s) => s.orders);
