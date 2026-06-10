@@ -81,7 +81,7 @@ export function OrderCard({ order }: Props) {
         <p className="text-sm text-muted-foreground mt-0.5">
           {session.presenter} · {session.room} · {session.timeSlot}
         </p>
-        <p className="text-xs text-muted-foreground mt-1.5">
+        <p className="text-xs text-muted-foreground mt-1.5" suppressHydrationWarning>
           주문 {fmtTime(order.orderedAt)}
           {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}
         </p>
