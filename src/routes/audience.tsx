@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
 import { SessionCard } from "@/components/confesta/SessionCard";
 import { IceCreamCone } from "@/components/confesta/IceCreamCone";
@@ -57,43 +58,48 @@ function AudienceView() {
         color="pink"
       />
 
-      <div className="px-4 sm:px-6 flex justify-center">
-        <PillTabs<Section>
-          value={section}
-          onChange={setSection}
-          tabs={[
-            { value: "explore", label: "주문", icon: <CalendarDays className="w-4 h-4" /> },
-            { value: "live", label: "My 콘", icon: <IceCreamConeIcon className="w-4 h-4" /> },
-            { value: "topping", label: "토핑 추가", icon: <Sparkles className="w-4 h-4" /> },
-            { value: "receipt", label: "영수증", icon: <Receipt className="w-4 h-4" /> },
-          ]}
-        />
-      </div>
-
-      <section className="px-4 sm:px-6 mt-6 max-w-5xl mx-auto">
-        {section === "explore" && (
-          <div>
-            <div className="mb-5 flex justify-end">
-              <PillTabs<Day>
-                size="sm"
-                value={day}
-                onChange={setDay}
+      <DeviceFrame device="mobile">
+        <div className="px-4 flex justify-center">
+          <div className="w-full overflow-x-auto">
+            <div className="flex justify-center min-w-max">
+              <PillTabs<Section>
+                value={section}
+                onChange={setSection}
                 tabs={[
-                  { value: "1", label: "Day 1 (Fri)" },
-                  { value: "2", label: "Day 2 (Sat)" },
+                  { value: "explore", label: "주문", icon: <CalendarDays className="w-4 h-4" /> },
+                  { value: "live", label: "My 콘", icon: <IceCreamConeIcon className="w-4 h-4" /> },
+                  { value: "topping", label: "토핑 추가", icon: <Sparkles className="w-4 h-4" /> },
+                  { value: "receipt", label: "영수증", icon: <Receipt className="w-4 h-4" /> },
                 ]}
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sessionsForDay.map((s) => (
-                <SessionCard key={s.id} session={s} />
-              ))}
-            </div>
           </div>
-        )}
+        </div>
 
-        {section === "live" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        <section className="px-4 mt-6">
+          {section === "explore" && (
+            <div>
+              <div className="mb-5 flex justify-end">
+                <PillTabs<Day>
+                  size="sm"
+                  value={day}
+                  onChange={setDay}
+                  tabs={[
+                    { value: "1", label: "Day 1 (Fri)" },
+                    { value: "2", label: "Day 2 (Sat)" },
+                  ]}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {sessionsForDay.map((s) => (
+                  <SessionCard key={s.id} session={s} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {section === "live" && (
+            <div className="grid grid-cols-1 gap-6 items-start">
             <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
               <div className="absolute inset-0 bg-grad-sunset-soft opacity-50" />
               <ToppingScatter density="med" seed="audience-cone" />
