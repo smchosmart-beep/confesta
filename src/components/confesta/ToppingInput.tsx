@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useConfestaStore, getToppingGate } from "@/lib/confesta/store";
 import { Send, Sparkles, MessageSquare, Hash, Lock, Megaphone } from "lucide-react";
 import type { ToppingKind } from "@/lib/confesta/types";
+import { useSessionToppings } from "@/hooks/use-toppings";
+import { useToppingGate } from "@/hooks/use-topping-gate";
 
 interface Sprinkle {
   id: number;
@@ -26,7 +27,6 @@ interface Props {
   sessionId: string;
   kind?: ToppingKind;
   onKindChange?: (k: ToppingKind) => void;
-  /** When true, the answer-mode submit form is replaced by a notice (input lives in per-prompt cards). */
   disableAnswerSubmit?: boolean;
 }
 
@@ -39,16 +39,14 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
   };
   const [text, setText] = useState("");
   const [sprinkles, setSprinkles] = useState<Sprinkle[]>([]);
-  const addTopping = useConfestaStore((s) => s.addTopping);
-  const gates = useConfestaStore((s) => s.toppingGates);
-  const gate = getToppingGate(gates, sessionId);
+  const { submit } = useSessionToppings(sessionId);
+  const { gate } = useToppingGate(sessionId);
   const idRef = useRef(0);
 
   const isOpen = (k: ToppingKind) =>
     k === "answer" ? gate.answersOpen : gate.questionsOpen;
   const currentOpen = isOpen(kind);
 
-  // 현재 모드가 닫혀있고 다른 모드가 열려있다면 자동으로 열린 모드로 전환
   useEffect(() => {
     if (!currentOpen) {
       const other: ToppingKind = kind === "question" ? "answer" : "question";
@@ -57,16 +55,22 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gate.questionsOpen, gate.answersOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
     if (!currentOpen) {
       toast.error("발표자가 아직 받지 않아요");
       return;
     }
-    const ok = addTopping(sessionId, text.trim(), kind);
-    if (!ok) {
-      toast.error("발표자가 방금 입력을 닫았어요");
+    try {
+      const r = await submit(text.trim(), kind);
+      if (!r.ok) {
+        toast.error(r.message ?? "전송하지 못했어요");
+        return;
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("전송 중 오류가 발생했어요");
       return;
     }
     const next: Sprinkle[] = Array.from({ length: 12 }, () => ({
@@ -99,9 +103,7 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
     },
   ];
   const current = tabs.find((t) => t.value === kind)!;
-  const placeholder = currentOpen
-    ? current.hint
-    : "발표자가 곧 열어드려요";
+  const placeholder = currentOpen ? current.hint : "발표자가 곧 열어드려요";
 
   const handleTabClick = (v: ToppingKind) => {
     setKind(v);
@@ -127,9 +129,7 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
               type="button"
               onClick={() => handleTabClick(t.value)}
               className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                active
-                  ? "bg-primary text-primary-foreground shadow-pink"
-                  : "text-foreground/70"
+                active ? "bg-primary text-primary-foreground shadow-pink" : "text-foreground/70"
               } ${!open ? "opacity-60" : ""}`}
               aria-pressed={active}
             >
