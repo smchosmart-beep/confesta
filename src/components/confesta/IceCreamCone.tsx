@@ -34,9 +34,11 @@ const MASK_STYLE: React.CSSProperties = {
 interface Props {
   scoops: StackedScoop[];
   size?: number;
+  /** Number of toppings to render on top scoop. Clamped 0-3. */
+  toppingCount?: number;
 }
 
-export function IceCreamCone({ scoops, size = 200 }: Props) {
+export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
   const w = size;
   const domeBox = w * 0.86; // square that contains a single dome scoop
   const domeVisible = domeBox * 0.36; // overlap step — smaller = deeper overlap
@@ -48,6 +50,11 @@ export function IceCreamCone({ scoops, size = 200 }: Props) {
   const count = Math.max(scoops.length + placeholderCount, 1);
   const totalHeight =
     domeVisible * count + (coneH - coneTuck) + domeBox * 0.04;
+
+  const tc = Math.max(0, Math.min(3, Math.floor(toppingCount)));
+  const topScoopIndex = scoops.length - 1;
+  const topScoopBottom =
+    coneH - coneTuck - domeBox * 0.5 + topScoopIndex * domeVisible;
 
   const CONE_CLIP = "polygon(0% 6%, 100% 6%, 50% 100%)";
 
