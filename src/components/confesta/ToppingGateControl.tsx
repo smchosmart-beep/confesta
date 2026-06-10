@@ -2,11 +2,6 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import {
-  useConfestaStore,
-  getToppingGate,
-  getActiveAnswerPrompt,
-} from "@/lib/confesta/store";
-import {
   MessageSquare,
   Hash,
   Megaphone,
@@ -16,44 +11,35 @@ import {
   Check,
   Plus,
 } from "lucide-react";
+import { useSessionToppings } from "@/hooks/use-toppings";
+import { useToppingGate } from "@/hooks/use-topping-gate";
+import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 
 interface Props {
   sessionId: string;
 }
 
 export function ToppingGateControl({ sessionId }: Props) {
-  const gates = useConfestaStore((s) => s.toppingGates);
-  const setGate = useConfestaStore((s) => s.setToppingGate);
-  const toppings = useConfestaStore((s) => s.toppings);
-  const answerPrompts = useConfestaStore((s) => s.answerPrompts);
-  const createAnswerPrompt = useConfestaStore((s) => s.createAnswerPrompt);
-  const updateAnswerPrompt = useConfestaStore((s) => s.updateAnswerPrompt);
-  const closeAnswerPrompt = useConfestaStore((s) => s.closeAnswerPrompt);
-  const reopenAnswerPrompt = useConfestaStore((s) => s.reopenAnswerPrompt);
-  const deleteAnswerPrompt = useConfestaStore((s) => s.deleteAnswerPrompt);
-
-  const gate = getToppingGate(gates, sessionId);
-  const active = getActiveAnswerPrompt(answerPrompts, sessionId);
+  const { gate, setGate } = useToppingGate(sessionId);
+  const { toppings } = useSessionToppings(sessionId);
+  const { prompts, create, update, close, reopen, remove } = useAnswerPrompts(sessionId);
 
   const sessionPrompts = useMemo(
-    () =>
-      answerPrompts
-        .filter((p) => p.sessionId === sessionId)
-        .sort((a, b) => b.createdAt - a.createdAt),
-    [answerPrompts, sessionId],
+    () => [...prompts].sort((a, b) => b.createdAt - a.createdAt),
+    [prompts],
   );
+  const active = sessionPrompts.find((p) => p.closedAt == null) ?? null;
   const closedPrompts = sessionPrompts.filter((p) => p.closedAt != null);
 
   const counts = useMemo(() => {
     let q = 0;
     let a = 0;
     for (const t of toppings) {
-      if (t.sessionId !== sessionId) continue;
       if (t.kind === "answer") a++;
       else q++;
     }
     return { q, a };
-  }, [toppings, sessionId]);
+  }, [toppings]);
 
   const answersByPrompt = useMemo(() => {
     const map = new Map<string, number>();
@@ -65,20 +51,21 @@ export function ToppingGateControl({ sessionId }: Props) {
   }, [toppings]);
 
   const [newPromptText, setNewPromptText] = useState("");
-  const [editing, setEditing] = useState<{ id: string; text: string } | null>(
-    null,
-  );
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = newPromptText.trim();
     if (!text) return;
     const hadActive = active != null;
-    const created = createAnswerPrompt(sessionId, text);
-    if (created) {
+    try {
+      await create(text);
       setNewPromptText("");
       if (hadActive) toast("이전 질문은 보관함으로 옮겼어요 (응답은 계속 받아요)");
       else toast.success("새 키워드 질문을 시작했어요");
+    } catch (err) {
+      console.error(err);
+      toast.error("질문을 시작하지 못했어요");
     }
   };
 
@@ -100,7 +87,7 @@ export function ToppingGateControl({ sessionId }: Props) {
           </span>
           <Switch
             checked={gate.questionsOpen}
-            onCheckedChange={(v) => setGate(sessionId, { questionsOpen: v })}
+            onCheckedChange={(v) => setGate({ questionsOpen: v })}
           />
         </label>
 
@@ -117,12 +104,11 @@ export function ToppingGateControl({ sessionId }: Props) {
             </span>
             <Switch
               checked={gate.answersOpen}
-              onCheckedChange={(v) => setGate(sessionId, { answersOpen: v })}
+              onCheckedChange={(v) => setGate({ answersOpen: v })}
               disabled={sessionPrompts.length === 0}
             />
           </label>
 
-          {/* Active prompt panel */}
           {active ? (
             <div className="rounded-xl bg-grad-sunset-soft border border-white/70 px-3 py-2 flex flex-col gap-2">
               <div className="flex items-center gap-2">
@@ -136,9 +122,7 @@ export function ToppingGateControl({ sessionId }: Props) {
                   <input
                     type="text"
                     value={editing.text}
-                    onChange={(e) =>
-                      setEditing({ id: active.id, text: e.target.value })
-                    }
+                    onChange={(e) => setEditing({ id: active.id, text: e.target.value })}
                     maxLength={60}
                     autoFocus
                     className="flex-1 rounded-full bg-card border border-white/80 px-3 py-1.5 text-xs outline-none focus:border-primary"
@@ -146,7 +130,7 @@ export function ToppingGateControl({ sessionId }: Props) {
                   <button
                     type="button"
                     onClick={() => {
-                      updateAnswerPrompt(active.id, editing.text);
+                      update({ promptId: active.id, text: editing.text });
                       setEditing(null);
                     }}
                     className="bounce-press inline-flex items-center justify-center rounded-full bg-grad-strawberry text-white w-7 h-7 shadow-pink"
@@ -167,9 +151,7 @@ export function ToppingGateControl({ sessionId }: Props) {
                 <div className="flex items-start gap-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      setEditing({ id: active.id, text: active.text })
-                    }
+                    onClick={() => setEditing({ id: active.id, text: active.text })}
                     className="flex-1 text-left text-sm font-semibold text-foreground hover:underline"
                     title="클릭하여 수정"
                   >
@@ -178,7 +160,7 @@ export function ToppingGateControl({ sessionId }: Props) {
                   <button
                     type="button"
                     onClick={() => {
-                      closeAnswerPrompt(active.id);
+                      close(active.id);
                       toast("질문을 보관함으로 옮겼어요");
                     }}
                     className="bounce-press inline-flex items-center gap-1 rounded-full bg-white/80 border border-white px-2.5 py-1 text-[11px] font-bold text-pink-700 hover:bg-white"
@@ -195,7 +177,6 @@ export function ToppingGateControl({ sessionId }: Props) {
             </p>
           )}
 
-          {/* New prompt input */}
           <form onSubmit={handleCreate} className="flex items-center gap-1.5">
             <input
               type="text"
@@ -217,7 +198,6 @@ export function ToppingGateControl({ sessionId }: Props) {
             </button>
           </form>
 
-          {/* History */}
           {closedPrompts.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <div className="text-[11px] font-bold text-muted-foreground px-1 mt-1">
@@ -238,7 +218,7 @@ export function ToppingGateControl({ sessionId }: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        reopenAnswerPrompt(p.id);
+                        reopen(p.id);
                         toast("질문을 다시 진행 중으로 옮겼어요");
                       }}
                       className="bounce-press inline-flex items-center justify-center rounded-full bg-white border border-white/80 w-6 h-6 text-muted-foreground hover:text-pink-600"
@@ -250,12 +230,9 @@ export function ToppingGateControl({ sessionId }: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        if (
-                          confirm(
-                            "이 질문과 받은 응답을 모두 삭제할까요? 되돌릴 수 없어요.",
-                          )
-                        )
-                          deleteAnswerPrompt(p.id);
+                        if (confirm("이 질문과 받은 응답을 모두 삭제할까요? 되돌릴 수 없어요.")) {
+                          remove(p.id);
+                        }
                       }}
                       className="bounce-press inline-flex items-center justify-center rounded-full bg-white border border-white/80 w-6 h-6 text-muted-foreground hover:text-red-500"
                       aria-label="삭제"
