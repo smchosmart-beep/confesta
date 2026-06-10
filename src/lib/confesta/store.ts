@@ -257,7 +257,13 @@ export const useConfestaStore = create<ConfestaState>()(
         return token;
       },
 
-      addTopping: (sessionId, text, kind = "question") =>
+      addTopping: (sessionId, text, kind = "question") => {
+        const gate = getToppingGate(get().toppingGates, sessionId);
+        const open = kind === "answer" ? gate.answersOpen : gate.questionsOpen;
+        if (!open) {
+          console.warn(`[confesta] addTopping blocked — ${kind} closed for ${sessionId}`);
+          return false;
+        }
         set((s) => ({
           toppings: [
             {
@@ -269,6 +275,19 @@ export const useConfestaStore = create<ConfestaState>()(
             },
             ...s.toppings,
           ],
+        }));
+        return true;
+      },
+
+      setToppingGate: (sessionId, partial) =>
+        set((s) => ({
+          toppingGates: {
+            ...s.toppingGates,
+            [sessionId]: {
+              ...getToppingGate(s.toppingGates, sessionId),
+              ...partial,
+            },
+          },
         })),
 
       togglePinTopping: (id) =>
