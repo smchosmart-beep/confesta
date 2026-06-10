@@ -4,6 +4,7 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react";
 interface SpotlightTopping {
   id: string;
   text: string;
+  createdAt?: number;
 }
 
 interface Props {
