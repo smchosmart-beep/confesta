@@ -274,9 +274,12 @@ function VenueCard({ venue }: { venue: VenueStat }) {
           );
         })}
       </div>
+        </>
+      )}
     </div>
   );
 }
+
 
 function TotalCard({
   label,
