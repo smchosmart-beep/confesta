@@ -182,6 +182,3 @@ export function OrderCard({ order }: Props) {
     </div>
   );
 }
-    </div>
-  );
-}
