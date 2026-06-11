@@ -69,23 +69,40 @@ export function ChocChip({ size = 18, rotate = 0, className, style }: IconProps)
   return (
     <svg
       width={size}
-      height={size}
-      viewBox="0 0 24 24"
+      height={size * 0.82}
+      viewBox="0 0 24 20"
       style={{ transform: `rotate(${rotate}deg)`, ...style }}
       className={className}
       aria-hidden
     >
       <defs>
-        <linearGradient id="choc-g" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#A06A3A" />
-          <stop offset="100%" stopColor="#3E1F0A" />
-        </linearGradient>
+        <radialGradient id="choc-g" cx="38%" cy="32%" r="75%">
+          <stop offset="0%" stopColor="#C68A52" />
+          <stop offset="55%" stopColor="#7A4520" />
+          <stop offset="100%" stopColor="#2E1606" />
+        </radialGradient>
       </defs>
-      <path
-        d="M4 18 Q4 8 12 4 Q20 8 20 18 Z"
-        fill="url(#choc-g)"
+      {/* Rounded chocolate disc (button shape) */}
+      <ellipse cx="12" cy="11" rx="10" ry="8" fill="url(#choc-g)" />
+      {/* Glossy highlight */}
+      <ellipse
+        cx="9"
+        cy="7"
+        rx="4.5"
+        ry="2.2"
+        fill="#FFE6C2"
+        opacity="0.45"
       />
-      <path d="M9 9 Q12 7 15 9" stroke="#FFD9A8" strokeWidth="1" fill="none" opacity="0.5" />
+      {/* Subtle rim shadow */}
+      <ellipse
+        cx="12"
+        cy="14"
+        rx="9"
+        ry="5.5"
+        fill="none"
+        stroke="rgba(20,8,2,0.35)"
+        strokeWidth="0.6"
+      />
     </svg>
   );
 }
