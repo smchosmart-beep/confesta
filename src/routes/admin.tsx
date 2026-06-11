@@ -707,13 +707,20 @@ function VenueCard({
                 compact
               />
             </div>
-            <div className={`${isHall ? 'mb-3' : 'mb-2'}`}>
+            <div className={`${isHall ? 'mb-2' : 'mb-1'} flex flex-col gap-1`}>
               <SlotTitleInput
                 day={day}
                 period={period}
                 room={sub.label}
                 initial={slot?.title ?? ""}
                 placeholder={sub.sessionTitle ?? "행사명"}
+              />
+              <SlotPresenterPasswordInput
+                day={day}
+                period={period}
+                room={sub.label}
+                hasPassword={!!slot?.hasPresenterPassword}
+                compact
               />
             </div>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center">
@@ -902,6 +909,14 @@ function MobileVenueCard({
                     initial={slot?.title ?? ""}
                     placeholder={sub.sessionTitle ?? "행사명"}
                   />
+                  <SlotPresenterPasswordInput
+                    day={day}
+                    period={period}
+                    room={sub.label}
+                    hasPassword={!!slot?.hasPresenterPassword}
+                    compact
+                  />
+                </div>
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
                       주문 <span className="tabular-nums">{sub.orders}</span>
