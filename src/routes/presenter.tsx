@@ -440,17 +440,18 @@ function UnlockedSlotView({
         </div>
       </div>
 
-      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
+      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
         <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           토핑 키워드 (응답)
         </h2>
         <p className="text-sm text-muted-foreground">
           청중이 보낸 <strong>키워드 응답 토핑</strong>이 실시간으로 반영됩니다.
         </p>
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="h-0 flex-1 flex flex-col">
           <AnswerPromptTabs sessionId={sessionId} />
         </div>
       </div>
+
     </div>
   );
 

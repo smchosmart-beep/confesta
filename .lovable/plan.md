@@ -1,34 +1,50 @@
-## 목표
+## 원인 가설
 
-발표자 화면의 "토핑 키워드 (응답)" 영역에서 현재의 **떨어지는 토핑 씬**과 청중 화면에 보이는 **응답 원그래프** 중 하나를 골라 볼 수 있게 한다. 두 화면은 동시에 표시하지 않고 토글로 전환한다.
+발표자 페이지의 질문 목록 카드 스크롤이 미리보기에서도 안 잡히는 이유는 부모 체인의 높이 제약이 새기 때문입니다. 코드 자체는 `flex-1 min-h-0 overflow-y-auto`를 갖고 있지만 다음 두 가지가 실제 동작을 막습니다:
 
-## 변경 파일
+1. `src/routes/presenter.tsx`의 `ResizablePanelGroup`에 `orientation="horizontal"`이 들어가 있음. `react-resizable-panels`의 실제 prop은 `direction`이므로 이 값은 무시되고, 라이브러리가 방향 계산을 폴백 처리하면서 패널 높이가 명시적으로 셋팅되지 않는 경우가 생깁니다.
+2. 질문 카드 컨테이너(`bg-card/60 ... flex-1 min-h-0`)에 `overflow-hidden`이 없어, 안의 콘텐츠가 길어지면 카드가 시각적으로 늘어나 보이는 현상이 발생합니다.
 
-### 1) `src/components/confesta/AnswerPie.tsx` (신규)
+## 수정 내용 (모두 `src/routes/presenter.tsx` 한 파일)
 
-`AnswerPromptCard.tsx`의 PieChart 렌더링 로직을 그대로 추출한 재사용 컴포넌트.
+### 1) ResizablePanelGroup props 교정 (473줄)
 
-- props: `sessionId: string`, `promptId: string | null`, `promptText?: string`
-- 내부에서 `useSessionToppings`로 toppings 가져와 `kind === "answer" && promptId 일치`로 필터링
-- 응답 0개일 때 "아직 도착한 응답이 없어요 🍒" 안내, 그 외엔 도넛 PieChart (기존과 동일한 PALETTE/스타일)
-- 카드 외곽은 부모(발표자 패널)에 맞춰 투명 배경 + 높이 100%
+```tsx
+<ResizablePanelGroup
+  direction="horizontal"
+  className="hidden xl:flex h-[calc(100vh-220px)] min-h-[600px]"
+>
+```
 
-### 2) `src/components/confesta/AnswerPromptCard.tsx`
+`orientation` → `direction`. (왼쪽/오른쪽 컬럼 모두 정상 너비를 받으면서 그룹 height도 안정적으로 적용됨)
 
-위 신규 컴포넌트를 사용하도록 PieChart 부분을 `<AnswerPie>`로 교체. 청중 화면 동작은 동일 (회귀 없음).
+### 2) 질문 목록 카드에 `overflow-hidden` 추가 + 스크롤 래퍼 강화 (460-466줄)
 
-### 3) `src/routes/presenter.tsx` — `AnswerPromptTabs`
+```tsx
+<div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
+  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+    질문 목록
+  </h2>
+  <div className="h-0 flex-1 overflow-y-auto">
+    <QuestionStream sessionId={sessionId} />
+  </div>
+</div>
+```
 
-탭(프롬프트 선택) 줄 오른쪽에 작은 뷰 전환 토글 추가:
+- 카드 컨테이너에 `overflow-hidden` 추가 → 카드 자체가 시각적으로 늘어나는 것을 차단.
+- 스크롤 래퍼 `flex-1 min-h-0` → `h-0 flex-1`. 동일 효과지만 더 강하게 0px 베이스라인을 강제해 모든 브라우저에서 일관 동작.
 
-- `view: "tub" | "chart"` 로컬 state (기본 `"tub"`)
-- 토글 UI: `PresenterModeToggle`과 비슷한 pill 토글, 아이콘은 `IceCream2`(토핑) / `PieChart`(통계), 라벨 "토핑" / "통계"
-- 본문 영역(`flex-1 min-h-0`)에서 view에 따라 `<ToppingTubScene>` 또는 `<AnswerPie sessionId promptId={selectedId} />` 중 하나만 렌더
-- 프롬프트가 0개이면 통계 토글은 비활성화 (선택 가능한 promptId가 없음)
+### 3) (선택) 토핑 키워드 카드에도 동일 처리 (443줄)
 
-기존 프롬프트 칩 리스트, 활성 동기화 로직, 카운트 배지는 그대로 유지.
+좌측 토핑 카드도 같은 패턴을 쓰고 있으므로 `overflow-hidden` 추가 및 내부 `flex-1 min-h-0` → `h-0 flex-1` 교체. 회귀 방지 + 일관성.
 
-## 비고
+### 4) `xl:hidden` (좁은 화면) 분기는 그대로
 
-- 데이터/서버 로직 변경 없음. 순수 UI 변경.
-- `recharts`는 이미 사용 중이라 추가 의존성 없음.
+좁은 화면(`xl:hidden flex flex-col gap-4`)은 의도적으로 페이지 전체 스크롤을 쓰므로 변경하지 않음. 데스크탑(xl 이상)에서만 카드 내부 스크롤이 적용됩니다.
+
+## 검증
+
+수정 후 미리보기 `/presenter`에서:
+- 질문이 카드 가시 영역보다 많아져도 카드 높이는 고정.
+- 카드 안에서만 세로 스크롤이 동작.
+- 좌우 패널 너비 핸들도 정상 동작.
