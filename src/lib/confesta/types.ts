@@ -81,6 +81,7 @@ export interface Order {
   sessionId: string;
   orderedAt: number;
   pickedUpAt: number | null;
+  sessionTitle?: string | null;
 }
 
 export type SessionQRKind = "order" | "pickup";
