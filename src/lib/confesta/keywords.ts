@@ -85,3 +85,24 @@ export function extractKeywords(texts: string[]): { word: string; count: number 
     .map(([word, count]) => ({ word, count }))
     .sort((a, b) => b.count - a.count);
 }
+
+// 응답(answer) 전용: 응답 텍스트 전체를 하나의 키워드로 취급.
+// 공백을 모두 제거하고 소문자화한 키로 동일 키워드를 집계한다.
+// 표시형(word)은 첫 등장한 원본(trim)을 사용한다.
+export function extractAnswerKeywords(
+  texts: string[],
+): { word: string; count: number }[] {
+  const counts = new Map<string, number>();
+  const display = new Map<string, string>();
+  for (const text of texts) {
+    const trimmed = text.trim();
+    if (!trimmed) continue;
+    const key = trimmed.replace(/\s+/g, "").toLowerCase();
+    if (!key) continue;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+    if (!display.has(key)) display.set(key, trimmed);
+  }
+  return Array.from(counts.entries())
+    .map(([key, count]) => ({ word: display.get(key) ?? key, count }))
+    .sort((a, b) => b.count - a.count);
+}
