@@ -268,14 +268,14 @@ function SlotPickerBar({
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent className={selectContentCls}>
-            {(["am", "pm"] as const).map((p) => (
+            {PERIODS.map((p) => (
               <SelectItem
                 key={p}
                 value={p}
                 disabled={!periodsAvailable.includes(p)}
                 className={selectItemCls}
               >
-                {p === "am" ? "오전" : "오후"}
+                {PERIOD_LABELS[p]}
               </SelectItem>
             ))}
           </SelectContent>
