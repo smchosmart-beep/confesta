@@ -443,10 +443,10 @@ function UnlockedSlotView({
           <p className="text-sm text-muted-foreground">
             청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 실시간 반영 · 키워드 5초마다 재배치.
           </p>
-          <div className="flex-1 min-h-0">
-            <ToppingTubScene sessionId={sessionId} />
-          </div>
+          <AnswerPromptTabs sessionId={sessionId} />
         </div>
+
+
 
         <div className="space-y-2 flex flex-col h-full overflow-hidden">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
