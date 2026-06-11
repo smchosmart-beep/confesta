@@ -82,6 +82,48 @@ export const listSlots = createServerFn({ method: "POST" })
     return { slots: await loadSlots(data.day, data.period) };
   });
 
+export type IssuedSlotDTO = {
+  day: number;
+  period: Period;
+  room: string;
+  title: string;
+};
+
+export const listIssuedSlots = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [slotsRes, noncesRes] = await Promise.all([
+      supabaseAdmin.from("session_slots").select("day, period, room, title"),
+      supabaseAdmin
+        .from("session_nonces")
+        .select("session_id, kind")
+        .eq("kind", "order"),
+    ]);
+    if (slotsRes.error) throw slotsRes.error;
+    if (noncesRes.error) throw noncesRes.error;
+    const issued = new Set((noncesRes.data ?? []).map((n) => n.session_id));
+    const slots: IssuedSlotDTO[] = (slotsRes.data ?? [])
+      .filter(
+        (s) =>
+          (s.title ?? "").trim().length > 0 &&
+          issued.has(makeSlotKey(s.day, s.period as Period, s.room)),
+      )
+      .map((s) => ({
+        day: s.day,
+        period: s.period as Period,
+        room: s.room,
+        title: s.title ?? "",
+      }))
+      .sort(
+        (a, b) =>
+          a.day - b.day ||
+          a.period.localeCompare(b.period) ||
+          a.room.localeCompare(b.room),
+      );
+    return { slots };
+  },
+);
+
 export const upsertSlotTitle = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
