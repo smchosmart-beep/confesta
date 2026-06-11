@@ -439,7 +439,7 @@ function UnlockedSlotView({
             토핑 키워드 (응답)
           </h2>
           <p className="text-sm text-muted-foreground">
-            청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 실시간 반영 · 키워드 5초마다 재배치.
+            청중이 보낸 <strong>키워드 응답 토핑</strong>이 실시간으로 반영됩니다.
           </p>
           <div className="flex-1 min-h-0 flex flex-col">
             <AnswerPromptTabs sessionId={sessionId} />
