@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCookie, setCookie, deleteCookie } from "@tanstack/react-start/server";
 import { z } from "zod";
 
-const PinRoleSchema = z.enum(["presenter", "staff", "admin"]);
+const PinRoleSchema = z.enum(["staff", "admin"]);
 
 export const verifyPin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
