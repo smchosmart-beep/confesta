@@ -17,6 +17,9 @@ import {
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+import { toast } from "sonner";
+import { KeyRound, Check, X as XIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -422,8 +425,123 @@ function SlotTitleInput({
 }
 
 // =========================
-// Slot QR Controls (issue / view / rotate)
+// Presenter password input
 // =========================
+function SlotPresenterPasswordInput({
+  day,
+  period,
+  room,
+  hasPassword,
+  compact,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  hasPassword: boolean;
+  compact?: boolean;
+}) {
+  const qc = useQueryClient();
+  const saveFn = useServerFn(setSlotPresenterPassword);
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+
+  const save = useMutation({
+    mutationFn: (password: string) =>
+      saveFn({ data: { day, period, room, password } }),
+    onSuccess: (res) => {
+      if (!res.ok) {
+        toast.error(("message" in res && res.message) || "저장 실패");
+        return;
+      }
+      toast.success(res.cleared ? "비밀번호 해제됨" : "비밀번호 저장됨");
+      setEditing(false);
+      setValue("");
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+    },
+    onError: () => toast.error("저장 중 오류"),
+  });
+
+  const sizeCls = compact ? "text-[10px] py-1 px-2" : "text-[11px] py-1 px-2";
+
+  if (!editing) {
+    return (
+      <div className="flex items-center justify-between gap-1.5 rounded-md border border-dashed border-foreground/15 bg-white/50 px-2 py-1">
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+          <KeyRound className="w-3 h-3" />
+          {hasPassword ? (
+            <span className="text-emerald-700">● 설정됨</span>
+          ) : (
+            <span className="text-amber-700">미설정</span>
+          )}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className={`bounce-press rounded-md bg-foreground/10 hover:bg-foreground/15 text-foreground font-extrabold whitespace-nowrap ${sizeCls}`}
+          >
+            {hasPassword ? "변경" : "설정"}
+          </button>
+          {hasPassword && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm("발표자 비밀번호를 해제할까요?")) save.mutate("");
+              }}
+              disabled={save.isPending}
+              className={`bounce-press rounded-md bg-white/80 border border-foreground/15 text-muted-foreground hover:text-red-600 font-extrabold whitespace-nowrap ${sizeCls} disabled:opacity-40`}
+            >
+              해제
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!value.trim()) return;
+        save.mutate(value);
+      }}
+      className="flex items-center gap-1"
+    >
+      <input
+        type="password"
+        autoFocus
+        autoComplete="new-password"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="6자 이상, 공백 없이"
+        maxLength={64}
+        className="flex-1 min-w-0 rounded-md border border-foreground/15 bg-white/90 px-2 py-1 text-xs outline-none focus:border-primary"
+      />
+      <button
+        type="submit"
+        disabled={!value.trim() || save.isPending}
+        className="bounce-press rounded-md bg-grad-strawberry text-white w-7 h-7 flex items-center justify-center shadow-pink disabled:opacity-40"
+        aria-label="저장"
+      >
+        <Check className="w-3.5 h-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setEditing(false);
+          setValue("");
+        }}
+        className="bounce-press rounded-md bg-white/80 border border-foreground/15 text-muted-foreground w-7 h-7 flex items-center justify-center"
+        aria-label="취소"
+      >
+        <XIcon className="w-3.5 h-3.5" />
+      </button>
+    </form>
+  );
+}
+
+
 function SlotQRControls({
   day,
   period,
@@ -589,13 +707,20 @@ function VenueCard({
                 compact
               />
             </div>
-            <div className={`${isHall ? 'mb-3' : 'mb-2'}`}>
+            <div className={`${isHall ? 'mb-2' : 'mb-1'} flex flex-col gap-1`}>
               <SlotTitleInput
                 day={day}
                 period={period}
                 room={sub.label}
                 initial={slot?.title ?? ""}
                 placeholder={sub.sessionTitle ?? "행사명"}
+              />
+              <SlotPresenterPasswordInput
+                day={day}
+                period={period}
+                room={sub.label}
+                hasPassword={!!slot?.hasPresenterPassword}
+                compact
               />
             </div>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center">
@@ -783,6 +908,13 @@ function MobileVenueCard({
                     room={sub.label}
                     initial={slot?.title ?? ""}
                     placeholder={sub.sessionTitle ?? "행사명"}
+                  />
+                  <SlotPresenterPasswordInput
+                    day={day}
+                    period={period}
+                    room={sub.label}
+                    hasPassword={!!slot?.hasPresenterPassword}
+                    compact
                   />
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">

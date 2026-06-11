@@ -152,6 +152,24 @@ export type Database = {
         }
         Relationships: []
       }
+      session_secrets: {
+        Row: {
+          password_hash: string
+          session_id: string
+          set_at: string
+        }
+        Insert: {
+          password_hash: string
+          session_id: string
+          set_at?: string
+        }
+        Update: {
+          password_hash?: string
+          session_id?: string
+          set_at?: string
+        }
+        Relationships: []
+      }
       session_slots: {
         Row: {
           capacity: number | null

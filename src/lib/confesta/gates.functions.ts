@@ -47,8 +47,8 @@ export const setToppingGate = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const patch: {

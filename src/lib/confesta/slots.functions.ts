@@ -12,9 +12,9 @@ async function assertAdmin() {
   await assertRole("admin");
 }
 
-async function assertPresenter() {
-  const { assertRole } = await import("./assertRole");
-  await assertRole("presenter");
+async function assertPresenterSlotKey(day: number, period: Period, room: string) {
+  const { assertPresenterSlot } = await import("./assertRole");
+  await assertPresenterSlot(makeSlotKey(day, period, room));
 }
 
 function newNonce() {
@@ -32,11 +32,12 @@ export type SlotDTO = {
   hasPickupQR: boolean;
   pickupPayload: string | null;
   pickupRotatedAt: number | null;
+  hasPresenterPassword: boolean;
 };
 
 async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const [slotsRes, noncesRes] = await Promise.all([
+  const [slotsRes, noncesRes, secretsRes] = await Promise.all([
     supabaseAdmin
       .from("session_slots")
       .select("day, period, room, title")
@@ -46,14 +47,17 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
       .from("session_nonces")
       .select("session_id, kind, nonce, rotated_at")
       .in("kind", ["order", "pickup"]),
+    supabaseAdmin.from("session_secrets").select("session_id"),
   ]);
   if (slotsRes.error) throw slotsRes.error;
   if (noncesRes.error) throw noncesRes.error;
+  if (secretsRes.error) throw secretsRes.error;
 
   const nonceMap = new Map<string, { nonce: string; rotated_at: string }>();
   for (const n of noncesRes.data ?? []) {
     nonceMap.set(`${n.kind}:${n.session_id}`, { nonce: n.nonce, rotated_at: n.rotated_at });
   }
+  const secretsSet = new Set((secretsRes.data ?? []).map((r) => r.session_id));
 
   return (slotsRes.data ?? []).map((s) => {
     const key = makeSlotKey(s.day, s.period as Period, s.room);
@@ -70,6 +74,7 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
       hasPickupQR: !!pickup,
       pickupPayload: pickup ? makePickupQR(key, pickup.nonce) : null,
       pickupRotatedAt: pickup ? new Date(pickup.rotated_at).getTime() : null,
+      hasPresenterPassword: secretsSet.has(key),
     };
   });
 }
@@ -87,33 +92,41 @@ export type IssuedSlotDTO = {
   period: Period;
   room: string;
   title: string;
+  hasPresenterPassword: boolean;
 };
 
 export const listIssuedSlots = createServerFn({ method: "GET" }).handler(
   async () => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const [slotsRes, noncesRes] = await Promise.all([
+    const [slotsRes, noncesRes, secretsRes] = await Promise.all([
       supabaseAdmin.from("session_slots").select("day, period, room, title"),
       supabaseAdmin
         .from("session_nonces")
         .select("session_id, kind")
         .eq("kind", "order"),
+      supabaseAdmin.from("session_secrets").select("session_id"),
     ]);
     if (slotsRes.error) throw slotsRes.error;
     if (noncesRes.error) throw noncesRes.error;
+    if (secretsRes.error) throw secretsRes.error;
     const issued = new Set((noncesRes.data ?? []).map((n) => n.session_id));
+    const secretsSet = new Set((secretsRes.data ?? []).map((r) => r.session_id));
     const slots: IssuedSlotDTO[] = (slotsRes.data ?? [])
       .filter(
         (s) =>
           (s.title ?? "").trim().length > 0 &&
           issued.has(makeSlotKey(s.day, s.period as Period, s.room)),
       )
-      .map((s) => ({
-        day: s.day,
-        period: s.period as Period,
-        room: s.room,
-        title: s.title ?? "",
-      }))
+      .map((s) => {
+        const key = makeSlotKey(s.day, s.period as Period, s.room);
+        return {
+          day: s.day,
+          period: s.period as Period,
+          room: s.room,
+          title: s.title ?? "",
+          hasPresenterPassword: secretsSet.has(key),
+        };
+      })
       .sort(
         (a, b) =>
           a.day - b.day ||
@@ -123,6 +136,7 @@ export const listIssuedSlots = createServerFn({ method: "GET" }).handler(
     return { slots };
   },
 );
+
 
 export const upsertSlotTitle = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -218,7 +232,7 @@ export const issuePickupQR = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    await assertPresenter();
+    await assertPresenterSlotKey(data.day, data.period, data.room);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const key = makeSlotKey(data.day, data.period, data.room);
 
@@ -255,7 +269,7 @@ export const rotatePickupQR = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    await assertPresenter();
+    await assertPresenterSlotKey(data.day, data.period, data.room);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const key = makeSlotKey(data.day, data.period, data.room);
     const nonce = newNonce();

@@ -1,7 +1,7 @@
 // PIN cookie helpers — server-only (filename guard).
 import crypto from "node:crypto";
 
-export type PinRole = "presenter" | "staff" | "admin";
+export type PinRole = "staff" | "admin";
 
 const COOKIE_PREFIX = "confesta_pin_";
 const COOKIE_TTL_SECONDS = 60 * 60 * 12; // 12 hours
@@ -14,7 +14,6 @@ function getSecret() {
 
 function getRolePin(role: PinRole) {
   const map: Record<PinRole, string | undefined> = {
-    presenter: process.env.PRESENTER_PIN,
     staff: process.env.STAFF_PIN,
     admin: process.env.ADMIN_PIN,
   };

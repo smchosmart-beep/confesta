@@ -44,8 +44,9 @@ export const setSlideState = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
+    // 슬라이드 컨트롤은 전역 싱글톤이라 admin PIN으로 보호
     const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    await assertRole("admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Load current

@@ -1,21 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
-import { PinAuthGate } from "@/components/confesta/PinAuthGate";
+import { SlotUnlockCard } from "@/components/confesta/SlotUnlockCard";
 import {
   issuePickupQR,
   listIssuedSlots,
   rotatePickupQR,
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
+import {
+  checkPresenterSlot,
+  clearPresenterSlot,
+} from "@/lib/confesta/presenter.functions";
 import { makeSlotKey, type Period } from "@/lib/confesta/shared";
-import { QrCode, X } from "lucide-react";
+import { QrCode, X, LogOut } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import {
   Select,
@@ -45,22 +49,9 @@ export const Route = createFileRoute("/presenter")({
   component: PresenterPage,
 });
 
-function PresenterPage() {
-  return (
-    <PinAuthGate
-      role="presenter"
-      title="발표자 인증"
-      description="청중 입력 제어 · 수령 QR 발급을 위해 인증이 필요해요."
-      accent="strawberry"
-    >
-      <PresenterView />
-    </PinAuthGate>
-  );
-}
-
 const QR_INTERVAL_MS = 15_000;
 
-function PresenterView() {
+function PresenterPage() {
   const listFn = useServerFn(listIssuedSlots);
   const slotsQuery = useQuery({
     queryKey: ["presenter-issued-slots"],
@@ -119,45 +110,280 @@ function PresenterView() {
           (s) => s.day === day && s.period === period && s.room === room,
         ) ?? null
       : null;
-  const sessionId = selected
-    ? makeSlotKey(selected.day, selected.period, selected.room)
-    : null;
+
+  if (slots.length === 0) {
+    return (
+      <main className="min-h-screen pb-6">
+        <RoleHeader
+          role="발표자 (Presenter)"
+          description={
+            slotsQuery.isLoading
+              ? "세션 목록 불러오는 중…"
+              : "관리자 화면에서 행사명을 입력하고 주문 QR을 발급하면 여기에 나타납니다."
+          }
+          color="blue"
+        />
+        <div className="px-3 sm:px-4">
+          <div className="rounded-3xl border border-dashed border-white/80 bg-white/50 p-10 text-center text-sm text-muted-foreground">
+            {slotsQuery.isLoading
+              ? "세션 목록을 불러오는 중입니다…"
+              : "표시할 세션이 없습니다."}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen pb-6">
+      <RoleHeader
+        role="발표자 (Presenter)"
+        description={
+          selected
+            ? `${selected.title} · ${selected.room}`
+            : "세션을 선택해 주세요"
+        }
+        color="blue"
+      />
+
+      <section className="px-3 sm:px-4">
+        <SlotPickerBar
+          slots={slots}
+          day={day}
+          period={period}
+          room={room}
+          daysAvailable={daysAvailable}
+          periodsAvailable={periodsAvailable}
+          slotsInScope={slotsInScope}
+          onChangeDay={(d) => {
+            setDay(d);
+            const periods = Array.from(
+              new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
+            ) as Period[];
+            const nextPeriod =
+              period != null && periods.includes(period) ? period : periods[0] ?? null;
+            setPeriod(nextPeriod);
+            const rooms = slots
+              .filter((s) => s.day === d && s.period === nextPeriod)
+              .map((s) => s.room);
+            setRoom(rooms[0] ?? null);
+          }}
+          onChangePeriod={(p) => {
+            setPeriod(p);
+            const rooms = slots
+              .filter((s) => s.day === day && s.period === p)
+              .map((s) => s.room);
+            setRoom(rooms[0] ?? null);
+          }}
+          onChangeRoom={setRoom}
+          loading={slotsQuery.isLoading}
+        />
+
+        {selected ? (
+          <SelectedSlotBody key={makeSlotKey(selected.day, selected.period, selected.room)} slot={selected} />
+        ) : (
+          <div className="rounded-3xl border border-dashed border-white/80 bg-white/50 p-10 text-center text-sm text-muted-foreground">
+            세션을 선택해 주세요.
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+// =========================
+// Slot selector bar
+// =========================
+function SlotPickerBar({
+  slots,
+  day,
+  period,
+  room,
+  daysAvailable,
+  periodsAvailable,
+  slotsInScope,
+  onChangeDay,
+  onChangePeriod,
+  onChangeRoom,
+  loading,
+}: {
+  slots: IssuedSlotDTO[];
+  day: number | null;
+  period: Period | null;
+  room: string | null;
+  daysAvailable: number[];
+  periodsAvailable: Period[];
+  slotsInScope: IssuedSlotDTO[];
+  onChangeDay: (d: number) => void;
+  onChangePeriod: (p: Period) => void;
+  onChangeRoom: (r: string) => void;
+  loading: boolean;
+}) {
+  void slots;
+  return (
+    <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+            1단계 · 일자 선택
+          </span>
+          <Select
+            value={day != null ? String(day) : ""}
+            onValueChange={(v) => onChangeDay(parseInt(v, 10))}
+            disabled={daysAvailable.length === 0}
+          >
+            <SelectTrigger className={selectTriggerCls}>
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
+            <SelectContent className={selectContentCls}>
+              {daysAvailable.map((d) => (
+                <SelectItem key={d} value={String(d)} className={selectItemCls}>
+                  Day {d}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+            2단계 · 시간대 선택
+          </span>
+          <Select
+            value={period ?? ""}
+            onValueChange={(v) => onChangePeriod(v as Period)}
+            disabled={periodsAvailable.length === 0}
+          >
+            <SelectTrigger className={selectTriggerCls}>
+              <SelectValue placeholder="—" />
+            </SelectTrigger>
+            <SelectContent className={selectContentCls}>
+              {(["am", "pm"] as const).map((p) => (
+                <SelectItem
+                  key={p}
+                  value={p}
+                  disabled={!periodsAvailable.includes(p)}
+                  className={selectItemCls}
+                >
+                  {p === "am" ? "오전" : "오후"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+            3단계 · 세션 선택
+          </span>
+          <Select
+            value={room ?? ""}
+            onValueChange={onChangeRoom}
+            disabled={slotsInScope.length === 0}
+          >
+            <SelectTrigger className={selectTriggerCls}>
+              <SelectValue
+                placeholder={loading ? "불러오는 중…" : "발급된 세션이 없습니다"}
+              />
+            </SelectTrigger>
+            <SelectContent className={selectContentCls}>
+              {slotsInScope.map((s) => (
+                <SelectItem key={s.room} value={s.room} className={selectItemCls}>
+                  {s.room} — {s.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================
+// Body — locked vs unlocked per slot
+// =========================
+function SelectedSlotBody({ slot }: { slot: IssuedSlotDTO }) {
+  const qc = useQueryClient();
+  const checkFn = useServerFn(checkPresenterSlot);
+  const clearFn = useServerFn(clearPresenterSlot);
+  const sessionId = makeSlotKey(slot.day, slot.period, slot.room);
+
+  const checkQuery = useQuery({
+    queryKey: ["presenter-slot-auth", sessionId],
+    queryFn: () =>
+      checkFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
+    staleTime: 30_000,
+  });
+
+  const lock = useMutation({
+    mutationFn: () =>
+      clearFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["presenter-slot-auth", sessionId] }),
+  });
+
+  if (checkQuery.isLoading) {
+    return (
+      <div className="mt-12 text-center text-sm text-muted-foreground">
+        인증 확인 중…
+      </div>
+    );
+  }
+
+  if (!checkQuery.data?.ok) {
+    return (
+      <SlotUnlockCard
+        day={slot.day}
+        period={slot.period}
+        room={slot.room}
+        title={slot.title}
+        hasPresenterPassword={slot.hasPresenterPassword}
+        onUnlocked={() =>
+          qc.invalidateQueries({ queryKey: ["presenter-slot-auth", sessionId] })
+        }
+      />
+    );
+  }
+
+  return (
+    <UnlockedSlotView
+      slot={slot}
+      sessionId={sessionId}
+      onLock={() => lock.mutate()}
+    />
+  );
+}
+
+function UnlockedSlotView({
+  slot,
+  sessionId,
+  onLock,
+}: {
+  slot: IssuedSlotDTO;
+  sessionId: string;
+  onLock: () => void;
+}) {
+  const issueFn = useServerFn(issuePickupQR);
+  const rotateFn = useServerFn(rotatePickupQR);
 
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
   const [progress, setProgress] = useState(100);
 
-  const issueFn = useServerFn(issuePickupQR);
-  const rotateFn = useServerFn(rotatePickupQR);
-
   const issue = useMutation({
-    mutationFn: () => {
-      if (!selected) throw new Error("세션이 선택되지 않았어요");
-      return issueFn({
-        data: { day: selected.day, period: selected.period, room: selected.room },
-      });
-    },
+    mutationFn: () =>
+      issueFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
     onSuccess: (r) => setPickupPayload(r.payload),
   });
   const rotate = useMutation({
-    mutationFn: () => {
-      if (!selected) throw new Error("세션이 선택되지 않았어요");
-      return rotateFn({
-        data: { day: selected.day, period: selected.period, room: selected.room },
-      });
-    },
+    mutationFn: () =>
+      rotateFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
     onSuccess: (r) => setPickupPayload(r.payload),
   });
 
-  // Reset pickup modal when session changes
   useEffect(() => {
-    setPickupOpen(false);
-    setPickupPayload("");
-  }, [sessionId]);
-
-  // While modal open, issue once and rotate every interval
-  useEffect(() => {
-    if (!pickupOpen || !selected) return;
+    if (!pickupOpen) return;
     issue.mutate();
     setProgress(100);
     const start = Date.now();
@@ -173,172 +399,61 @@ function PresenterView() {
       window.clearInterval(rotateId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, pickupOpen]);
-
-  const headerDesc = selected
-    ? `${selected.title} · ${selected.room}`
-    : slotsQuery.isLoading
-    ? "세션 목록 불러오는 중…"
-    : "관리자 화면에서 행사명을 입력하고 주문 QR을 발급하면 여기에 나타납니다.";
+  }, [pickupOpen]);
 
   return (
-    <main className="min-h-screen pb-6">
-      <RoleHeader
-        role="발표자 (Presenter)"
-        description={headerDesc}
-        color="blue"
-      />
+    <>
+      <div className="mb-3 flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            잠금 해제됨
+          </p>
+          <p className="text-sm font-extrabold truncate">{slot.title}</p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setPickupOpen(true)}
+            className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink"
+          >
+            <QrCode className="w-5 h-5" />
+            수령 QR
+          </button>
+          <button
+            type="button"
+            onClick={onLock}
+            className="bounce-press inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-white px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
+            title="이 세션 잠그기"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            잠그기
+          </button>
+        </div>
+      </div>
 
-      <section className="px-3 sm:px-4">
-        <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
-          <div className="flex items-start justify-between gap-3">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr_2fr] gap-4 flex-1">
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  1단계 · 일자 선택
-                </span>
-                <Select
-                  value={day != null ? String(day) : ""}
-                  onValueChange={(v) => {
-                    const d = parseInt(v, 10);
-                    setDay(d);
-                    const periods = Array.from(
-                      new Set(
-                        slots.filter((s) => s.day === d).map((s) => s.period),
-                      ),
-                    ) as Period[];
-                    const nextPeriod =
-                      period != null && periods.includes(period)
-                        ? period
-                        : periods[0] ?? null;
-                    setPeriod(nextPeriod);
-                    const rooms = slots
-                      .filter((s) => s.day === d && s.period === nextPeriod)
-                      .map((s) => s.room);
-                    setRoom(rooms[0] ?? null);
-                  }}
-                  disabled={daysAvailable.length === 0}
-                >
-                  <SelectTrigger className={selectTriggerCls}>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent className={selectContentCls}>
-                    {daysAvailable.map((d) => (
-                      <SelectItem key={d} value={String(d)} className={selectItemCls}>
-                        Day {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  2단계 · 시간대 선택
-                </span>
-                <Select
-                  value={period ?? ""}
-                  onValueChange={(v) => {
-                    const p = v as Period;
-                    setPeriod(p);
-                    const rooms = slots
-                      .filter((s) => s.day === day && s.period === p)
-                      .map((s) => s.room);
-                    setRoom(rooms[0] ?? null);
-                  }}
-                  disabled={periodsAvailable.length === 0}
-                >
-                  <SelectTrigger className={selectTriggerCls}>
-                    <SelectValue placeholder="—" />
-                  </SelectTrigger>
-                  <SelectContent className={selectContentCls}>
-                    {(["am", "pm"] as const).map((p) => (
-                      <SelectItem
-                        key={p}
-                        value={p}
-                        disabled={!periodsAvailable.includes(p)}
-                        className={selectItemCls}
-                      >
-                        {p === "am" ? "오전" : "오후"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                  3단계 · 세션 선택
-                </span>
-                <Select
-                  value={room ?? ""}
-                  onValueChange={(v) => setRoom(v)}
-                  disabled={slotsInScope.length === 0}
-                >
-                  <SelectTrigger className={selectTriggerCls}>
-                    <SelectValue
-                      placeholder={
-                        slotsQuery.isLoading
-                          ? "불러오는 중…"
-                          : "발급된 세션이 없습니다"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className={selectContentCls}>
-                    {slotsInScope.map((s) => (
-                      <SelectItem key={s.room} value={s.room} className={selectItemCls}>
-                        {s.room} — {s.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setPickupOpen(true)}
-              disabled={!selected}
-              className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[88px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink shrink-0 disabled:opacity-40 disabled:hover:scale-100"
-            >
-              <QrCode className="w-5 h-5" />
-              수령 QR
-            </button>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-220px)]">
+        <div className="space-y-2 flex flex-col h-full">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            토핑 키워드 (응답)
+          </h2>
+          <ToppingGateControl sessionId={sessionId} />
+          <p className="text-sm text-muted-foreground">
+            청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
+          </p>
+          <div className="flex-1 min-h-0">
+            <ToppingTubScene sessionId={sessionId} />
           </div>
         </div>
 
-        {sessionId ? (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-180px)]">
-            <div className="space-y-2 flex flex-col h-full">
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                토핑 키워드 (응답)
-              </h2>
-              <ToppingGateControl sessionId={sessionId} />
-              <p className="text-sm text-muted-foreground">
-                청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
-              </p>
-              <div className="flex-1 min-h-0">
-                <ToppingTubScene sessionId={sessionId} />
-              </div>
-            </div>
-
-            <div className="space-y-2 flex flex-col h-full overflow-hidden">
-              <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                질문 목록
-              </h2>
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <QuestionStream sessionId={sessionId} />
-              </div>
-            </div>
+        <div className="space-y-2 flex flex-col h-full overflow-hidden">
+          <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            질문 목록
+          </h2>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <QuestionStream sessionId={sessionId} />
           </div>
-        ) : (
-          <div className="rounded-3xl border border-dashed border-white/80 bg-white/50 p-10 text-center text-sm text-muted-foreground">
-            {slotsQuery.isLoading
-              ? "세션 목록을 불러오는 중입니다…"
-              : "표시할 세션이 없습니다. 관리자 화면에서 행사명을 입력하고 주문 QR을 발급해 주세요."}
-          </div>
-        )}
-      </section>
+        </div>
+      </div>
 
       {pickupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
@@ -394,6 +509,6 @@ function PresenterView() {
           </div>
         </div>
       )}
-    </main>
+    </>
   );
 }
