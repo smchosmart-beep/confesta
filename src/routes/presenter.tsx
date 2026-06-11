@@ -438,7 +438,7 @@ function UnlockedSlotView({
           </h2>
           <ToppingGateControl sessionId={sessionId} />
           <p className="text-sm text-muted-foreground">
-            청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 5초마다 갱신.
+            청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 실시간 반영 · 키워드 5초마다 재배치.
           </p>
           <div className="flex-1 min-h-0">
             <ToppingTubScene sessionId={sessionId} />

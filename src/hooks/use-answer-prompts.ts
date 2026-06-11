@@ -1,7 +1,6 @@
-import { useEffect, useId } from "react";
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listAnswerPrompts,
   createAnswerPrompt as createFn,
@@ -11,6 +10,10 @@ import {
   deleteAnswerPrompt as deleteFnSrv,
   type AnswerPromptDTO,
 } from "@/lib/confesta/prompts.functions";
+import {
+  subscribePrompts,
+  useRealtimeHealth,
+} from "@/lib/confesta/realtime-channel";
 
 export function useAnswerPrompts(sessionId: string | null) {
   const qc = useQueryClient();
@@ -20,30 +23,27 @@ export function useAnswerPrompts(sessionId: string | null) {
   const closeSrv = useServerFn(closeFn);
   const reopenSrv = useServerFn(reopenFn);
   const deleteSrv = useServerFn(deleteFnSrv);
-  const channelId = useId();
 
   const queryKey = ["prompts", sessionId] as const;
+  const healthy = useRealtimeHealth("prompts", sessionId);
+
   const { data } = useQuery({
     queryKey,
     queryFn: () => listSrv({ data: { sessionId: sessionId! } }),
     enabled: !!sessionId,
     staleTime: 5_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false,
+    refetchInterval: healthy ? false : 30_000,
   });
 
   useEffect(() => {
     if (!sessionId) return;
-    const channel = supabase
-      .channel(`prompts:${sessionId}:${channelId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "answer_prompts", filter: `session_id=eq.${sessionId}` },
-        () => qc.invalidateQueries({ queryKey }),
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [sessionId, qc, channelId]);
+    return subscribePrompts(sessionId, () =>
+      qc.invalidateQueries({ queryKey: ["prompts", sessionId] }),
+    );
+  }, [sessionId, qc]);
 
   const create = useMutation({
     mutationFn: (text: string) => createSrv({ data: { sessionId: sessionId!, text } }),

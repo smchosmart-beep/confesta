@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useId, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import {
   listToppings,
   addTopping as addToppingFn,
@@ -11,10 +10,13 @@ import {
   type ToppingDTO,
 } from "@/lib/confesta/toppings.functions";
 import { useDeviceId } from "./use-device-id";
+import {
+  subscribeToppings,
+  useRealtimeHealth,
+} from "@/lib/confesta/realtime-channel";
 
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
-  const channelId = useId();
   const qc = useQueryClient();
   const listFn = useServerFn(listToppings);
   const addFn = useServerFn(addToppingFn);
@@ -23,6 +25,7 @@ export function useSessionToppings(sessionId: string | null) {
   const addrFn = useServerFn(toggleAddressedFn);
 
   const queryKey = ["toppings", sessionId, deviceId] as const;
+  const healthy = useRealtimeHealth("toppings", sessionId);
 
   const { data } = useQuery({
     queryKey,
@@ -30,28 +33,18 @@ export function useSessionToppings(sessionId: string | null) {
       listFn({ data: { sessionId: sessionId!, deviceId: deviceId ?? undefined } }),
     enabled: !!sessionId,
     staleTime: 5_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false,
+    refetchInterval: healthy ? false : 30_000,
   });
 
-  // Realtime: refetch on any change touching this session
   useEffect(() => {
     if (!sessionId) return;
-    const channel = supabase
-      .channel(`toppings:${sessionId}:${channelId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "toppings", filter: `session_id=eq.${sessionId}` },
-        () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "topping_likes" },
-        () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
-      )
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [sessionId, qc, channelId]);
+    return subscribeToppings(sessionId, () =>
+      qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    );
+  }, [sessionId, qc]);
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
 

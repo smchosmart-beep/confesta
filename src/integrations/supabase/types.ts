@@ -249,16 +249,19 @@ export type Database = {
         Row: {
           created_at: string
           device_id: string
+          session_id: string
           topping_id: string
         }
         Insert: {
           created_at?: string
           device_id: string
+          session_id: string
           topping_id: string
         }
         Update: {
           created_at?: string
           device_id?: string
+          session_id?: string
           topping_id?: string
         }
         Relationships: []
