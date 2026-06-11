@@ -41,7 +41,19 @@ import {
   Sparkles,
   ShoppingBag,
   IceCreamCone as IceCreamConeIcon,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/audience")({
   head: () => ({
@@ -149,8 +161,9 @@ function AudienceView() {
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
-  const { toppings, toggleLike } = useSessionToppings(activeSessionId);
+  const { toppings, toggleLike, deleteOwn } = useSessionToppings(activeSessionId);
   const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
 
   const handleOrderScan = async (text: string) => {
@@ -457,7 +470,18 @@ function AudienceView() {
                                     <span aria-hidden>{liked ? "❤️" : "🤍"}</span>
                                     <span>{likeCount}</span>
                                   </button>
+                                  {t.mine && !t.pinned && !t.addressed && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPendingDeleteId(t.id)}
+                                      aria-label="내 질문 삭제"
+                                      className="bounce-press shrink-0 inline-flex items-center justify-center rounded-full w-7 h-7 text-muted-foreground/70 bg-white/70 border border-white hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
+
                               </li>
                             );
                           })}
@@ -516,6 +540,41 @@ function AudienceView() {
           )}
         </section>
       </DeviceFrame>
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={(o) => { if (!o) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>이 질문을 삭제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              삭제하면 되돌릴 수 없어요. 발표자와 다른 청중 화면에서도 사라집니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const id = pendingDeleteId;
+                setPendingDeleteId(null);
+                if (!id) return;
+                try {
+                  const r = await deleteOwn(id);
+                  if (!r?.ok) {
+                    toast.error(r?.message ?? "삭제할 수 없어요");
+                  } else {
+                    toast.success("질문을 삭제했어요");
+                  }
+                } catch {
+                  toast.error("삭제 중 오류가 발생했어요");
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
+

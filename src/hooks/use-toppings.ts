@@ -7,6 +7,7 @@ import {
   toggleLikeTopping as toggleLikeFn,
   togglePinTopping as togglePinFn,
   toggleAddressedTopping as toggleAddressedFn,
+  deleteOwnTopping as deleteOwnFn,
   type ToppingDTO,
 } from "@/lib/confesta/toppings.functions";
 import { useDeviceId } from "./use-device-id";
@@ -23,6 +24,7 @@ export function useSessionToppings(sessionId: string | null) {
   const likeFn = useServerFn(toggleLikeFn);
   const pinFn = useServerFn(togglePinFn);
   const addrFn = useServerFn(toggleAddressedFn);
+  const deleteFn = useServerFn(deleteOwnFn);
 
   const queryKey = ["toppings", sessionId, deviceId] as const;
   const healthy = useRealtimeHealth("toppings", sessionId);
@@ -84,12 +86,23 @@ export function useSessionToppings(sessionId: string | null) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
   });
 
+  const deleteOwnMut = useMutation({
+    mutationFn: (toppingId: string) =>
+      deleteFn({ data: { deviceId: deviceId!, toppingId } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+  });
+
   const submit = useCallback(
     async (text: string, kind: "question" | "answer" = "question", promptId?: string) => {
       const r = await addTopping.mutateAsync({ text, kind, promptId });
       return r;
     },
     [addTopping],
+  );
+
+  const deleteOwn = useCallback(
+    (toppingId: string) => deleteOwnMut.mutateAsync(toppingId),
+    [deleteOwnMut],
   );
 
   return useMemo(
@@ -100,7 +113,8 @@ export function useSessionToppings(sessionId: string | null) {
       toggleLike: toggleLike.mutate,
       togglePin: togglePin.mutate,
       toggleAddressed: toggleAddressed.mutate,
+      deleteOwn,
     }),
-    [toppings, deviceId, sessionId, submit, toggleLike.mutate, togglePin.mutate, toggleAddressed.mutate],
+    [toppings, deviceId, sessionId, submit, toggleLike.mutate, togglePin.mutate, toggleAddressed.mutate, deleteOwn],
   );
 }
