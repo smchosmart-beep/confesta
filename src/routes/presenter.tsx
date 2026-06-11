@@ -405,7 +405,7 @@ function UnlockedSlotView({
 
   return (
     <>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:h-[calc(100vh-160px)]">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <div className="flex flex-col gap-3 min-h-0">
           <div className="flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
             <div className="min-w-0">
