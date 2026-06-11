@@ -35,6 +35,13 @@ export function AnswerPromptCard({ prompt }: Props) {
   const canSubmit = gate.answersOpen;
 
   const [text, setText] = useState("");
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 192) + "px";
+  }, [text]);
 
   const answers = useMemo(
     () => toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id),
