@@ -1,27 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-} from "recharts";
 import { Send, Lock, Megaphone } from "lucide-react";
 import type { AnswerPromptDTO } from "@/lib/confesta/prompts.functions";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useToppingGate } from "@/hooks/use-topping-gate";
+import { AnswerPie } from "./AnswerPie";
 
-const PALETTE = [
-  "var(--scoop-strawberry)",
-  "var(--scoop-mango)",
-  "var(--scoop-mint)",
-  "var(--scoop-blueberry)",
-  "var(--scoop-grape)",
-  "var(--scoop-chocolate)",
-  "var(--muted-foreground)",
-];
 
 interface Props {
   prompt: AnswerPromptDTO;
@@ -43,28 +27,13 @@ export function AnswerPromptCard({ prompt }: Props) {
     el.style.height = Math.min(el.scrollHeight, 192) + "px";
   }, [text]);
 
-  const answers = useMemo(
-    () => toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id),
+  const total = useMemo(
+    () =>
+      toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id)
+        .length,
     [toppings, prompt.id],
   );
-  const total = answers.length;
 
-  const data = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const a of answers) {
-      const key = a.text.trim().toLowerCase();
-      if (!key) continue;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    const sorted = [...counts.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-    const TOP = 6;
-    if (sorted.length <= TOP) return sorted;
-    const top = sorted.slice(0, TOP);
-    const restSum = sorted.slice(TOP).reduce((s, x) => s + x.value, 0);
-    return [...top, { name: "기타", value: restSum }];
-  }, [answers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,54 +135,10 @@ export function AnswerPromptCard({ prompt }: Props) {
           </div>
         </form>
 
-        {total === 0 ? (
-          <div className="text-xs text-muted-foreground text-center py-6">
-            아직 도착한 응답이 없어요 🍒
-          </div>
-        ) : (
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 24, right: 24, bottom: 32, left: 24 }}>
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="45%"
-                  outerRadius="62%"
-                  innerRadius="34%"
-                  paddingAngle={2}
-                  stroke="var(--card)"
-                  strokeWidth={2}
-                  label={(entry: { name: string; value: number }) =>
-                    `${entry.name} ${entry.value}`
-                  }
-                >
-                  {data.map((_, i) => (
-                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "var(--card)",
-                    fontSize: 12,
-                  }}
-                  formatter={(value: number, name: string) => [
-                    `${value}개 (${Math.round((value / total) * 100)}%)`,
-                    name,
-                  ]}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <div className="w-full h-80">
+          <AnswerPie sessionId={prompt.sessionId} promptId={prompt.id} />
+        </div>
+
       </div>
     </div>
   );

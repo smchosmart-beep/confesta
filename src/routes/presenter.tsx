@@ -22,8 +22,10 @@ import {
   clearPresenterSlot,
 } from "@/lib/confesta/presenter.functions";
 import { makeSlotKey, type Period } from "@/lib/confesta/shared";
-import { QrCode, X, LogOut } from "lucide-react";
+import { QrCode, X, LogOut, IceCream2, PieChart as PieChartIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
+import { AnswerPie } from "@/components/confesta/AnswerPie";
+
 import {
   Select,
   SelectContent,
@@ -563,6 +565,8 @@ function AnswerPromptTabs({ sessionId }: { sessionId: string }) {
 
   const [selectedId, setSelectedId] = useState<string | null>(fallbackId);
   const [userPicked, setUserPicked] = useState(false);
+  const [view, setView] = useState<"tub" | "chart">("tub");
+
 
   // Sync: follow active until user picks; reset if picked one disappears.
   useEffect(() => {
@@ -594,56 +598,92 @@ function AnswerPromptTabs({ sessionId }: { sessionId: string }) {
 
   return (
     <>
-      {sorted.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {sorted.map((p) => {
-            const isSelected = p.id === selectedId;
-            const isActive = p.id === activeId;
-            const c = counts.get(p.id) ?? 0;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => {
-                  setSelectedId(p.id);
-                  setUserPicked(true);
-                }}
-                title={p.text}
-                className={`bounce-press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition ${
-                  isSelected
-                    ? "bg-grad-strawberry text-white border-white shadow-pink"
-                    : "bg-white/80 text-foreground border-white/60 hover:bg-white"
-                }`}
-              >
-                {isActive && (
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isSelected ? "bg-white" : "bg-rose-500"
-                    }`}
-                    aria-label="라이브"
-                  />
-                )}
-                <span className="max-w-[160px] truncate">{p.text}</span>
-                <span
-                  className={`text-[10px] font-mono px-1.5 rounded-full ${
-                    isSelected ? "bg-white/25" : "bg-black/5 text-muted-foreground"
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        {sorted.length > 0 ? (
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 flex-1 min-w-0">
+            {sorted.map((p) => {
+              const isSelected = p.id === selectedId;
+              const isActive = p.id === activeId;
+              const c = counts.get(p.id) ?? 0;
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(p.id);
+                    setUserPicked(true);
+                  }}
+                  title={p.text}
+                  className={`bounce-press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition ${
+                    isSelected
+                      ? "bg-grad-strawberry text-white border-white shadow-pink"
+                      : "bg-white/80 text-foreground border-white/60 hover:bg-white"
                   }`}
                 >
-                  {c}
-                </span>
-              </button>
-            );
-          })}
+                  {isActive && (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isSelected ? "bg-white" : "bg-rose-500"
+                      }`}
+                      aria-label="라이브"
+                    />
+                  )}
+                  <span className="max-w-[160px] truncate">{p.text}</span>
+                  <span
+                    className={`text-[10px] font-mono px-1.5 rounded-full ${
+                      isSelected ? "bg-white/25" : "bg-black/5 text-muted-foreground"
+                    }`}
+                  >
+                    {c}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+        <div className="inline-flex p-1 bg-card/80 backdrop-blur rounded-full shadow-cream border border-white/60 shrink-0">
+          <button
+            type="button"
+            onClick={() => setView("tub")}
+            className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+              view === "tub"
+                ? "bg-grad-strawberry text-white shadow-pink"
+                : "text-foreground/70"
+            }`}
+            aria-label="토핑 보기"
+          >
+            <IceCream2 className="w-3.5 h-3.5" /> 토핑
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("chart")}
+            disabled={sorted.length === 0}
+            className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed ${
+              view === "chart"
+                ? "bg-grad-blueberry text-white shadow-blue"
+                : "text-foreground/70"
+            }`}
+            aria-label="통계 보기"
+          >
+            <PieChartIcon className="w-3.5 h-3.5" /> 통계
+          </button>
         </div>
-      )}
+      </div>
       <div className="flex-1 min-h-0">
-        <ToppingTubScene
-          sessionId={sessionId}
-          promptId={selectedId}
-          promptsCount={sorted.length}
-        />
+        {view === "tub" ? (
+          <ToppingTubScene
+            sessionId={sessionId}
+            promptId={selectedId}
+            promptsCount={sorted.length}
+          />
+        ) : (
+          <AnswerPie sessionId={sessionId} promptId={selectedId} />
+        )}
       </div>
     </>
   );
 }
+
 
