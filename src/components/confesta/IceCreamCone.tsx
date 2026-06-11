@@ -56,14 +56,15 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
   const topScoopBottom =
     coneH - coneTuck - domeBox * 0.5 + topScoopIndex * domeVisible;
 
-  const CONE_CLIP = "polygon(0% 6%, 100% 6%, 50% 100%)";
+
+
 
   return (
     <div
       className="relative mx-auto"
       style={{ width: w, height: totalHeight }}
     >
-      {/* Cone (back layer) — pure CSS, no SVG defs */}
+      {/* Cone (back layer) — SVG with embossed waffle lattice */}
       <div
         className="absolute left-1/2 -translate-x-1/2"
         style={{
@@ -71,42 +72,110 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
           height: coneH,
           bottom: 0,
           zIndex: 5,
-          filter: "drop-shadow(0 6px 10px rgba(110,68,22,0.25))",
+          filter: "drop-shadow(0 8px 12px rgba(74,42,14,0.32))",
         }}
         aria-hidden
       >
-        {/* cone body */}
-        <div
-          className="absolute inset-0"
-          style={{
-            clipPath: CONE_CLIP,
-            WebkitClipPath: CONE_CLIP,
-            background:
-              "linear-gradient(180deg, #EBC18A 0%, #B07B3F 60%, #6E4416 100%)",
-          }}
-        />
-        {/* waffle pattern */}
-        <div
-          className="absolute inset-0"
-          style={{
-            clipPath: CONE_CLIP,
-            WebkitClipPath: CONE_CLIP,
-            backgroundImage:
-              "repeating-linear-gradient(45deg, transparent 0 6px, rgba(0,0,0,0.20) 6px 7px), repeating-linear-gradient(-45deg, transparent 0 6px, rgba(0,0,0,0.20) 6px 7px)",
-          }}
-        />
-        {/* rim */}
-        <div
-          className="absolute left-0 right-0"
-          style={{
-            top: 0,
-            height: coneH * 0.08,
-            background:
-              "linear-gradient(180deg, #F4D9A8 0%, #B07B3F 100%)",
-            borderRadius: 6,
-          }}
-        />
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full"
+        >
+          <defs>
+            {/* Cone body gradient — caramel light → dark */}
+            <linearGradient id="coneBody" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F4D9A8" />
+              <stop offset="35%" stopColor="#D9A86A" />
+              <stop offset="75%" stopColor="#8E5A24" />
+              <stop offset="100%" stopColor="#4A2A0E" />
+            </linearGradient>
+            {/* Side cylindrical shading (left highlight, right shadow) */}
+            <linearGradient id="coneSide" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#4A2A0E" stopOpacity="0.35" />
+              <stop offset="22%" stopColor="#FFFFFF" stopOpacity="0.28" />
+              <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
+              <stop offset="78%" stopColor="#4A2A0E" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#4A2A0E" stopOpacity="0.45" />
+            </linearGradient>
+            {/* Bottom tip darkening */}
+            <radialGradient id="coneTip" cx="0.5" cy="1" r="0.6">
+              <stop offset="0%" stopColor="#2A1607" stopOpacity="0.7" />
+              <stop offset="45%" stopColor="#4A2A0E" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#4A2A0E" stopOpacity="0" />
+            </radialGradient>
+            {/* Single diamond cell — embossed look */}
+            <linearGradient id="cellFace" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#F0CB8E" stopOpacity="0.9" />
+              <stop offset="50%" stopColor="#B7873E" stopOpacity="0" />
+              <stop offset="100%" stopColor="#2A1607" stopOpacity="0.55" />
+            </linearGradient>
+            <pattern
+              id="waffleGrid"
+              width="11"
+              height="11"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(0)"
+            >
+              {/* Diamond face */}
+              <path
+                d="M 5.5 0.5 L 10.5 5.5 L 5.5 10.5 L 0.5 5.5 Z"
+                fill="url(#cellFace)"
+              />
+              {/* Inner top-left bright bevel */}
+              <path
+                d="M 5.5 1.2 L 9.8 5.5"
+                stroke="rgba(255,235,200,0.55)"
+                strokeWidth="0.45"
+                fill="none"
+                strokeLinecap="round"
+              />
+              <path
+                d="M 5.5 1.2 L 1.2 5.5"
+                stroke="rgba(255,235,200,0.35)"
+                strokeWidth="0.35"
+                fill="none"
+                strokeLinecap="round"
+              />
+              {/* Inner bottom-right dark bevel */}
+              <path
+                d="M 9.8 5.5 L 5.5 9.8 L 1.2 5.5"
+                stroke="rgba(42,22,7,0.55)"
+                strokeWidth="0.5"
+                fill="none"
+                strokeLinejoin="miter"
+              />
+              {/* Outline */}
+              <path
+                d="M 5.5 0.5 L 10.5 5.5 L 5.5 10.5 L 0.5 5.5 Z"
+                fill="none"
+                stroke="rgba(42,22,7,0.7)"
+                strokeWidth="0.35"
+              />
+            </pattern>
+            {/* Cone shape as a clipPath so all fills share it */}
+            <clipPath id="coneClip" clipPathUnits="userSpaceOnUse">
+              <polygon points="0,6 100,6 50,100" />
+            </clipPath>
+          </defs>
+
+          <g clipPath="url(#coneClip)">
+            {/* Base caramel body */}
+            <rect x="0" y="0" width="100" height="100" fill="url(#coneBody)" />
+            {/* Waffle lattice */}
+            <rect x="0" y="0" width="100" height="100" fill="url(#waffleGrid)" />
+            {/* Cylindrical side shading */}
+            <rect x="0" y="0" width="100" height="100" fill="url(#coneSide)" />
+            {/* Tip darkening for baked look */}
+            <rect x="0" y="0" width="100" height="100" fill="url(#coneTip)" />
+          </g>
+
+          {/* Rim — two-tone band for thickness */}
+          <rect x="-2" y="2" width="104" height="5.2" fill="#4A2A0E" opacity="0.55" rx="1.2" />
+          <rect x="-1" y="1.2" width="102" height="4" fill="url(#coneBody)" rx="1" />
+          <rect x="0" y="1.6" width="100" height="1.2" fill="rgba(255,235,200,0.7)" rx="0.6" />
+        </svg>
       </div>
+
 
       {/* Empty state — 3 ghost scoops on the cone (matches receipt design) */}
       {scoops.length === 0 &&
