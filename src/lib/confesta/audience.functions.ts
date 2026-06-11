@@ -77,7 +77,7 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
       .select("day, period, room, title");
     const byKey = new Map<string, string>();
     (slotsRows ?? []).forEach((r) => {
-      byKey.set(`${r.day}-${r.period}-${r.room}`, r.title ?? "");
+      byKey.set(`${r.day}|${r.period}|${r.room}`, r.title ?? "");
     });
     slotKeys.forEach(({ id }) => {
       const t = byKey.get(id);
