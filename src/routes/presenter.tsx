@@ -21,7 +21,7 @@ import {
   checkPresenterSlot,
   clearPresenterSlot,
 } from "@/lib/confesta/presenter.functions";
-import { makeSlotKey, type Period } from "@/lib/confesta/shared";
+import { makeSlotKey, PERIODS, PERIOD_LABELS, type Period } from "@/lib/confesta/shared";
 import { QrCode, X, LogOut, IceCream2, PieChart as PieChartIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPie } from "@/components/confesta/AnswerPie";
@@ -268,14 +268,14 @@ function SlotPickerBar({
             <SelectValue placeholder="—" />
           </SelectTrigger>
           <SelectContent className={selectContentCls}>
-            {(["am", "pm"] as const).map((p) => (
+            {PERIODS.map((p) => (
               <SelectItem
                 key={p}
                 value={p}
                 disabled={!periodsAvailable.includes(p)}
                 className={selectItemCls}
               >
-                {p === "am" ? "오전" : "오후"}
+                {PERIOD_LABELS[p]}
               </SelectItem>
             ))}
           </SelectContent>

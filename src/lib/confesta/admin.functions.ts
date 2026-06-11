@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Period } from "./shared";
 
-const PeriodSchema = z.enum(["am", "pm"]);
+const PeriodSchema = z.enum(["1000", "1320", "1530"]);
 const DaySchema = z.number().int().min(1).max(10);
 
 export type SlotAggregate = {

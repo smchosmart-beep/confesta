@@ -9,7 +9,7 @@ import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
-import { makeSlotKey } from "@/lib/confesta/shared";
+import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import {
   listSlots,
   upsertSlotTitle,
@@ -34,9 +34,14 @@ import {
   selectItemCls,
 } from "@/lib/confesta/selectStyles";
 
-type Period = "am" | "pm";
-const periodOf = (s: { timeSlot: string }): Period =>
-  parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm";
+const periodOf = (s: { timeSlot: string }): Period => {
+  const hh = parseInt(s.timeSlot.slice(0, 2), 10);
+  const mm = parseInt(s.timeSlot.slice(3, 5), 10) || 0;
+  const total = hh * 60 + mm;
+  if (total < 13 * 60) return "1000";
+  if (total < 15 * 60 + 30) return "1320";
+  return "1530";
+};
 
 
 
@@ -97,22 +102,9 @@ function AdminView() {
   const [selectedDay, setSelectedDay] = useState<number>(
     daysAvailable[0] ?? 1,
   );
-  const periodsAvailable = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          SESSIONS.filter((s) => s.day === selectedDay).map(periodOf),
-        ),
-      ) as Period[],
-    [selectedDay],
-  );
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>(
-    (periodsAvailable[0] ?? "am") as Period,
-  );
-  // 일자 변경 시 현재 시간대가 없으면 첫 시간대로 보정
-  if (!periodsAvailable.includes(selectedPeriod) && periodsAvailable[0]) {
-    queueMicrotask(() => setSelectedPeriod(periodsAvailable[0]));
-  }
+  const periodsAvailable = useMemo(() => [...PERIODS] as Period[], []);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>(PERIODS[0]);
+
 
   // Server-backed slot data for the selected day/period
   const listSlotsFn = useServerFn(listSlots);
@@ -280,7 +272,7 @@ function AdminView() {
               <SelectContent className={selectContentCls}>
                 {periodsAvailable.map((p) => (
                   <SelectItem key={p} value={p} className={selectItemCls}>
-                    {p === "am" ? "오전" : "오후"}
+                    {PERIOD_LABELS[p]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -603,7 +595,7 @@ function SlotQRControls({
         open={open && !!payload}
         onClose={() => setOpen(false)}
         title={labelForModal}
-        subtitle={`Day ${day} · ${period === "am" ? "오전" : "오후"} · ${room}`}
+        subtitle={`Day ${day} · ${PERIOD_SHORT[period]} · ${room}`}
         payload={payload ?? ""}
         onRotate={() => {
           if (confirm("기존 QR을 무효화하고 새로 발급합니다. 계속할까요?")) {

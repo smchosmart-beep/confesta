@@ -14,7 +14,7 @@ import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { MAX_SCOOPS_CONST } from "@/lib/confesta/store";
-import { makeSlotKey, parseSessionQR, parseSlotKey } from "@/lib/confesta/shared";
+import { makeSlotKey, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
 import { listIssuedSlots } from "@/lib/confesta/slots.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -141,7 +141,7 @@ function AudienceView() {
     for (const s of issuedSlotsData?.slots ?? []) {
       const key = makeSlotKey(s.day, s.period, s.room);
       const title = (s.title ?? "").trim();
-      const periodLabel = s.period === "am" ? "오전" : "오후";
+      const periodLabel = PERIOD_SHORT[s.period];
       m.set(key, `${title || s.room} · Day ${s.day} · ${periodLabel}`);
     }
     return m;
@@ -151,7 +151,7 @@ function AudienceView() {
     if (fromIssued) return fromIssued;
     const slot = parseSlotKey(id);
     if (slot) {
-      const periodLabel = slot.period === "am" ? "오전" : "오후";
+      const periodLabel = PERIOD_SHORT[slot.period];
       return `${slot.room} · Day ${slot.day} · ${periodLabel}`;
     }
     const legacy = SESSIONS.find((x) => x.id === id);
