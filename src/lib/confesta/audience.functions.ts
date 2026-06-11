@@ -65,12 +65,33 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
   if (scoopsRes.error) throw scoopsRes.error;
   if (receiptRes.error) throw receiptRes.error;
 
+  // Fetch slot titles for orders that use slot-key sessionIds
+  const { parseSlotKey } = await import("./shared");
+  const titleMap = new Map<string, string>();
+  const slotKeys = (ordersRes.data ?? [])
+    .map((o) => ({ id: o.session_id, slot: parseSlotKey(o.session_id) }))
+    .filter((x) => x.slot);
+  if (slotKeys.length > 0) {
+    const { data: slotsRows } = await supabaseAdmin
+      .from("session_slots")
+      .select("day, period, room, title");
+    const byKey = new Map<string, string>();
+    (slotsRows ?? []).forEach((r) => {
+      byKey.set(`${r.day}-${r.period}-${r.room}`, r.title ?? "");
+    });
+    slotKeys.forEach(({ id }) => {
+      const t = byKey.get(id);
+      if (t && t.trim().length > 0) titleMap.set(id, t);
+    });
+  }
+
   return {
     orders: (ordersRes.data ?? []).map((o) => ({
       id: o.id,
       sessionId: o.session_id,
       orderedAt: new Date(o.ordered_at).getTime(),
       pickedUpAt: o.picked_up_at ? new Date(o.picked_up_at).getTime() : null,
+      sessionTitle: titleMap.get(o.session_id) ?? null,
     })),
     scoops: (scoopsRes.data ?? []).map((s) => ({
       id: s.id,
