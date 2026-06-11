@@ -9,6 +9,7 @@ import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
+import { makeSlotKey } from "@/lib/confesta/shared";
 import { useConfestaStore } from "@/lib/confesta/store";
 import {
   listSlots,
@@ -158,16 +159,11 @@ function AdminView() {
         );
 
 
-        const ord = session
-          ? orders.filter((o) => o.sessionId === session.id).length
-          : 0;
-        const pickRaw = session
-          ? scoops.filter((sc) => sc.sessionId === session.id).length
-          : 0;
+        const slotKey = makeSlotKey(selectedDay, selectedPeriod, roomLabel);
+        const ord = orders.filter((o) => o.sessionId === slotKey).length;
+        const pickRaw = scoops.filter((sc) => sc.sessionId === slotKey).length;
         const pick = Math.min(pickRaw, ord);
-        const tops = session
-          ? toppings.filter((t) => t.sessionId === session.id).length
-          : 0;
+        const tops = toppings.filter((t) => t.sessionId === slotKey).length;
 
         return {
           code: code || "—",
@@ -178,6 +174,7 @@ function AdminView() {
           sessionTitle: session?.title,
           toppings: tops,
         };
+
 
       });
 
