@@ -111,9 +111,16 @@ export function OrderCard({ order }: Props) {
 
       <div className="relative">
         <h3 className="text-lg font-bold leading-snug">{display.title}</h3>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {display.sub}
-        </p>
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {display.chips.map((chip) => (
+            <span
+              key={chip}
+              className="inline-flex items-center bg-white/70 border border-white text-[11px] font-semibold text-foreground/80 px-2.5 py-1 rounded-full shadow-cream"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
 
         {!picked && (
           <div className="mt-3 inline-flex items-start gap-1.5 bg-white/70 border border-white text-[11px] font-semibold text-foreground/80 px-2.5 py-1.5 rounded-xl shadow-cream">
