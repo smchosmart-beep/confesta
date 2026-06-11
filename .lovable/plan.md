@@ -1,44 +1,17 @@
-## 작업
-키워드 응답을 집계할 때 **한글 띄어쓰기**와 **영문 대소문자**를 무시하고 동일한 키워드로 묶이도록 정규화.
+## 변경 사항
 
-예시 (모두 같은 키워드로 카운트):
-- "사과 파이" = "사과파이" = " 사 과 파 이 "
-- "Apple" = "apple" = "APPLE"
-- "Ice Cream" = "icecream" = "ICE CREAM"
+### 1. 청중(모바일) — `src/routes/audience.tsx` (line 439)
+"궁금해요" 질문 목록 `<ul>`에서 높이 제한과 세로 스크롤 제거. 질문이 많아지면 카드 컨테이너가 그만큼 아래로 길어지도록 변경.
 
-## 변경
+- 변경 전: `className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1"`
+- 변경 후: `className="flex flex-col gap-2"`
 
-### 1. `src/lib/confesta/keywords.ts` — 새 함수 추가
-기존 `extractKeywords`(여러 토큰으로 쪼개는 형태소 휴리스틱)는 그대로 두고, **응답 전체를 하나의 키워드로 취급**하는 새 함수 추가:
+### 2. 발표자(PC) — `src/routes/presenter.tsx` (line 458~465 영역)
+현재 이미 `flex-1 min-h-0 overflow-y-auto`로 내부 스크롤 구조이긴 하나, 부모 ResizablePanelGroup이 `min-h-[720px]`라 콘텐츠에 따라 더 늘어날 수 있음. 카드 컨테이너 높이를 화면 기준으로 고정해 질문이 많아도 카드 크기는 일정하게 유지하고 내부에서만 세로 스크롤이 발생하도록 함.
 
-```ts
-export function extractAnswerKeywords(
-  texts: string[],
-): { word: string; count: number }[] {
-  const counts = new Map<string, number>();
-  const display = new Map<string, string>(); // 정규화 키 → 첫 등장 표시형
-  for (const text of texts) {
-    const trimmed = text.trim();
-    if (!trimmed) continue;
-    // 정규화 키: 모든 공백 제거 + 소문자
-    const key = trimmed.replace(/\s+/g, "").toLowerCase();
-    if (!key) continue;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
-    if (!display.has(key)) display.set(key, trimmed);
-  }
-  return Array.from(counts.entries())
-    .map(([key, count]) => ({ word: display.get(key) ?? key, count }))
-    .sort((a, b) => b.count - a.count);
-}
-```
+- ResizablePanelGroup 클래스: `min-h-[720px]` → `h-[calc(100vh-220px)] min-h-[600px]` (xl 이상에서만 적용되므로 PC에 한정)
+- 질문 목록 카드는 그대로 `flex-1 min-h-0` + 내부 `overflow-y-auto` 유지 → 결과적으로 카드 높이는 패널 높이에 고정되고, 질문이 늘어나도 내부 스크롤로 처리됨.
 
-### 2. `src/components/confesta/ToppingTubScene.tsx` (line 2, 58-62)
-- import 교체: `extractKeywords` → `extractAnswerKeywords`
-- 호출부도 교체
-
-다른 곳(`extractKeywords` 사용처는 ToppingTubScene 한 곳뿐)에는 영향 없음. 기존 함수는 제거하지 않고 보존.
-
-## 영향 범위
-- `src/lib/confesta/keywords.ts` — 함수 추가
-- `src/components/confesta/ToppingTubScene.tsx` — 2줄 변경
-- 백엔드/저장 로직 변경 없음 (원본 텍스트는 그대로 저장, 집계 단계에서만 정규화)
+### 영향 범위
+- 청중 뷰: 질문 많을 때 페이지 자체가 길어져 페이지 스크롤로 모든 질문 노출.
+- 발표자 뷰: 좌/우 패널과 질문 카드 높이가 뷰포트에 고정되어 레이아웃이 흔들리지 않음. 모바일/태블릿(`xl:hidden`) 발표자 뷰는 기존 동작 유지.
