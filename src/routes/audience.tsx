@@ -436,7 +436,7 @@ function AudienceView() {
                         );
                       }
                       return (
-                        <ul className="flex flex-col gap-2 max-h-80 overflow-y-auto pr-1">
+                        <ul className="flex flex-col gap-2">
                           {list.map((t) => {
                             const liked = t.likedByMe;
                             const likeCount = t.likes ?? 0;
