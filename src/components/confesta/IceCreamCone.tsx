@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { StackedScoop } from "@/lib/confesta/types";
 import scoopMask from "@/assets/scoop-mask.png.asset.json";
 
@@ -39,6 +40,12 @@ interface Props {
 }
 
 export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
+  const uid = useId().replace(/:/g, "");
+  const gBody = `coneBody-${uid}`;
+  const gSide = `coneSide-${uid}`;
+  const gTip = `coneTip-${uid}`;
+  const gCell = `cellFace-${uid}`;
+  const gGrid = `waffleGrid-${uid}`;
   const w = size;
   const domeBox = w * 0.86; // square that contains a single dome scoop
   const domeVisible = domeBox * 0.36; // overlap step — smaller = deeper overlap
@@ -82,46 +89,39 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
           className="absolute inset-0 w-full h-full"
         >
           <defs>
-            {/* Cone body gradient — caramel light → dark */}
-            <linearGradient id="coneBody" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gBody} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#F4D9A8" />
               <stop offset="35%" stopColor="#D9A86A" />
               <stop offset="75%" stopColor="#8E5A24" />
               <stop offset="100%" stopColor="#4A2A0E" />
             </linearGradient>
-            {/* Side cylindrical shading (left highlight, right shadow) */}
-            <linearGradient id="coneSide" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id={gSide} x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%" stopColor="#4A2A0E" stopOpacity="0.35" />
               <stop offset="22%" stopColor="#FFFFFF" stopOpacity="0.28" />
               <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
               <stop offset="78%" stopColor="#4A2A0E" stopOpacity="0.18" />
               <stop offset="100%" stopColor="#4A2A0E" stopOpacity="0.45" />
             </linearGradient>
-            {/* Bottom tip darkening */}
-            <radialGradient id="coneTip" cx="0.5" cy="1" r="0.6">
+            <radialGradient id={gTip} cx="0.5" cy="1" r="0.6">
               <stop offset="0%" stopColor="#2A1607" stopOpacity="0.7" />
               <stop offset="45%" stopColor="#4A2A0E" stopOpacity="0.25" />
               <stop offset="100%" stopColor="#4A2A0E" stopOpacity="0" />
             </radialGradient>
-            {/* Single diamond cell — embossed look */}
-            <linearGradient id="cellFace" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id={gCell} x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stopColor="#F0CB8E" stopOpacity="0.9" />
               <stop offset="50%" stopColor="#B7873E" stopOpacity="0" />
               <stop offset="100%" stopColor="#2A1607" stopOpacity="0.55" />
             </linearGradient>
             <pattern
-              id="waffleGrid"
+              id={gGrid}
               width="11"
               height="11"
               patternUnits="userSpaceOnUse"
-              patternTransform="rotate(0)"
             >
-              {/* Diamond face */}
               <path
                 d="M 5.5 0.5 L 10.5 5.5 L 5.5 10.5 L 0.5 5.5 Z"
-                fill="url(#cellFace)"
+                fill={`url(#${gCell})`}
               />
-              {/* Inner top-left bright bevel */}
               <path
                 d="M 5.5 1.2 L 9.8 5.5"
                 stroke="rgba(255,235,200,0.55)"
@@ -136,7 +136,6 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
                 fill="none"
                 strokeLinecap="round"
               />
-              {/* Inner bottom-right dark bevel */}
               <path
                 d="M 9.8 5.5 L 5.5 9.8 L 1.2 5.5"
                 stroke="rgba(42,22,7,0.55)"
@@ -144,7 +143,6 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
                 fill="none"
                 strokeLinejoin="miter"
               />
-              {/* Outline */}
               <path
                 d="M 5.5 0.5 L 10.5 5.5 L 5.5 10.5 L 0.5 5.5 Z"
                 fill="none"
@@ -152,29 +150,21 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
                 strokeWidth="0.35"
               />
             </pattern>
-            {/* Cone shape as a clipPath so all fills share it */}
-            <clipPath id="coneClip" clipPathUnits="userSpaceOnUse">
-              <polygon points="0,6 100,6 50,100" />
-            </clipPath>
           </defs>
 
-          <g clipPath="url(#coneClip)">
-            {/* Base caramel body */}
-            <rect x="0" y="0" width="100" height="100" fill="url(#coneBody)" />
-            {/* Waffle lattice */}
-            <rect x="0" y="0" width="100" height="100" fill="url(#waffleGrid)" />
-            {/* Cylindrical side shading */}
-            <rect x="0" y="0" width="100" height="100" fill="url(#coneSide)" />
-            {/* Tip darkening for baked look */}
-            <rect x="0" y="0" width="100" height="100" fill="url(#coneTip)" />
-          </g>
+          {/* Stacked triangle fills (no clipPath — preserveAspectRatio=none breaks clipPath rendering) */}
+          <polygon points="0,6 100,6 50,100" fill={`url(#${gBody})`} />
+          <polygon points="0,6 100,6 50,100" fill={`url(#${gGrid})`} />
+          <polygon points="0,6 100,6 50,100" fill={`url(#${gSide})`} />
+          <polygon points="0,6 100,6 50,100" fill={`url(#${gTip})`} />
 
           {/* Rim — two-tone band for thickness */}
           <rect x="-2" y="2" width="104" height="5.2" fill="#4A2A0E" opacity="0.55" rx="1.2" />
-          <rect x="-1" y="1.2" width="102" height="4" fill="url(#coneBody)" rx="1" />
+          <rect x="-1" y="1.2" width="102" height="4" fill={`url(#${gBody})`} rx="1" />
           <rect x="0" y="1.6" width="100" height="1.2" fill="rgba(255,235,200,0.7)" rx="0.6" />
         </svg>
       </div>
+
 
 
       {/* Empty state — 3 ghost scoops on the cone (matches receipt design) */}
