@@ -1,35 +1,16 @@
-## 작업
-`src/routes/presenter.tsx`의 두 영역(토핑 키워드 응답, 질문 목록)을 "청중 토핑 입력 제어(ToppingGateControl)" 카드와 동일한 카드 스타일로 감쌉니다.
+## 문제
+`ToppingTubScene`은 xl 화면에서 고정 높이 `720px`를 가지지만(`src/components/confesta/ToppingTubScene.tsx:113`), 부모 그리드가 `xl:h-[calc(100vh-160px)]`로 뷰포트 높이에 묶여 있어 카드가 720px보다 작아지면 토핑 애니메이션이 카드 밖으로 오버플로우됩니다.
 
-## 변경 내용 (lines 438-456)
+## 변경
+`src/routes/presenter.tsx` (line 408)
 
-**현재**: 제목/설명/내용이 그리드 컬럼 안에 그냥 나열되어 있음.
+- `xl:h-[calc(100vh-160px)]` 제거 → 그리드가 콘텐츠 자연 높이로 늘어남
+- 좌측 컬럼의 토핑 카드가 720px 씬을 온전히 감싸도록 확장
+- 그리드의 기본 `align-items: stretch` 덕분에 우측 컬럼(질문 목록 카드)도 동일한 라인까지 늘어남 → 이전 요청("질문 목록 카드 끝 라인 맞추기")도 함께 해결
 
-**변경 후**: 각 섹션을 카드 컨테이너로 감쌈
-- 카드 스타일: `bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream` (상단 "잠금 해제됨" 카드 및 ToppingGateControl과 동일한 톤)
-- 카드는 컬럼 높이를 채우도록 `flex flex-col min-h-0 flex-1` 적용
-- 헤더(h2 제목 + 설명 문구)를 카드 안쪽 상단에 두고, 그 아래에 콘텐츠(AnswerPromptTabs / QuestionStream)를 스크롤 영역으로 배치
-
-### 좌측 컬럼 (토핑 키워드)
 ```
-<div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
-  <h2>토핑 키워드 (응답)</h2>
-  <p>청중이 보낸 키워드 응답 토핑이 실시간으로 반영됩니다.</p>
-  <div className="flex-1 min-h-0 flex flex-col">
-    <AnswerPromptTabs sessionId={sessionId} />
-  </div>
-</div>
+- <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:h-[calc(100vh-160px)]">
++ <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 ```
 
-### 우측 컬럼 (질문 목록)
-ToppingGateControl 카드는 그대로 두고, 그 아래 질문 목록만 카드로 감쌈:
-```
-<div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
-  <h2>질문 목록</h2>
-  <div className="flex-1 min-h-0 overflow-y-auto">
-    <QuestionStream sessionId={sessionId} />
-  </div>
-</div>
-```
-
-다른 동작/로직 변경 없음, 순수 UI 래핑만 수행.
+다른 코드/로직 변경 없음.
