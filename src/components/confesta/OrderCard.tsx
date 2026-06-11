@@ -115,11 +115,6 @@ export function OrderCard({ order }: Props) {
           {display.sub}
         </p>
 
-        <p className="text-xs text-muted-foreground mt-1.5" suppressHydrationWarning>
-          주문 {fmtTime(order.orderedAt)}
-          {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}
-        </p>
-
         {!picked && (
           <div className="mt-3 inline-flex items-start gap-1.5 bg-white/70 border border-white text-[11px] font-semibold text-foreground/80 px-2.5 py-1.5 rounded-xl shadow-cream">
             <IceCream className="w-3.5 h-3.5 text-pink-500 shrink-0 mt-px" />
@@ -131,12 +126,7 @@ export function OrderCard({ order }: Props) {
       </div>
 
       <div className="relative">
-        {picked ? (
-          <div className="inline-flex items-center gap-2 bg-grad-success text-white rounded-full px-4 py-2 text-sm font-bold shadow-cream" suppressHydrationWarning>
-            <Check className="w-4 h-4" />
-            {fmtTime(order.pickedUpAt!)} 수령 완료
-          </div>
-        ) : scanning ? (
+        {picked ? null : scanning ? (
           <div>
             <CameraScanner
               onScan={handleScan}
@@ -172,6 +162,21 @@ export function OrderCard({ order }: Props) {
           >
             {feedback.msg}
           </div>
+        )}
+      </div>
+
+      <div className="relative flex items-center justify-between gap-2 pt-1" suppressHydrationWarning>
+        <div className="inline-flex items-center gap-1.5 bg-grad-blueberry text-white rounded-full px-3 py-1.5 text-xs font-bold shadow-cream">
+          <Check className="w-3.5 h-3.5" />
+          주문 {fmtTime(order.orderedAt)}
+        </div>
+        {picked ? (
+          <div className="inline-flex items-center gap-1.5 bg-grad-success text-white rounded-full px-3 py-1.5 text-xs font-bold shadow-cream">
+            <Check className="w-3.5 h-3.5" />
+            수령 {fmtTime(order.pickedUpAt!)}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground font-medium">수령 대기</div>
         )}
       </div>
     </div>
