@@ -147,41 +147,42 @@ function PresenterPage() {
             : "세션을 선택해 주세요"
         }
         color="blue"
+        right={
+          <SlotPickerBar
+            slots={slots}
+            day={day}
+            period={period}
+            room={room}
+            daysAvailable={daysAvailable}
+            periodsAvailable={periodsAvailable}
+            slotsInScope={slotsInScope}
+            onChangeDay={(d) => {
+              setDay(d);
+              const periods = Array.from(
+                new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
+              ) as Period[];
+              const nextPeriod =
+                period != null && periods.includes(period) ? period : periods[0] ?? null;
+              setPeriod(nextPeriod);
+              const rooms = slots
+                .filter((s) => s.day === d && s.period === nextPeriod)
+                .map((s) => s.room);
+              setRoom(rooms[0] ?? null);
+            }}
+            onChangePeriod={(p) => {
+              setPeriod(p);
+              const rooms = slots
+                .filter((s) => s.day === day && s.period === p)
+                .map((s) => s.room);
+              setRoom(rooms[0] ?? null);
+            }}
+            onChangeRoom={setRoom}
+            loading={slotsQuery.isLoading}
+          />
+        }
       />
 
       <section className="px-3 sm:px-4">
-        <SlotPickerBar
-          slots={slots}
-          day={day}
-          period={period}
-          room={room}
-          daysAvailable={daysAvailable}
-          periodsAvailable={periodsAvailable}
-          slotsInScope={slotsInScope}
-          onChangeDay={(d) => {
-            setDay(d);
-            const periods = Array.from(
-              new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
-            ) as Period[];
-            const nextPeriod =
-              period != null && periods.includes(period) ? period : periods[0] ?? null;
-            setPeriod(nextPeriod);
-            const rooms = slots
-              .filter((s) => s.day === d && s.period === nextPeriod)
-              .map((s) => s.room);
-            setRoom(rooms[0] ?? null);
-          }}
-          onChangePeriod={(p) => {
-            setPeriod(p);
-            const rooms = slots
-              .filter((s) => s.day === day && s.period === p)
-              .map((s) => s.room);
-            setRoom(rooms[0] ?? null);
-          }}
-          onChangeRoom={setRoom}
-          loading={slotsQuery.isLoading}
-        />
-
         {selected ? (
           <SelectedSlotBody key={makeSlotKey(selected.day, selected.period, selected.room)} slot={selected} />
         ) : (
