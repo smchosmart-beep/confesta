@@ -26,7 +26,7 @@ async function requireAdmin() {
 async function loadHash(sessionId: string): Promise<string | null> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin
-    .from("session_secrets" as never)
+    .from("session_secrets")
     .select("password_hash")
     .eq("session_id", sessionId)
     .maybeSingle();
@@ -56,7 +56,7 @@ export const setSlotPresenterPassword = createServerFn({ method: "POST" })
 
     if (data.password.trim() === "") {
       const { error } = await supabaseAdmin
-        .from("session_secrets" as never)
+        .from("session_secrets")
         .delete()
         .eq("session_id", sessionId);
       if (error) throw error;
@@ -74,7 +74,7 @@ export const setSlotPresenterPassword = createServerFn({ method: "POST" })
     const { hashPassword } = await import("./presenterSlot.server");
     const password_hash = hashPassword(parsed.data);
     const { error } = await supabaseAdmin
-      .from("session_secrets" as never)
+      .from("session_secrets")
       .upsert(
         { session_id: sessionId, password_hash, set_at: new Date().toISOString() },
         { onConflict: "session_id" },
