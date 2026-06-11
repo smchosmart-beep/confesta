@@ -1,50 +1,43 @@
-## 원인 가설
+## 원인
 
-발표자 페이지의 질문 목록 카드 스크롤이 미리보기에서도 안 잡히는 이유는 부모 체인의 높이 제약이 새기 때문입니다. 코드 자체는 `flex-1 min-h-0 overflow-y-auto`를 갖고 있지만 다음 두 가지가 실제 동작을 막습니다:
+`src/routes/admin.tsx` 133-204줄의 `stats` 계산에서 룸 이름 문자코드로 `seed`를 만들어 `baseOrders / basePickups / baseToppings` 를 가짜로 깔아두고, 그 위에 실제 라이브 카운트(`orders / scoops / toppings`)를 더하고 있음. 그래서 스크린샷처럼 아직 아무도 주문/수령/토핑을 안 했는데도 "주문 2, 수령 1, 토핑 1" 같은 숫자가 보임. 상단 합계 KPI(`주문 21·수령 13`)도 이 가짜값의 합.
 
-1. `src/routes/presenter.tsx`의 `ResizablePanelGroup`에 `orientation="horizontal"`이 들어가 있음. `react-resizable-panels`의 실제 prop은 `direction`이므로 이 값은 무시되고, 라이브러리가 방향 계산을 폴백 처리하면서 패널 높이가 명시적으로 셋팅되지 않는 경우가 생깁니다.
-2. 질문 카드 컨테이너(`bg-card/60 ... flex-1 min-h-0`)에 `overflow-hidden`이 없어, 안의 콘텐츠가 길어지면 카드가 시각적으로 늘어나 보이는 현상이 발생합니다.
+## 수정 (admin.tsx 한 파일)
 
-## 수정 내용 (모두 `src/routes/presenter.tsx` 한 파일)
+`stats` useMemo에서 baseline seed 로직을 전부 제거하고 실데이터만 사용:
 
-### 1) ResizablePanelGroup props 교정 (473줄)
+```ts
+const ord = session
+  ? orders.filter((o) => o.sessionId === session.id).length
+  : 0;
+const pick = session
+  ? Math.min(scoops.filter((sc) => sc.sessionId === session.id).length, ord)
+  : 0;
+const tops = session
+  ? toppings.filter((t) => t.sessionId === session.id).length
+  : 0;
 
-```tsx
-<ResizablePanelGroup
-  direction="horizontal"
-  className="hidden xl:flex h-[calc(100vh-220px)] min-h-[600px]"
->
+return {
+  code: code || "—",
+  label: roomLabel,
+  orders: ord,
+  pickups: pick,
+  capacity: session?.capacity ?? 30,
+  sessionTitle: session?.title,
+  toppings: tops,
+};
 ```
 
-`orientation` → `direction`. (왼쪽/오른쪽 컬럼 모두 정상 너비를 받으면서 그룹 height도 안정적으로 적용됨)
+- `seed`, `baseOrders`, `basePickups`, `baseToppings`, `liveOrders/livePickups/liveToppings` 분리 변수 삭제.
+- 카운트는 모두 실제 store 값(0 출발)으로만 계산 → 카드/합계 KPI 모두 빈 상태에서 0 표시.
 
-### 2) 질문 목록 카드에 `overflow-hidden` 추가 + 스크롤 래퍼 강화 (460-466줄)
+## 영향 범위
 
-```tsx
-<div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
-  <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-    질문 목록
-  </h2>
-  <div className="h-0 flex-1 overflow-y-auto">
-    <QuestionStream sessionId={sessionId} />
-  </div>
-</div>
-```
-
-- 카드 컨테이너에 `overflow-hidden` 추가 → 카드 자체가 시각적으로 늘어나는 것을 차단.
-- 스크롤 래퍼 `flex-1 min-h-0` → `h-0 flex-1`. 동일 효과지만 더 강하게 0px 베이스라인을 강제해 모든 브라우저에서 일관 동작.
-
-### 3) (선택) 토핑 키워드 카드에도 동일 처리 (443줄)
-
-좌측 토핑 카드도 같은 패턴을 쓰고 있으므로 `overflow-hidden` 추가 및 내부 `flex-1 min-h-0` → `h-0 flex-1` 교체. 회귀 방지 + 일관성.
-
-### 4) `xl:hidden` (좁은 화면) 분기는 그대로
-
-좁은 화면(`xl:hidden flex flex-col gap-4`)은 의도적으로 페이지 전체 스크롤을 쓰므로 변경하지 않음. 데스크탑(xl 이상)에서만 카드 내부 스크롤이 적용됩니다.
+- 변경 파일: `src/routes/admin.tsx` 만.
+- `mockData.ts`의 `SESSIONS / VENUES`는 평면도·세션 매칭에 계속 사용하므로 유지 (행사 공간 레이아웃은 데이터 아닌 구성 정보).
+- `SAMPLE_TOPPINGS`, `SampleAnswerPromptCard` 등은 발표자/관객 다른 화면용이라 이번 요청 범위 밖 — 유지.
 
 ## 검증
 
-수정 후 미리보기 `/presenter`에서:
-- 질문이 카드 가시 영역보다 많아져도 카드 높이는 고정.
-- 카드 안에서만 세로 스크롤이 동작.
-- 좌우 패널 너비 핸들도 정상 동작.
+- `/admin`에서 아직 주문/수령/토핑 활동이 없는 슬롯은 "주문 0 · 수령 0 · 토핑 0", 상단 KPI도 0.
+- 청중이 실제 주문/수령/토핑을 하면 그 수만큼만 증가.
