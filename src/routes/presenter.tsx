@@ -408,63 +408,84 @@ function UnlockedSlotView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickupOpen]);
 
-  return (
-    <>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-3 min-h-0">
-          <div className="flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                잠금 해제됨
-              </p>
-              <p className="text-sm font-extrabold truncate">{slot.title}</p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setPickupOpen(true)}
-                className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink"
-              >
-                <QrCode className="w-5 h-5" />
-                수령 QR
-              </button>
-              <button
-                type="button"
-                onClick={onLock}
-                className="bounce-press inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-white px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
-                title="이 세션 잠그기"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                잠그기
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              토핑 키워드 (응답)
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              청중이 보낸 <strong>키워드 응답 토핑</strong>이 실시간으로 반영됩니다.
-            </p>
-            <div className="flex-1 min-h-0 flex flex-col">
-              <AnswerPromptTabs sessionId={sessionId} />
-            </div>
-          </div>
+  const leftColumn = (
+    <div className="flex flex-col gap-3 min-h-0 h-full">
+      <div className="flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            잠금 해제됨
+          </p>
+          <p className="text-sm font-extrabold truncate">{slot.title}</p>
         </div>
-
-        <div className="flex flex-col gap-3 min-h-0">
-          <ToppingGateControl sessionId={sessionId} />
-          <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
-            <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              질문 목록
-            </h2>
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <QuestionStream sessionId={sessionId} />
-            </div>
-          </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setPickupOpen(true)}
+            className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink"
+          >
+            <QrCode className="w-5 h-5" />
+            수령 QR
+          </button>
+          <button
+            type="button"
+            onClick={onLock}
+            className="bounce-press inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-white px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
+            title="이 세션 잠그기"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            잠그기
+          </button>
         </div>
       </div>
+
+      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
+        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          토핑 키워드 (응답)
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          청중이 보낸 <strong>키워드 응답 토핑</strong>이 실시간으로 반영됩니다.
+        </p>
+        <div className="flex-1 min-h-0 flex flex-col">
+          <AnswerPromptTabs sessionId={sessionId} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const rightColumn = (
+    <div className="flex flex-col gap-3 min-h-0 h-full">
+      <ToppingGateControl sessionId={sessionId} />
+      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
+        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          질문 목록
+        </h2>
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <QuestionStream sessionId={sessionId} />
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="hidden xl:flex min-h-[720px]"
+      >
+        <ResizablePanel defaultSize={50} minSize={30} className="pr-2">
+          {leftColumn}
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={50} minSize={30} className="pl-2">
+          {rightColumn}
+        </ResizablePanel>
+      </ResizablePanelGroup>
+
+      <div className="xl:hidden flex flex-col gap-4">
+        {leftColumn}
+        {rightColumn}
+      </div>
+
 
 
       {pickupOpen && (
