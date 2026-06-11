@@ -151,7 +151,7 @@ function AudienceView() {
     if (fromIssued) return fromIssued;
     const slot = parseSlotKey(id);
     if (slot) {
-      const periodLabel = slot.period === "am" ? "오전" : "오후";
+      const periodLabel = PERIOD_SHORT[slot.period];
       return `${slot.room} · Day ${slot.day} · ${periodLabel}`;
     }
     const legacy = SESSIONS.find((x) => x.id === id);
