@@ -8,6 +8,9 @@ import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
 import { SlotUnlockCard } from "@/components/confesta/SlotUnlockCard";
+import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
+import { useToppingGate } from "@/hooks/use-topping-gate";
+import { useSessionToppings } from "@/hooks/use-toppings";
 import {
   issuePickupQR,
   listIssuedSlots,
