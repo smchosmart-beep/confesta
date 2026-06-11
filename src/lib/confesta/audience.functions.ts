@@ -9,6 +9,7 @@ export type AudienceOrderDTO = {
   sessionId: string;
   orderedAt: number;
   pickedUpAt: number | null;
+  sessionTitle: string | null;
 };
 
 export type AudienceScoopDTO = {
