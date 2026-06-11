@@ -28,6 +28,20 @@ function toDTO(r: {
   };
 }
 
+/** Look up session id for a prompt, then assert presenter slot auth. */
+async function assertForPrompt(promptId: string): Promise<string> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data: p } = await supabaseAdmin
+    .from("answer_prompts")
+    .select("session_id")
+    .eq("id", promptId)
+    .maybeSingle();
+  if (!p) throw new Error("프롬프트를 찾을 수 없어요");
+  const { assertPresenterSlot } = await import("./assertRole");
+  await assertPresenterSlot(p.session_id);
+  return p.session_id;
+}
+
 export const listAnswerPrompts = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z.object({ sessionId: SessionIdSchema }).parse(input),
@@ -69,8 +83,8 @@ export const createAnswerPrompt = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     // Close any currently open prompts for this session
@@ -101,8 +115,7 @@ export const updateAnswerPrompt = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    await assertForPrompt(data.promptId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("answer_prompts")
@@ -117,27 +130,18 @@ export const closeAnswerPrompt = createServerFn({ method: "POST" })
     z.object({ promptId: PromptIdSchema }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const sessionId = await assertForPrompt(data.promptId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: p } = await supabaseAdmin
-      .from("answer_prompts")
-      .select("session_id")
-      .eq("id", data.promptId)
-      .maybeSingle();
     const { error } = await supabaseAdmin
       .from("answer_prompts")
       .update({ closed_at: new Date().toISOString() })
       .eq("id", data.promptId);
     if (error) throw error;
-    // Note: leaving answers_open intact (matches client behavior)
-    if (p) {
-      await supabaseAdmin
-        .from("topping_gates")
-        .update({ active_prompt_id: null, updated_at: new Date().toISOString() })
-        .eq("session_id", p.session_id)
-        .eq("active_prompt_id", data.promptId);
-    }
+    await supabaseAdmin
+      .from("topping_gates")
+      .update({ active_prompt_id: null, updated_at: new Date().toISOString() })
+      .eq("session_id", sessionId)
+      .eq("active_prompt_id", data.promptId);
     return { ok: true as const };
   });
 
@@ -146,21 +150,14 @@ export const reopenAnswerPrompt = createServerFn({ method: "POST" })
     z.object({ promptId: PromptIdSchema }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const sessionId = await assertForPrompt(data.promptId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: p } = await supabaseAdmin
-      .from("answer_prompts")
-      .select("session_id")
-      .eq("id", data.promptId)
-      .maybeSingle();
-    if (!p) return { ok: false as const, message: "프롬프트를 찾을 수 없어요" };
 
     // Close other open prompts in same session
     await supabaseAdmin
       .from("answer_prompts")
       .update({ closed_at: new Date().toISOString() })
-      .eq("session_id", p.session_id)
+      .eq("session_id", sessionId)
       .is("closed_at", null)
       .neq("id", data.promptId);
 
@@ -170,7 +167,7 @@ export const reopenAnswerPrompt = createServerFn({ method: "POST" })
       .eq("id", data.promptId);
     if (error) throw error;
 
-    await setActivePrompt(p.session_id, data.promptId, true);
+    await setActivePrompt(sessionId, data.promptId, true);
     return { ok: true as const };
   });
 
@@ -179,27 +176,18 @@ export const deleteAnswerPrompt = createServerFn({ method: "POST" })
     z.object({ promptId: PromptIdSchema }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const sessionId = await assertForPrompt(data.promptId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Delete related answer toppings first
     await supabaseAdmin.from("toppings").delete().eq("prompt_id", data.promptId);
-    const { data: p } = await supabaseAdmin
-      .from("answer_prompts")
-      .select("session_id")
-      .eq("id", data.promptId)
-      .maybeSingle();
     const { error } = await supabaseAdmin
       .from("answer_prompts")
       .delete()
       .eq("id", data.promptId);
     if (error) throw error;
-    if (p) {
-      await supabaseAdmin
-        .from("topping_gates")
-        .update({ active_prompt_id: null, updated_at: new Date().toISOString() })
-        .eq("session_id", p.session_id)
-        .eq("active_prompt_id", data.promptId);
-    }
+    await supabaseAdmin
+      .from("topping_gates")
+      .update({ active_prompt_id: null, updated_at: new Date().toISOString() })
+      .eq("session_id", sessionId)
+      .eq("active_prompt_id", data.promptId);
     return { ok: true as const };
   });
