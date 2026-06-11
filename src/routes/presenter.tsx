@@ -407,7 +407,7 @@ function UnlockedSlotView({
   return (
     <>
       <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
+        <div className="self-start flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
           <div className="min-w-0">
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
               잠금 해제됨
