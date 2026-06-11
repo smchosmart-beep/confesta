@@ -10,7 +10,6 @@ import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { makeSlotKey } from "@/lib/confesta/shared";
-import { useConfestaStore } from "@/lib/confesta/store";
 import {
   listSlots,
   upsertSlotTitle,
@@ -18,6 +17,7 @@ import {
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { getSlotAggregates } from "@/lib/confesta/admin.functions";
 import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
 import { toast } from "sonner";
 import { KeyRound, Check, X as XIcon } from "lucide-react";
@@ -90,10 +90,6 @@ interface VenueStat {
 
 
 function AdminView() {
-  const orders = useConfestaStore((s) => s.orders);
-  const scoops = useConfestaStore((s) => s.scoops);
-  const toppings = useConfestaStore((s) => s.toppings);
-
   const daysAvailable = useMemo(
     () => Array.from(new Set(SESSIONS.map((s) => s.day))).sort(),
     [],
@@ -130,6 +126,15 @@ function AdminView() {
     return m;
   }, [slotsQuery.data]);
 
+  // Server-aggregated counts (orders / pickups / toppings) keyed by slot
+  const aggFn = useServerFn(getSlotAggregates);
+  const aggQuery = useQuery({
+    queryKey: ["admin-aggregates", selectedDay, selectedPeriod],
+    queryFn: () => aggFn({ data: { day: selectedDay, period: selectedPeriod } }),
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+  });
+  const aggregates = aggQuery.data?.aggregates ?? {};
 
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
@@ -158,12 +163,12 @@ function AdminView() {
             periodOf(s) === selectedPeriod,
         );
 
-
         const slotKey = makeSlotKey(selectedDay, selectedPeriod, roomLabel);
-        const ord = orders.filter((o) => o.sessionId === slotKey).length;
-        const pickRaw = scoops.filter((sc) => sc.sessionId === slotKey).length;
+        const a = aggregates[slotKey];
+        const ord = a?.orders ?? 0;
+        const pickRaw = a?.pickups ?? 0;
         const pick = Math.min(pickRaw, ord);
-        const tops = toppings.filter((t) => t.sessionId === slotKey).length;
+        const tops = a?.toppings ?? 0;
 
         return {
           code: code || "—",
@@ -174,8 +179,6 @@ function AdminView() {
           sessionTitle: session?.title,
           toppings: tops,
         };
-
-
       });
 
       const totalOrders = subs.reduce((a, b) => a + b.orders, 0);
@@ -189,7 +192,7 @@ function AdminView() {
         totalPickups,
       };
     });
-  }, [orders, scoops, toppings, selectedDay, selectedPeriod]);
+  }, [aggregates, selectedDay, selectedPeriod]);
 
 
 
