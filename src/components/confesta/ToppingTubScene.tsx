@@ -7,6 +7,10 @@ interface Props {
   sessionId: string;
   /** Small (pint) for handheld; large (half-gallon) for stage. */
   compact?: boolean;
+  /** Filter answers to a specific prompt. undefined → no filter (all answers). null → no prompt selected. */
+  promptId?: string | null;
+  /** Total prompts in this session — drives empty-state copy. */
+  promptsCount?: number;
 }
 
 const ICONS = [Cherry, ChocChip, StarSprinkle, Heart, Sprinkle] as const;
@@ -28,11 +32,21 @@ function hashStr(s: string) {
   return h >>> 0;
 }
 
-export function ToppingTubScene({ sessionId, compact = false }: Props) {
+export function ToppingTubScene({
+  sessionId,
+  compact = false,
+  promptId,
+  promptsCount,
+}: Props) {
   const { toppings: allToppings } = useSessionToppings(sessionId);
   const toppings = useMemo(
-    () => allToppings.filter((t) => t.kind === "answer"),
-    [allToppings],
+    () =>
+      allToppings.filter(
+        (t) =>
+          t.kind === "answer" &&
+          (promptId === undefined ? true : t.promptId === promptId),
+      ),
+    [allToppings, promptId],
   );
   const [tick, setTick] = useState(0);
 
@@ -46,6 +60,15 @@ export function ToppingTubScene({ sessionId, compact = false }: Props) {
     return all.slice(0, compact ? 14 : 22);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toppings, compact, tick]);
+
+  const emptyMessage =
+    promptsCount === 0
+      ? "키워드 질문을 먼저 만들어 주세요"
+      : promptId === null
+        ? "표시할 질문을 선택해 주세요"
+        : promptId !== undefined
+          ? "이 질문에 대한 응답을 기다리는 중…"
+          : "토핑이 도착하면 키워드가 눈처럼 내려옵니다 🍒";
 
   const maxCount = keywords[0]?.count ?? 1;
 
