@@ -1,24 +1,40 @@
-## 원인
+## 목표
 
-청중이 주문/수령한 데이터의 `order.sessionId`는 슬롯키 형식(`"1|am|402-A"`)이고, store의 `orders / scoops / toppings`에도 모두 그 슬롯키가 들어 있음. 그런데 관리자 대시보드(`src/routes/admin.tsx`)는 mockData의 `SESSIONS`에서 room/day/period로 매칭한 후 `session.id`(예: `"s1"`)로 필터링하고 있어 절대 매칭되지 않음. 그래서 실데이터가 있어도 "주문 0, 수령 0, 토핑 0" 으로만 보임.
+관리자 대시보드를 서버 집계 기반으로 전환해 실데이터(주문/수령/토핑)를 정확히 표시.
 
-스크린샷 401-A에 "주문 1"이 보이는 건 `SESSIONS`의 s1이 401-A로 매핑돼 있어 우연히 다른 슬롯의 주문이 잘못 잡힌 케이스로 추정 — 사실상 잘못된 매칭임.
+## 변경
 
-## 수정 (`src/routes/admin.tsx` 한 파일)
+### 1. `src/lib/confesta/admin.functions.ts` (신규)
 
-`stats` useMemo 안에서 슬롯키 기반으로 카운트를 계산:
+`getSlotAggregates({ day, period })` serverFn:
+- 인증: 핸들러 내부에서 `await assertRole("admin")` 호출 (PIN 쿠키 기반, 기존 `listSlots` 패턴과 동일).
+- 입력 검증: `day: number`, `period: "am" | "pm"` (zod).
+- 핸들러 내부에서 `supabaseAdmin` 동적 import.
+- 쿼리: `session_id` 프리픽스(`${day}|${period}|`)로 `orders`, `scoops`, `toppings`에서 `session_id` + 필요한 카운팅 컬럼만 select.
+- 반환: `{ [slotKey]: { orders: number, pickups: number, toppings: number } }`.
+  - `pickups`는 `orders.picked_up_at IS NOT NULL` 카운트 (스키마 확인 후, 만약 픽업이 별도 테이블이면 거기서).
 
-1. `shared.ts`의 `makeSlotKey` 임포트 추가.
-2. 각 sub(룸 코드)마다 `slotKey = makeSlotKey(selectedDay, selectedPeriod, roomLabel)` 생성.
-3. 카운트는 슬롯키로 매칭:
-   - `orders.filter(o => o.sessionId === slotKey).length`
-   - `scoops.filter(sc => sc.sessionId === slotKey).length`
-   - `toppings.filter(t => t.sessionId === slotKey).length`
-4. mock `SESSIONS` 매칭은 capacity/title 표시용으로만 유지 (없어도 0으로 그대로 동작).
-5. `pick`은 `Math.min(pickRaw, ord)` 그대로.
+### 2. `supabase/migrations/<ts>_slot_aggregate_indexes.sql` (신규)
+
+세 테이블에 `session_id` 프리픽스/등치 검색 가속 인덱스:
+```sql
+CREATE INDEX IF NOT EXISTS orders_session_id_idx   ON public.orders   (session_id);
+CREATE INDEX IF NOT EXISTS scoops_session_id_idx   ON public.scoops   (session_id);
+CREATE INDEX IF NOT EXISTS toppings_session_id_idx ON public.toppings (session_id);
+```
+(실제 컬럼명은 마이그레이션 작성 전 `supabase--read_query`로 information_schema 확인 후 확정.)
+
+### 3. `src/routes/admin.tsx` (편집)
+
+- zustand `useConfestaStore`의 `orders/scoops/toppings` selector 제거.
+- `useQuery(["admin-aggregates", selectedDay, selectedPeriod], () => getAggFn({ data: { day, period } }))`, `staleTime: 10_000`, `refetchInterval: 30_000`.
+- `stats` useMemo에서 `aggregates[slotKey]` 조회. `pick = Math.min(pickups, orders)` 유지.
+- `makeSlotKey` import는 그대로 유지.
+- mock `SESSIONS`/`VENUES`는 capacity/타이틀 표시 용도만 유지.
 
 ## 검증
 
-- `/admin` Day1 · 오전 · 402-A: 청중에서 실제로 주문/수령한 1건이 "주문 1 · 수령 1"로 표시.
-- 활동 없는 슬롯은 0 유지.
-- 상단 KPI 합계도 실데이터 합산과 일치.
+- Day1·오전·402-A 주문 1·수령 1 표시
+- 빈 슬롯 0 유지
+- 상단 KPI 합계 일치
+- 다른 화면(청중/발표자/스태프) 영향 없음
