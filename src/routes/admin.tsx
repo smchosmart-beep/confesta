@@ -272,7 +272,7 @@ function AdminView() {
               <SelectContent className={selectContentCls}>
                 {periodsAvailable.map((p) => (
                   <SelectItem key={p} value={p} className={selectItemCls}>
-                    {p === "am" ? "오전" : "오후"}
+                    {PERIOD_LABELS[p]}
                   </SelectItem>
                 ))}
               </SelectContent>
