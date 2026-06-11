@@ -158,36 +158,27 @@ function AdminView() {
         );
 
 
-        // demo baseline + live signals
-        const seed =
-          [...roomLabel].reduce((a, c) => a + c.charCodeAt(0), 0) % 47;
-        const capacity = session?.capacity ?? 30;
-        const baseOrders = session ? 8 + (seed % (capacity - 8)) : seed % 12;
-        const basePickups = Math.floor(baseOrders * 0.7);
-
-        const liveOrders = session
+        const ord = session
           ? orders.filter((o) => o.sessionId === session.id).length
           : 0;
-        const livePickups = session
+        const pickRaw = session
           ? scoops.filter((sc) => sc.sessionId === session.id).length
           : 0;
-        const liveToppings = session
+        const pick = Math.min(pickRaw, ord);
+        const tops = session
           ? toppings.filter((t) => t.sessionId === session.id).length
           : 0;
-
-        const ord = baseOrders + liveOrders;
-        const pick = Math.min(basePickups + livePickups, ord);
-        const baseToppings = session ? 3 + (seed % 9) : seed % 5;
 
         return {
           code: code || "—",
           label: roomLabel,
           orders: ord,
           pickups: pick,
-          capacity,
+          capacity: session?.capacity ?? 30,
           sessionTitle: session?.title,
-          toppings: baseToppings + liveToppings,
+          toppings: tops,
         };
+
       });
 
       const totalOrders = subs.reduce((a, b) => a + b.orders, 0);
