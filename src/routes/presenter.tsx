@@ -284,7 +284,7 @@ function SlotPickerBar({
           onValueChange={onChangeRoom}
           disabled={slotsInScope.length === 0}
         >
-          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[360px] max-w-[520px] text-xs`}>
+          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[270px] max-w-[390px] text-xs`}>
             <SelectValue
               placeholder={loading ? "불러오는 중…" : "발급된 세션 없음"}
             />
