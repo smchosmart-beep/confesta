@@ -8,6 +8,9 @@ import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
 import { SlotUnlockCard } from "@/components/confesta/SlotUnlockCard";
+import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
+import { useToppingGate } from "@/hooks/use-topping-gate";
+import { useSessionToppings } from "@/hooks/use-toppings";
 import {
   issuePickupQR,
   listIssuedSlots,
@@ -440,10 +443,10 @@ function UnlockedSlotView({
           <p className="text-sm text-muted-foreground">
             청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 실시간 반영 · 키워드 5초마다 재배치.
           </p>
-          <div className="flex-1 min-h-0">
-            <ToppingTubScene sessionId={sessionId} />
-          </div>
+          <AnswerPromptTabs sessionId={sessionId} />
         </div>
+
+
 
         <div className="space-y-2 flex flex-col h-full overflow-hidden">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -512,3 +515,105 @@ function UnlockedSlotView({
     </>
   );
 }
+
+// =========================
+// Answer-prompt picker tabs + filtered scene
+// =========================
+function AnswerPromptTabs({ sessionId }: { sessionId: string }) {
+  const { prompts } = useAnswerPrompts(sessionId);
+  const { gate } = useToppingGate(sessionId);
+  const { toppings } = useSessionToppings(sessionId);
+
+  const sorted = useMemo(
+    () => [...prompts].sort((a, b) => b.createdAt - a.createdAt),
+    [prompts],
+  );
+  const activeId = gate.activePromptId ?? null;
+  const fallbackId = activeId ?? sorted[0]?.id ?? null;
+
+  const [selectedId, setSelectedId] = useState<string | null>(fallbackId);
+  const [userPicked, setUserPicked] = useState(false);
+
+  // Sync: follow active until user picks; reset if picked one disappears.
+  useEffect(() => {
+    if (sorted.length === 0) {
+      if (selectedId !== null) setSelectedId(null);
+      if (userPicked) setUserPicked(false);
+      return;
+    }
+    if (!userPicked) {
+      if (selectedId !== fallbackId) setSelectedId(fallbackId);
+      return;
+    }
+    const stillExists = sorted.some((p) => p.id === selectedId);
+    if (!stillExists) {
+      setUserPicked(false);
+      setSelectedId(fallbackId);
+    }
+  }, [sorted, fallbackId, userPicked, selectedId]);
+
+  // Answer counts per prompt.
+  const counts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const t of toppings) {
+      if (t.kind !== "answer" || !t.promptId) continue;
+      m.set(t.promptId, (m.get(t.promptId) ?? 0) + 1);
+    }
+    return m;
+  }, [toppings]);
+
+  return (
+    <>
+      {sorted.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {sorted.map((p) => {
+            const isSelected = p.id === selectedId;
+            const isActive = p.id === activeId;
+            const c = counts.get(p.id) ?? 0;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setSelectedId(p.id);
+                  setUserPicked(true);
+                }}
+                title={p.text}
+                className={`bounce-press shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold border transition ${
+                  isSelected
+                    ? "bg-grad-strawberry text-white border-white shadow-pink"
+                    : "bg-white/80 text-foreground border-white/60 hover:bg-white"
+                }`}
+              >
+                {isActive && (
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isSelected ? "bg-white" : "bg-rose-500"
+                    }`}
+                    aria-label="라이브"
+                  />
+                )}
+                <span className="max-w-[160px] truncate">{p.text}</span>
+                <span
+                  className={`text-[10px] font-mono px-1.5 rounded-full ${
+                    isSelected ? "bg-white/25" : "bg-black/5 text-muted-foreground"
+                  }`}
+                >
+                  {c}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <div className="flex-1 min-h-0">
+        <ToppingTubScene
+          sessionId={sessionId}
+          promptId={selectedId}
+          promptsCount={sorted.length}
+        />
+      </div>
+    </>
+  );
+}
+
