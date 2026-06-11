@@ -71,6 +71,7 @@ export function useAudience() {
         sessionId: o.sessionId,
         orderedAt: o.orderedAt,
         pickedUpAt: o.pickedUpAt,
+        sessionTitle: o.sessionTitle,
       })),
     [state.orders],
   );
