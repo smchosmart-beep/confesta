@@ -81,14 +81,13 @@ function buildChannel(kind: Kind, sessionId: string, entry: Entry) {
 
   for (const { table } of tables) {
     ch.on(
-      // @ts-expect-error supabase types narrow event union; "*" is valid
-      "postgres_changes",
+      "postgres_changes" as never,
       {
         event: "*",
         schema: "public",
         table,
         filter: `session_id=eq.${sessionId}`,
-      },
+      } as never,
       () => notifyAll(entry.listeners),
     );
   }
