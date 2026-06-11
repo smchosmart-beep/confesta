@@ -39,7 +39,18 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
   };
   const [text, setText] = useState("");
   const [sprinkles, setSprinkles] = useState<Sprinkle[]>([]);
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const { submit } = useSessionToppings(sessionId);
+
+  const autosize = () => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 192) + "px";
+  };
+  useEffect(() => {
+    autosize();
+  }, [text]);
   const { gate } = useToppingGate(sessionId);
   const idRef = useRef(0);
 
