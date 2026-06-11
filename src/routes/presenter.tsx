@@ -473,9 +473,10 @@ function UnlockedSlotView({
   return (
     <>
       <ResizablePanelGroup
-        direction="horizontal"
+        orientation="horizontal"
         className="hidden xl:flex h-[calc(100vh-220px)] min-h-[600px]"
       >
+
 
         <ResizablePanel defaultSize={50} minSize={30} className="pr-2">
           {leftColumn}
