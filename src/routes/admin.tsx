@@ -17,6 +17,9 @@ import {
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+import { toast } from "sonner";
+import { KeyRound, Check, X as XIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
