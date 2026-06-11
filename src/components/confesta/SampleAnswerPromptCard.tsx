@@ -81,9 +81,11 @@ export function SampleAnswerPromptCard() {
                 stroke="var(--card)"
                 strokeWidth={2}
                 isAnimationActive={false}
+                labelLine={false}
                 label={(entry: { name: string; value: number }) =>
                   `${entry.name} ${entry.value}`
                 }
+
               >
                 {SAMPLE_ANSWERS.map((_, i) => (
                   <Cell key={i} fill={PALETTE[i % PALETTE.length]} />

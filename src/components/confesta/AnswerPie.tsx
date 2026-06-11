@@ -84,10 +84,12 @@ export function AnswerPie({ sessionId, promptId }: Props) {
             paddingAngle={2}
             stroke="var(--card)"
             strokeWidth={2}
+            labelLine={false}
             label={(entry: { name: string; value: number }) =>
               `${entry.name} ${entry.value}`
             }
           >
+
             {data.map((_, i) => (
               <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
             ))}
