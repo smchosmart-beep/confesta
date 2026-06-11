@@ -102,22 +102,9 @@ function AdminView() {
   const [selectedDay, setSelectedDay] = useState<number>(
     daysAvailable[0] ?? 1,
   );
-  const periodsAvailable = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          SESSIONS.filter((s) => s.day === selectedDay).map(periodOf),
-        ),
-      ) as Period[],
-    [selectedDay],
-  );
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>(
-    (periodsAvailable[0] ?? "am") as Period,
-  );
-  // 일자 변경 시 현재 시간대가 없으면 첫 시간대로 보정
-  if (!periodsAvailable.includes(selectedPeriod) && periodsAvailable[0]) {
-    queueMicrotask(() => setSelectedPeriod(periodsAvailable[0]));
-  }
+  const periodsAvailable = useMemo(() => [...PERIODS] as Period[], []);
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>(PERIODS[0]);
+
 
   // Server-backed slot data for the selected day/period
   const listSlotsFn = useServerFn(listSlots);
