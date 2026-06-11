@@ -36,6 +36,11 @@ import {
   selectContentCls,
   selectItemCls,
 } from "@/lib/confesta/selectStyles";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
 
 export const Route = createFileRoute("/presenter")({
   head: () => ({
