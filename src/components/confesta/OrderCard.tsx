@@ -27,7 +27,8 @@ function fmtTime(ts: number) {
 }
 
 // Resolve display info from either legacy SESSIONS id or new slot-key session_id.
-function resolveSessionDisplay(sessionId: string) {
+function resolveSessionDisplay(order: Order) {
+  const sessionId = order.sessionId;
   const legacy = SESSIONS.find((s) => s.id === sessionId);
   if (legacy) {
     return {
@@ -39,11 +40,11 @@ function resolveSessionDisplay(sessionId: string) {
   }
   const slot = parseSlotKey(sessionId);
   if (slot) {
-    // Stable flavor by hashing room
     const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
     const cat = CATEGORIES[hash % CATEGORIES.length];
+    const adminTitle = (order.sessionTitle ?? "").trim();
     return {
-      title: slot.room,
+      title: adminTitle.length > 0 ? adminTitle : slot.room,
       sub: `Day ${slot.day} · ${slot.period === "am" ? "오전" : "오후"} · ${slot.room}`,
       flavor: cat.flavor,
       catLabel: cat.label,
