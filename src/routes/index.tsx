@@ -99,20 +99,6 @@ function Home() {
           ))}
         </div>
 
-        <div className="relative overflow-hidden mt-10 bg-card border border-white/60 rounded-2xl p-5 text-sm text-muted-foreground shadow-cream">
-          <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />
-          <ToppingScatter density="low" seed="home-info" />
-          <p className="relative">
-            <strong className="text-foreground">데모 안내:</strong> 같은
-            브라우저 안에서 4개 역할 뷰가 로컬 상태로 연동됩니다. 다른 탭에서{" "}
-            <code className="px-1.5 py-0.5 bg-grad-muted rounded">/presenter</code>{" "}
-            를 열어 QR을 표시한 뒤, 또 다른 탭의{" "}
-            <code className="px-1.5 py-0.5 bg-grad-muted rounded">/audience</code>{" "}
-            에서 카메라로 스캔해보세요. 3스쿱을 모으면 영수증이 발급되고,{" "}
-            <code className="px-1.5 py-0.5 bg-grad-muted rounded">/staff</code>{" "}
-            에서 그 영수증을 검증할 수 있습니다.
-          </p>
-        </div>
       </section>
     </main>
   );
