@@ -171,17 +171,17 @@ export function AnswerPromptCard({ prompt }: Props) {
             아직 도착한 응답이 없어요 🍒
           </div>
         ) : (
-          <div className="w-full h-56">
+          <div className="w-full h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart margin={{ top: 24, right: 24, bottom: 32, left: 24 }}>
                 <Pie
                   data={data}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
-                  cy="50%"
-                  outerRadius="78%"
-                  innerRadius="42%"
+                  cy="45%"
+                  outerRadius="62%"
+                  innerRadius="34%"
                   paddingAngle={2}
                   stroke="var(--card)"
                   strokeWidth={2}
@@ -208,7 +208,7 @@ export function AnswerPromptCard({ prompt }: Props) {
                 <Legend
                   verticalAlign="bottom"
                   iconType="circle"
-                  wrapperStyle={{ fontSize: 11 }}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
                 />
               </PieChart>
             </ResponsiveContainer>
