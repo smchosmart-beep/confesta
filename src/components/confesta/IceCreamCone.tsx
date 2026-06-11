@@ -1,4 +1,3 @@
-import { useId } from "react";
 import type { StackedScoop } from "@/lib/confesta/types";
 import scoopMask from "@/assets/scoop-mask.png.asset.json";
 
@@ -40,12 +39,6 @@ interface Props {
 }
 
 export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
-  const uid = useId().replace(/:/g, "");
-  const gBody = `coneBody-${uid}`;
-  const gSide = `coneSide-${uid}`;
-  const gTip = `coneTip-${uid}`;
-  const gCell = `cellFace-${uid}`;
-  const gGrid = `waffleGrid-${uid}`;
   const w = size;
   const domeBox = w * 0.86; // square that contains a single dome scoop
   const domeVisible = domeBox * 0.36; // overlap step — smaller = deeper overlap
