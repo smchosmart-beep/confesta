@@ -7,16 +7,6 @@ import { useToppingGate } from "@/hooks/use-topping-gate";
 import { AnswerPie } from "./AnswerPie";
 
 
-const PALETTE = [
-  "var(--scoop-strawberry)",
-  "var(--scoop-mango)",
-  "var(--scoop-mint)",
-  "var(--scoop-blueberry)",
-  "var(--scoop-grape)",
-  "var(--scoop-chocolate)",
-  "var(--muted-foreground)",
-];
-
 interface Props {
   prompt: AnswerPromptDTO;
 }
@@ -37,28 +27,13 @@ export function AnswerPromptCard({ prompt }: Props) {
     el.style.height = Math.min(el.scrollHeight, 192) + "px";
   }, [text]);
 
-  const answers = useMemo(
-    () => toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id),
+  const total = useMemo(
+    () =>
+      toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id)
+        .length,
     [toppings, prompt.id],
   );
-  const total = answers.length;
 
-  const data = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const a of answers) {
-      const key = a.text.trim().toLowerCase();
-      if (!key) continue;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    const sorted = [...counts.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-    const TOP = 6;
-    if (sorted.length <= TOP) return sorted;
-    const top = sorted.slice(0, TOP);
-    const restSum = sorted.slice(TOP).reduce((s, x) => s + x.value, 0);
-    return [...top, { name: "기타", value: restSum }];
-  }, [answers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
