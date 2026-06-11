@@ -141,7 +141,7 @@ function AudienceView() {
     for (const s of issuedSlotsData?.slots ?? []) {
       const key = makeSlotKey(s.day, s.period, s.room);
       const title = (s.title ?? "").trim();
-      const periodLabel = s.period === "am" ? "오전" : "오후";
+      const periodLabel = PERIOD_SHORT[s.period];
       m.set(key, `${title || s.room} · Day ${s.day} · ${periodLabel}`);
     }
     return m;
