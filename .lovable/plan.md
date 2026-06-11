@@ -1,25 +1,34 @@
-# 401~404 그리드 오버플로우 수정
-
 ## 문제
-관리자 화면 데스크탑 레이아웃에서 401·402·403·404 강의실 카드 안의 서브 공간 타일(A/B/C/D) 내용이 타일 영역을 벗어남.
 
-원인: `subGridStyle()`이 401~404에 대해 `gridAutoRows: "168px"` 고정 높이를 사용하는데, 발표자 비밀번호 입력 행(`SlotPresenterPasswordInput`)이 새로 추가되면서 타일 내부 콘텐츠가 168px를 초과함.
+청중 화면 "토핑 추가" 탭의 "세션 선택" 드롭다운이 비어 보입니다. 주문은 정상적으로 등록되어 있지만(스크린샷의 402-A / LEWEST Hall A / 402-B 카드) 셀렉트 트리거에 라벨이 표시되지 않고 옵션도 렌더되지 않습니다.
 
-타일 내부에 쌓이는 행:
-1. 코드(A/B/C/D) + QR 컨트롤
-2. 세션명 입력(`SlotTitleInput`)
-3. **발표자 비밀번호 입력(신규)**
-4. 수령률 차트 + 토핑 카드 (`min-h-[120px]`)
+## 원인
 
-추가로 오른쪽 토핑 카드의 `px-8`이 좁은 1열 그리드에서 가로 오버플로우 유발 가능성.
+`src/routes/audience.tsx` 라인 349-356에서 옵션 라벨을 구할 때 옛 mock 데이터 `SESSIONS`(id가 `s1`…`s8`)에서만 찾습니다:
 
-## 변경 (src/routes/admin.tsx 한 파일)
+```tsx
+const s = SESSIONS.find((x) => x.id === id);
+if (!s) return null;
+```
 
-1. `subGridStyle()` 401·402·403·404 케이스의 `gridAutoRows`를 `"168px"` → `"minmax(208px, auto)"` 로 변경. 모든 타일이 최소 동일 높이를 유지하면서 내용이 많으면 자연스럽게 늘어남.
-2. 차트/토핑 영역(라인 726의 `grid grid-cols-2`)에 `min-w-0` 추가, 우측 토핑 카드(`px-8`)를 `px-3 sm:px-4` 로 축소하여 좁은 1열에서도 가로 오버플로우 방지.
-3. 외곽 타일 `<div>`(라인 694)의 `min-h-[120px]`는 그대로 두되 `overflow-hidden` 추가로 안전망 확보.
+그러나 실제 주문의 `sessionId`는 슬롯 키 형식(예: `1|am|402-A`)이라 항상 매칭에 실패 → 모든 `SelectItem`이 `null`로 렌더되어 드롭다운이 비어 보이고, `SelectValue`도 표시할 자식이 없습니다.
 
-`hall` 케이스의 고정 높이(`270px`/`486px`)는 손대지 않음 — 2행 2열에서 A가 두 행을 차지해야 하므로 비율이 중요.
+`OrderCard.tsx`에는 이미 슬롯 키를 처리하는 `resolveSessionDisplay`가 있어서 주문 카드는 정상 표시됩니다.
+
+## 수정
+
+`src/routes/audience.tsx`만 수정:
+
+1. `listIssuedSlots` 서버 함수를 `useQuery`로 호출하여 관리자에서 입력된 세션 제목(`title`)과 `room`을 가져옴 (캐시: staleTime 60s 정도).
+2. `mySessionIds.map(...)` 부분을, 슬롯키 → `{ title, sub }` 매퍼로 교체:
+   - 매처는 우선 `listIssuedSlots` 결과에서 `makeSlotKey(day,period,room) === id` 일치를 찾고
+   - 없으면 `parseSlotKey(id)`로 폴백하여 `slot.room`을 라벨로 사용
+   - 그래도 안 되면 legacy `SESSIONS.find`를 마지막 폴백으로
+3. 옵션 라벨 형식: `"{title || room} · Day{n} · {오전|오후}"` — `OrderCard` 보조 라인과 톤 통일.
+
+기존 단일 세션 자동 선택 로직(`useEffect`로 첫 항목 선택)은 그대로 유지. 다른 화면/기능에는 영향 없음 (변경 범위가 `audience.tsx` 한 파일의 드롭다운 옵션 렌더링뿐).
 
 ## 검증
-빌드 후 /admin 데스크탑 뷰에서 401~404 카드를 시각 확인하여 타일 경계 내에 모든 콘텐츠가 들어오는지, A/B/C/D 타일 높이가 균일한지 확인.
+
+- 주문 1건 이상 보유 시 드롭다운에 해당 세션 항목이 나타나고 트리거에 라벨이 보이는지 (관리자가 제목 입력한 슬롯/안 한 슬롯 둘 다).
+- 주문이 없는 상태에서는 기존 "아직 참여 중인 세션이 없어요" 안내가 그대로 표시되는지.
