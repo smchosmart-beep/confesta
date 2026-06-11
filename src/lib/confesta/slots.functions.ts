@@ -12,9 +12,9 @@ async function assertAdmin() {
   await assertRole("admin");
 }
 
-async function assertPresenter() {
-  const { assertRole } = await import("./assertRole");
-  await assertRole("presenter");
+async function assertPresenterSlotKey(day: number, period: Period, room: string) {
+  const { assertPresenterSlot } = await import("./assertRole");
+  await assertPresenterSlot(makeSlotKey(day, period, room));
 }
 
 function newNonce() {
@@ -218,7 +218,7 @@ export const issuePickupQR = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    await assertPresenter();
+    await assertPresenterSlotKey(data.day, data.period, data.room);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const key = makeSlotKey(data.day, data.period, data.room);
 
@@ -255,7 +255,7 @@ export const rotatePickupQR = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }) => {
-    await assertPresenter();
+    await assertPresenterSlotKey(data.day, data.period, data.room);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const key = makeSlotKey(data.day, data.period, data.room);
     const nonce = newNonce();

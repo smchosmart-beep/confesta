@@ -176,18 +176,21 @@ export const toggleLikeTopping = createServerFn({ method: "POST" })
 
 export const togglePinTopping = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ toppingId: ToppingIdSchema }).parse(input),
+    z.object({ sessionId: SessionIdSchema, toppingId: ToppingIdSchema }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: cur } = await supabaseAdmin
       .from("toppings")
-      .select("pinned")
+      .select("pinned, session_id")
       .eq("id", data.toppingId)
       .maybeSingle();
-    const next = !(cur?.pinned ?? false);
+    if (!cur || cur.session_id !== data.sessionId) {
+      return { ok: false as const, message: "토핑을 찾을 수 없어요" };
+    }
+    const next = !(cur.pinned ?? false);
     const { error } = await supabaseAdmin
       .from("toppings")
       .update({ pinned: next })
@@ -198,18 +201,21 @@ export const togglePinTopping = createServerFn({ method: "POST" })
 
 export const toggleAddressedTopping = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ toppingId: ToppingIdSchema }).parse(input),
+    z.object({ sessionId: SessionIdSchema, toppingId: ToppingIdSchema }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { assertRole } = await import("./assertRole");
-    await assertRole("presenter");
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: cur } = await supabaseAdmin
       .from("toppings")
-      .select("addressed")
+      .select("addressed, session_id")
       .eq("id", data.toppingId)
       .maybeSingle();
-    const next = !(cur?.addressed ?? false);
+    if (!cur || cur.session_id !== data.sessionId) {
+      return { ok: false as const, message: "토핑을 찾을 수 없어요" };
+    }
+    const next = !(cur.addressed ?? false);
     const { error } = await supabaseAdmin
       .from("toppings")
       .update({ addressed: next })
