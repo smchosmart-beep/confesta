@@ -123,7 +123,7 @@ export function ToppingTubScene({
       <div className="absolute inset-x-0 top-0 h-[62%] overflow-hidden pointer-events-none">
         {placed.length === 0 ? (
           <div className="absolute inset-0 flex items-center justify-center text-center px-6 text-muted-foreground pointer-events-auto">
-            토핑이 도착하면 키워드가 눈처럼 내려옵니다 🍒
+            {emptyMessage}
           </div>
         ) : (
           placed.map((p) => (
