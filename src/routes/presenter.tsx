@@ -406,51 +406,49 @@ function UnlockedSlotView({
 
   return (
     <>
-      <div className="mb-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <div className="self-start flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              잠금 해제됨
-            </p>
-            <p className="text-sm font-extrabold truncate">{slot.title}</p>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 xl:h-[calc(100vh-160px)]">
+        <div className="flex flex-col gap-3 min-h-0">
+          <div className="flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                잠금 해제됨
+              </p>
+              <p className="text-sm font-extrabold truncate">{slot.title}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setPickupOpen(true)}
+                className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink"
+              >
+                <QrCode className="w-5 h-5" />
+                수령 QR
+              </button>
+              <button
+                type="button"
+                onClick={onLock}
+                className="bounce-press inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-white px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
+                title="이 세션 잠그기"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                잠그기
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => setPickupOpen(true)}
-              className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink"
-            >
-              <QrCode className="w-5 h-5" />
-              수령 QR
-            </button>
-            <button
-              type="button"
-              onClick={onLock}
-              className="bounce-press inline-flex items-center gap-1.5 rounded-full bg-white/80 border border-white px-3 py-2 text-xs font-bold text-muted-foreground hover:text-foreground"
-              title="이 세션 잠그기"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              잠그기
-            </button>
-          </div>
-        </div>
-        <ToppingGateControl sessionId={sessionId} />
-      </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[calc(100vh-220px)]">
-        <div className="space-y-2 flex flex-col h-full">
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             토핑 키워드 (응답)
           </h2>
           <p className="text-sm text-muted-foreground">
             청중이 보낸 <strong>키워드 응답</strong>이 토핑처럼 통 위로 내려옵니다. 실시간 반영 · 키워드 5초마다 재배치.
           </p>
-          <AnswerPromptTabs sessionId={sessionId} />
+          <div className="flex-1 min-h-0 flex flex-col">
+            <AnswerPromptTabs sessionId={sessionId} />
+          </div>
         </div>
 
-
-
-        <div className="space-y-2 flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col gap-3 min-h-0">
+          <ToppingGateControl sessionId={sessionId} />
           <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
             질문 목록
           </h2>
@@ -459,6 +457,7 @@ function UnlockedSlotView({
           </div>
         </div>
       </div>
+
 
       {pickupOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
