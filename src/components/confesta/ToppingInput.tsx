@@ -178,12 +178,6 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
                 ref={taRef}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                    e.preventDefault();
-                    handleSubmit(e as unknown as React.FormEvent);
-                  }
-                }}
                 placeholder={placeholder}
                 disabled={!currentOpen}
                 rows={1}
