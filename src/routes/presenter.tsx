@@ -565,6 +565,8 @@ function AnswerPromptTabs({ sessionId }: { sessionId: string }) {
 
   const [selectedId, setSelectedId] = useState<string | null>(fallbackId);
   const [userPicked, setUserPicked] = useState(false);
+  const [view, setView] = useState<"tub" | "chart">("tub");
+
 
   // Sync: follow active until user picks; reset if picked one disappears.
   useEffect(() => {
