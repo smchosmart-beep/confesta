@@ -41,7 +41,19 @@ import {
   Sparkles,
   ShoppingBag,
   IceCreamCone as IceCreamConeIcon,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/audience")({
   head: () => ({
@@ -149,8 +161,9 @@ function AudienceView() {
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
-  const { toppings, toggleLike } = useSessionToppings(activeSessionId);
+  const { toppings, toggleLike, deleteOwn } = useSessionToppings(activeSessionId);
   const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
 
   const handleOrderScan = async (text: string) => {
@@ -457,7 +470,18 @@ function AudienceView() {
                                     <span aria-hidden>{liked ? "❤️" : "🤍"}</span>
                                     <span>{likeCount}</span>
                                   </button>
+                                  {t.mine && !t.pinned && !t.addressed && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPendingDeleteId(t.id)}
+                                      aria-label="내 질문 삭제"
+                                      className="bounce-press shrink-0 inline-flex items-center justify-center rounded-full w-7 h-7 text-muted-foreground/70 bg-white/70 border border-white hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
                                 </div>
+
                               </li>
                             );
                           })}
