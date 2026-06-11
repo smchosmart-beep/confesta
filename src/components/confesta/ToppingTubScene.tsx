@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { extractAnswerKeywords } from "@/lib/confesta/keywords";
 import { Cherry, ChocChip, StarSprinkle, Heart, Sprinkle } from "./ToppingDecor";
@@ -167,7 +167,7 @@ export function ToppingTubScene({
 
 
       {/* Ice cream tub — bottom 50% */}
-      <IceCreamTub compact={compact} sessionId={sessionId} />
+      <IceCreamTub compact={compact} />
     </div>
   );
 }
@@ -176,11 +176,11 @@ export function ToppingTubScene({
 
 function IceCreamTub({
   compact,
-  sessionId,
 }: {
   compact: boolean;
-  sessionId: string;
 }) {
+  const rawId = useId();
+  const uid = rawId.replace(/[^a-zA-Z0-9_-]/g, "");
   // VB: 400 x 280 — mound on top, cylinder body below
   return (
     <svg
@@ -190,29 +190,29 @@ function IceCreamTub({
       aria-hidden
     >
       <defs>
-        <linearGradient id={`tub-body-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={`tub-body-${uid}`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#FFFFFF" />
           <stop offset="100%" stopColor="#F1E6D2" />
         </linearGradient>
-        <linearGradient id={`tub-label-${sessionId}`} x1="0" x2="1" y1="0" y2="0">
+        <linearGradient id={`tub-label-${uid}`} x1="0" x2="1" y1="0" y2="0">
           <stop offset="0%" stopColor="#FFC1D8" />
           <stop offset="50%" stopColor="#FF4D9D" />
           <stop offset="100%" stopColor="#FF8A1F" />
         </linearGradient>
-        <linearGradient id={`scoop-straw-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={`scoop-straw-${uid}`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#FFB6C1" />
           <stop offset="100%" stopColor="#FF6B95" />
         </linearGradient>
-        <linearGradient id={`scoop-mint-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={`scoop-mint-${uid}`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#B2F5EA" />
           <stop offset="100%" stopColor="#4FD1C5" />
         </linearGradient>
-        <linearGradient id={`scoop-mango-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={`scoop-mango-${uid}`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#FFE082" />
           <stop offset="100%" stopColor="#F6AD55" />
         </linearGradient>
         <filter
-          id={`mound-soft-${sessionId}`}
+          id={`mound-soft-${uid}`}
           x="-20%"
           y="-20%"
           width="140%"
@@ -237,8 +237,8 @@ function IceCreamTub({
       {/* Left: mint */}
       <path
         d="M 40,112 Q 40,30 130,30 Q 220,30 220,112 Z"
-        fill={`url(#scoop-mint-${sessionId})`}
-        filter={`url(#mound-soft-${sessionId})`}
+        fill={`url(#scoop-mint-${uid})`}
+        filter={`url(#mound-soft-${uid})`}
       />
       <path
         d="M 70,58 Q 90,42 120,46"
@@ -252,8 +252,8 @@ function IceCreamTub({
       {/* Right: mango */}
       <path
         d="M 180,112 Q 180,38 270,38 Q 360,38 360,112 Z"
-        fill={`url(#scoop-mango-${sessionId})`}
-        filter={`url(#mound-soft-${sessionId})`}
+        fill={`url(#scoop-mango-${uid})`}
+        filter={`url(#mound-soft-${uid})`}
       />
       <path
         d="M 270,60 Q 295,48 335,58"
@@ -267,8 +267,8 @@ function IceCreamTub({
       {/* Center front: strawberry (largest, on top) */}
       <path
         d="M 100,112 Q 100,12 200,12 Q 300,12 300,112 Z"
-        fill={`url(#scoop-straw-${sessionId})`}
-        filter={`url(#mound-soft-${sessionId})`}
+        fill={`url(#scoop-straw-${uid})`}
+        filter={`url(#mound-soft-${uid})`}
       />
       <path
         d="M 150,40 Q 200,22 250,40"
@@ -287,7 +287,7 @@ function IceCreamTub({
       {/* Tub body — slight taper */}
       <path
         d="M 56,112 L 64,266 Q 64,272 70,272 L 330,272 Q 336,272 336,266 L 344,112 Z"
-        fill={`url(#tub-body-${sessionId})`}
+        fill={`url(#tub-body-${uid})`}
         stroke="#E6D7BD"
         strokeWidth="1.5"
       />
@@ -299,7 +299,7 @@ function IceCreamTub({
         width="260"
         height="78"
         rx="10"
-        fill={`url(#tub-label-${sessionId})`}
+        fill={`url(#tub-label-${uid})`}
       />
       <rect
         x="70"
