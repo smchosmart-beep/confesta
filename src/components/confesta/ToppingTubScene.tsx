@@ -167,7 +167,7 @@ export function ToppingTubScene({
 
 
       {/* Ice cream tub — bottom 50% */}
-      <IceCreamTub compact={compact} sessionId={sessionId} />
+      <IceCreamTub compact={compact} />
     </div>
   );
 }
@@ -176,11 +176,11 @@ export function ToppingTubScene({
 
 function IceCreamTub({
   compact,
-  sessionId,
 }: {
   compact: boolean;
-  sessionId: string;
 }) {
+  const rawId = useId();
+  const uid = rawId.replace(/[^a-zA-Z0-9_-]/g, "");
   // VB: 400 x 280 — mound on top, cylinder body below
   return (
     <svg
@@ -190,7 +190,7 @@ function IceCreamTub({
       aria-hidden
     >
       <defs>
-        <linearGradient id={`tub-body-${sessionId}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient id={`tub-body-${uid}`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#FFFFFF" />
           <stop offset="100%" stopColor="#F1E6D2" />
         </linearGradient>
