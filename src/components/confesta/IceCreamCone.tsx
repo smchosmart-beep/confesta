@@ -56,7 +56,8 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
   const topScoopBottom =
     coneH - coneTuck - domeBox * 0.5 + topScoopIndex * domeVisible;
 
-  const CONE_CLIP = "polygon(0% 6%, 100% 6%, 50% 100%)";
+
+
 
   return (
     <div
