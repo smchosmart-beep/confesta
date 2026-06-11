@@ -71,99 +71,97 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
       className="relative mx-auto"
       style={{ width: w, height: totalHeight }}
     >
-      {/* Cone (back layer) — SVG with embossed waffle lattice */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{
-          width: coneW,
-          height: coneH,
-          bottom: 0,
-          zIndex: 5,
-          filter: "drop-shadow(0 8px 12px rgba(74,42,14,0.32))",
-        }}
-        aria-hidden
-      >
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="absolute inset-0 w-full h-full"
-        >
-          <defs>
-            <linearGradient id={gBody} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F4D9A8" />
-              <stop offset="35%" stopColor="#D9A86A" />
-              <stop offset="75%" stopColor="#8E5A24" />
-              <stop offset="100%" stopColor="#4A2A0E" />
-            </linearGradient>
-            <linearGradient id={gSide} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#4A2A0E" stopOpacity="0.35" />
-              <stop offset="22%" stopColor="#FFFFFF" stopOpacity="0.28" />
-              <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0" />
-              <stop offset="78%" stopColor="#4A2A0E" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#4A2A0E" stopOpacity="0.45" />
-            </linearGradient>
-            <radialGradient id={gTip} cx="0.5" cy="1" r="0.6">
-              <stop offset="0%" stopColor="#2A1607" stopOpacity="0.7" />
-              <stop offset="45%" stopColor="#4A2A0E" stopOpacity="0.25" />
-              <stop offset="100%" stopColor="#4A2A0E" stopOpacity="0" />
-            </radialGradient>
-            <linearGradient id={gCell} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#F0CB8E" stopOpacity="0.9" />
-              <stop offset="50%" stopColor="#B7873E" stopOpacity="0" />
-              <stop offset="100%" stopColor="#2A1607" stopOpacity="0.55" />
-            </linearGradient>
-            <pattern
-              id={gGrid}
-              width="11"
-              height="11"
-              patternUnits="userSpaceOnUse"
-            >
-              <path
-                d="M 5.5 0.5 L 10.5 5.5 L 5.5 10.5 L 0.5 5.5 Z"
-                fill={`url(#${gCell})`}
-              />
-              <path
-                d="M 5.5 1.2 L 9.8 5.5"
-                stroke="rgba(255,235,200,0.55)"
-                strokeWidth="0.45"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 5.5 1.2 L 1.2 5.5"
-                stroke="rgba(255,235,200,0.35)"
-                strokeWidth="0.35"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 9.8 5.5 L 5.5 9.8 L 1.2 5.5"
-                stroke="rgba(42,22,7,0.55)"
-                strokeWidth="0.5"
-                fill="none"
-                strokeLinejoin="miter"
-              />
-              <path
-                d="M 5.5 0.5 L 10.5 5.5 L 5.5 10.5 L 0.5 5.5 Z"
-                fill="none"
-                stroke="rgba(42,22,7,0.7)"
-                strokeWidth="0.35"
-              />
-            </pattern>
-          </defs>
+      {/* Cone (back layer) — CSS clip-path triangle with embossed waffle lattice */}
+      {(() => {
+        const CONE_CLIP = "polygon(0% 6%, 100% 6%, 50% 100%)";
+        // Inline SVG waffle pattern (single rotated diamond cell with bevels), tiled via CSS
+        const waffleSvg = `<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'>
+  <defs>
+    <linearGradient id='c' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%' stop-color='%23F0CB8E' stop-opacity='0.95'/>
+      <stop offset='55%' stop-color='%23B7873E' stop-opacity='0'/>
+      <stop offset='100%' stop-color='%232A1607' stop-opacity='0.6'/>
+    </linearGradient>
+  </defs>
+  <path d='M11 1 L21 11 L11 21 L1 11 Z' fill='url(%23c)'/>
+  <path d='M11 2.4 L19.6 11' stroke='rgba(255,235,200,0.7)' stroke-width='0.9' fill='none' stroke-linecap='round'/>
+  <path d='M11 2.4 L2.4 11' stroke='rgba(255,235,200,0.45)' stroke-width='0.7' fill='none' stroke-linecap='round'/>
+  <path d='M19.6 11 L11 19.6 L2.4 11' stroke='rgba(42,22,7,0.6)' stroke-width='0.9' fill='none'/>
+  <path d='M11 1 L21 11 L11 21 L1 11 Z' fill='none' stroke='rgba(42,22,7,0.75)' stroke-width='0.6'/>
+</svg>`;
+        const waffleUrl = `url("data:image/svg+xml;utf8,${waffleSvg.replace(/\n\s*/g, "")}")`;
+        return (
+          <div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              width: coneW,
+              height: coneH,
+              bottom: 0,
+              zIndex: 5,
+              filter: "drop-shadow(0 8px 12px rgba(74,42,14,0.32))",
+            }}
+            aria-hidden
+          >
+            {/* Base caramel body */}
+            <div
+              className="absolute inset-0"
+              style={{
+                clipPath: CONE_CLIP,
+                WebkitClipPath: CONE_CLIP,
+                background:
+                  "linear-gradient(180deg, #F4D9A8 0%, #D9A86A 35%, #8E5A24 75%, #4A2A0E 100%)",
+              }}
+            />
+            {/* Embossed waffle lattice */}
+            <div
+              className="absolute inset-0"
+              style={{
+                clipPath: CONE_CLIP,
+                WebkitClipPath: CONE_CLIP,
+                backgroundImage: waffleUrl,
+                backgroundSize: "14px 14px",
+                backgroundRepeat: "repeat",
+                mixBlendMode: "multiply",
+                opacity: 0.92,
+              }}
+            />
+            {/* Cylindrical side shading */}
+            <div
+              className="absolute inset-0"
+              style={{
+                clipPath: CONE_CLIP,
+                WebkitClipPath: CONE_CLIP,
+                background:
+                  "linear-gradient(90deg, rgba(74,42,14,0.35) 0%, rgba(255,255,255,0.32) 22%, rgba(255,255,255,0) 50%, rgba(74,42,14,0.18) 78%, rgba(74,42,14,0.5) 100%)",
+              }}
+            />
+            {/* Bottom tip darkening */}
+            <div
+              className="absolute inset-0"
+              style={{
+                clipPath: CONE_CLIP,
+                WebkitClipPath: CONE_CLIP,
+                background:
+                  "radial-gradient(ellipse 70% 50% at 50% 100%, rgba(42,22,7,0.75) 0%, rgba(74,42,14,0.25) 45%, rgba(74,42,14,0) 80%)",
+              }}
+            />
+            {/* Rim — two-tone band for thickness */}
+            <div
+              className="absolute left-0 right-0"
+              style={{
+                top: `${coneH * 0.025}px`,
+                height: `${coneH * 0.065}px`,
+                background:
+                  "linear-gradient(180deg, rgba(255,235,200,0.85) 0%, #EBC18A 25%, #8E5A24 90%, #4A2A0E 100%)",
+                borderRadius: 4,
+                boxShadow:
+                  "0 1px 0 rgba(255,235,200,0.6) inset, 0 -1px 2px rgba(42,22,7,0.45) inset, 0 2px 3px rgba(42,22,7,0.35)",
+              }}
+            />
+          </div>
+        );
+      })()}
 
-          {/* Stacked triangle fills (no clipPath — preserveAspectRatio=none breaks clipPath rendering) */}
-          <polygon points="0,6 100,6 50,100" fill={`url(#${gBody})`} />
-          <polygon points="0,6 100,6 50,100" fill={`url(#${gGrid})`} />
-          <polygon points="0,6 100,6 50,100" fill={`url(#${gSide})`} />
-          <polygon points="0,6 100,6 50,100" fill={`url(#${gTip})`} />
-
-          {/* Rim — two-tone band for thickness */}
-          <rect x="-2" y="2" width="104" height="5.2" fill="#4A2A0E" opacity="0.55" rx="1.2" />
-          <rect x="-1" y="1.2" width="102" height="4" fill={`url(#${gBody})`} rx="1" />
-          <rect x="0" y="1.6" width="100" height="1.2" fill="rgba(255,235,200,0.7)" rx="0.6" />
-        </svg>
-      </div>
 
 
 
