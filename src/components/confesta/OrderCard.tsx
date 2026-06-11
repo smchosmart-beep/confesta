@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Check } from "lucide-react";
+import { Camera, Check, IceCream, Info } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
 import { SESSIONS, getCategory, CATEGORIES } from "@/lib/confesta/mockData";
 import { parseSessionQR, parseSlotKey } from "@/lib/confesta/shared";
@@ -118,6 +118,15 @@ export function OrderCard({ order }: Props) {
           주문 {fmtTime(order.orderedAt)}
           {picked && ` · 수령 ${fmtTime(order.pickedUpAt!)}`}
         </p>
+
+        {!picked && (
+          <div className="mt-3 inline-flex items-start gap-1.5 bg-white/70 border border-white text-[11px] font-semibold text-foreground/80 px-2.5 py-1.5 rounded-xl shadow-cream">
+            <IceCream className="w-3.5 h-3.5 text-pink-500 shrink-0 mt-px" />
+            <span>
+              아직 스쿱이 쌓이지 않았어요. <strong>수령 QR을 스캔</strong>하면 콘에 1스쿱이 적립돼요.
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="relative">
@@ -135,17 +144,23 @@ export function OrderCard({ order }: Props) {
             />
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setScanning(true);
-              setFeedback(null);
-            }}
-            className="bounce-press w-full inline-flex items-center justify-center gap-2 bg-grad-strawberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-pink"
-          >
-            <Camera className="w-4 h-4" />
-            수령 QR 스캔
-          </button>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setScanning(true);
+                setFeedback(null);
+              }}
+              className="bounce-press w-full inline-flex items-center justify-center gap-2 bg-grad-strawberry text-white rounded-full px-5 py-3 text-sm font-bold shadow-pink"
+            >
+              <Camera className="w-4 h-4" />
+              수령 QR 스캔 → 스쿱 적립
+            </button>
+            <p className="inline-flex items-center justify-center gap-1 text-[11px] text-muted-foreground">
+              <Info className="w-3 h-3" />
+              세션 종료 직전 발표자 화면의 수령 QR을 스캔하세요
+            </p>
+          </div>
         )}
 
         {feedback && (
