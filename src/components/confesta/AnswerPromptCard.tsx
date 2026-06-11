@@ -135,54 +135,10 @@ export function AnswerPromptCard({ prompt }: Props) {
           </div>
         </form>
 
-        {total === 0 ? (
-          <div className="text-xs text-muted-foreground text-center py-6">
-            아직 도착한 응답이 없어요 🍒
-          </div>
-        ) : (
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart margin={{ top: 24, right: 24, bottom: 32, left: 24 }}>
-                <Pie
-                  data={data}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="45%"
-                  outerRadius="62%"
-                  innerRadius="34%"
-                  paddingAngle={2}
-                  stroke="var(--card)"
-                  strokeWidth={2}
-                  label={(entry: { name: string; value: number }) =>
-                    `${entry.name} ${entry.value}`
-                  }
-                >
-                  {data.map((_, i) => (
-                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    border: "1px solid var(--border)",
-                    background: "var(--card)",
-                    fontSize: 12,
-                  }}
-                  formatter={(value: number, name: string) => [
-                    `${value}개 (${Math.round((value / total) * 100)}%)`,
-                    name,
-                  ]}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <div className="w-full h-80">
+          <AnswerPie sessionId={prompt.sessionId} promptId={prompt.id} />
+        </div>
+
       </div>
     </div>
   );
