@@ -440,31 +440,33 @@ function UnlockedSlotView({
         </div>
       </div>
 
-      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
+      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
         <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           토핑 키워드 (응답)
         </h2>
         <p className="text-sm text-muted-foreground">
           청중이 보낸 <strong>키워드 응답 토핑</strong>이 실시간으로 반영됩니다.
         </p>
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="h-0 flex-1 flex flex-col">
           <AnswerPromptTabs sessionId={sessionId} />
         </div>
       </div>
+
     </div>
   );
 
   const rightColumn = (
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <ToppingGateControl sessionId={sessionId} />
-      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2">
+      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 flex flex-col gap-2 overflow-hidden">
         <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
           질문 목록
         </h2>
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="h-0 flex-1 overflow-y-auto">
           <QuestionStream sessionId={sessionId} />
         </div>
       </div>
+
     </div>
   );
 
@@ -474,6 +476,8 @@ function UnlockedSlotView({
         orientation="horizontal"
         className="hidden xl:flex h-[calc(100vh-220px)] min-h-[600px]"
       >
+
+
         <ResizablePanel defaultSize={50} minSize={30} className="pr-2">
           {leftColumn}
         </ResizablePanel>
