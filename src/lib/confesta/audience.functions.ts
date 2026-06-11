@@ -199,11 +199,21 @@ export const pickupFromQR = createServerFn({ method: "POST" })
       return { ok: false, message: "콘이 이미 가득 찼어요 (최대 3스쿱)" };
     }
 
-    // resolve flavor via category lookup (server-side mock)
-    const { SESSIONS, getCategory } = await import("./mockData");
-    const session = SESSIONS.find((s) => s.id === parsed.sessionId);
-    if (!session) return { ok: false, message: "세션을 찾을 수 없어요" };
-    const flavor = getCategory(session.category).flavor;
+    // resolve flavor: legacy mock SESSIONS first, then slot-key fallback (matches OrderCard)
+    const { SESSIONS, getCategory, CATEGORIES } = await import("./mockData");
+    const { parseSlotKey } = await import("./shared");
+    let flavor: string | undefined;
+    const legacy = SESSIONS.find((s) => s.id === parsed.sessionId);
+    if (legacy) {
+      flavor = getCategory(legacy.category).flavor;
+    } else {
+      const slot = parseSlotKey(parsed.sessionId);
+      if (slot) {
+        const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
+        flavor = CATEGORIES[hash % CATEGORIES.length].flavor;
+      }
+    }
+    if (!flavor) return { ok: false, message: "세션을 찾을 수 없어요" };
 
     const nowIso = new Date().toISOString();
     const { error: scoopErr } = await supabaseAdmin.from("scoops").insert({

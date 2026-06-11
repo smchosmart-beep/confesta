@@ -1,17 +1,33 @@
-## 요약
-와플콘이 안 보이는 버그 수정 + 다중 인스턴스 ID 충돌 방지.
+## 문제 원인
 
-## 원인
-1. `<g clipPath="url(#coneClip)">`로 사각형들을 삼각형으로 잘라내고 있는데, SVG의 `preserveAspectRatio="none"` + `clipPathUnits="userSpaceOnUse"` 조합에서 클립 영역이 비어 렌더가 사라짐 → 콘 본체가 투명.
-2. `coneBody`, `waffleGrid` 등 SVG `id`가 컴포넌트 인스턴스마다 동일 → 영수증 등에서 여러 콘이 동시에 마운트되면 `url(#…)` 참조 충돌.
+`pickupFromQR` 서버 함수(`src/lib/confesta/audience.functions.ts`)가 스쿱 맛(flavor)을 결정할 때 **레거시 mock `SESSIONS` 배열에서만** 세션을 찾고 있어요:
 
-## 변경
-`src/components/confesta/IceCreamCone.tsx`
+```ts
+const session = SESSIONS.find((s) => s.id === parsed.sessionId);
+if (!session) return { ok: false, message: "세션을 찾을 수 없어요" };
+```
 
-1. **clipPath 제거**: 각 그라데이션 fill을 사각형 4개로 쌓는 대신, **삼각형 `<polygon points="0,6 100,6 50,100">`을 4번 겹쳐** 각각 `coneBody`, `waffleGrid`, `coneSide`, `coneTip` 채움. clipPath 미사용으로 안정적.
-2. **`useId()` 도입**: React `useId()`로 prefix 만들어 `coneBody-{uid}`, `waffleGrid-{uid}` 등 인스턴스별 고유 ID 부여. 모든 `url(#…)` 참조도 동일 prefix 사용.
-3. 림(rim) 사각형 3개는 그대로 유지하되 `fill` 참조도 새 ID로.
+하지만 실제 운영에서 발급되는 수령 QR의 `sessionId`는 **슬롯 키 형식**(`day-period-room`, 예: `1-am-LEWEST Hall A`)이라 mock 배열에 존재하지 않습니다. → 항상 "세션을 찾을 수 없어요" 반환.
+
+`OrderCard.tsx`의 `resolveSessionDisplay`는 이미 두 형식을 모두 처리하지만 서버 픽업 로직은 그렇지 않아 발생한 불일치입니다.
+
+## 수정 방향
+
+`pickupFromQR` 핸들러의 flavor 결정 부분을 `OrderCard`와 동일한 폴백 로직으로 교체:
+
+1. 먼저 `SESSIONS.find(...)` 시도 (레거시 데모 QR 호환)
+2. 실패 시 `parseSlotKey(parsed.sessionId)`로 슬롯 키 파싱
+3. 슬롯의 `room` 문자열 해시 → `CATEGORIES[hash % length].flavor` 사용 (OrderCard와 동일 공식이라 화면 카테고리 색과 스쿱 맛이 일치)
+4. 둘 다 실패할 때만 "세션을 찾을 수 없어요" 반환
+
+다른 검증(논스, 주문 존재, 중복 수령, 최대 스쿱) 로직은 그대로 두고, **flavor 해석 부분만** 바꿉니다.
+
+## 변경 파일
+
+- `src/lib/confesta/audience.functions.ts` — `pickupFromQR` 핸들러 내 flavor 해석 블록 교체 (약 5줄)
 
 ## 검증
-- /audience → My 콘 탭에서 카라멜 와플콘이 보이는지 확인 (스크린샷).
-- /audience → 영수증 탭(완료 시) 두 콘이 모두 정상 표시되는지 확인.
+
+- 진행 중인 실제 슬롯의 수령 QR을 스캔 → "수령 완료! 스쿱이 쌓였어요" 메시지, 콘에 스쿱 추가
+- 잘못된/만료된 nonce → 기존 메시지 그대로 표시
+- 주문하지 않은 세션 QR → "이 세션을 주문하지 않았어요" 그대로
