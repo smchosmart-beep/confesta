@@ -80,12 +80,14 @@ export function useSessionToppings(sessionId: string | null) {
   });
 
   const togglePin = useMutation({
-    mutationFn: (toppingId: string) => pinFn({ data: { toppingId } }),
+    mutationFn: (toppingId: string) =>
+      pinFn({ data: { sessionId: sessionId!, toppingId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
   });
 
   const toggleAddressed = useMutation({
-    mutationFn: (toppingId: string) => addrFn({ data: { toppingId } }),
+    mutationFn: (toppingId: string) =>
+      addrFn({ data: { sessionId: sessionId!, toppingId } }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
   });
 
