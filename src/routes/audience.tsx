@@ -540,6 +540,41 @@ function AudienceView() {
           )}
         </section>
       </DeviceFrame>
+
+      <AlertDialog open={pendingDeleteId !== null} onOpenChange={(o) => { if (!o) setPendingDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>이 질문을 삭제할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              삭제하면 되돌릴 수 없어요. 발표자와 다른 청중 화면에서도 사라집니다.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                const id = pendingDeleteId;
+                setPendingDeleteId(null);
+                if (!id) return;
+                try {
+                  const r = await deleteOwn(id);
+                  if (!r?.ok) {
+                    toast.error(r?.message ?? "삭제할 수 없어요");
+                  } else {
+                    toast.success("질문을 삭제했어요");
+                  }
+                } catch {
+                  toast.error("삭제 중 오류가 발생했어요");
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              삭제
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
+
