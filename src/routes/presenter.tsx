@@ -147,41 +147,42 @@ function PresenterPage() {
             : "세션을 선택해 주세요"
         }
         color="blue"
+        right={
+          <SlotPickerBar
+            slots={slots}
+            day={day}
+            period={period}
+            room={room}
+            daysAvailable={daysAvailable}
+            periodsAvailable={periodsAvailable}
+            slotsInScope={slotsInScope}
+            onChangeDay={(d) => {
+              setDay(d);
+              const periods = Array.from(
+                new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
+              ) as Period[];
+              const nextPeriod =
+                period != null && periods.includes(period) ? period : periods[0] ?? null;
+              setPeriod(nextPeriod);
+              const rooms = slots
+                .filter((s) => s.day === d && s.period === nextPeriod)
+                .map((s) => s.room);
+              setRoom(rooms[0] ?? null);
+            }}
+            onChangePeriod={(p) => {
+              setPeriod(p);
+              const rooms = slots
+                .filter((s) => s.day === day && s.period === p)
+                .map((s) => s.room);
+              setRoom(rooms[0] ?? null);
+            }}
+            onChangeRoom={setRoom}
+            loading={slotsQuery.isLoading}
+          />
+        }
       />
 
       <section className="px-3 sm:px-4">
-        <SlotPickerBar
-          slots={slots}
-          day={day}
-          period={period}
-          room={room}
-          daysAvailable={daysAvailable}
-          periodsAvailable={periodsAvailable}
-          slotsInScope={slotsInScope}
-          onChangeDay={(d) => {
-            setDay(d);
-            const periods = Array.from(
-              new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
-            ) as Period[];
-            const nextPeriod =
-              period != null && periods.includes(period) ? period : periods[0] ?? null;
-            setPeriod(nextPeriod);
-            const rooms = slots
-              .filter((s) => s.day === d && s.period === nextPeriod)
-              .map((s) => s.room);
-            setRoom(rooms[0] ?? null);
-          }}
-          onChangePeriod={(p) => {
-            setPeriod(p);
-            const rooms = slots
-              .filter((s) => s.day === day && s.period === p)
-              .map((s) => s.room);
-            setRoom(rooms[0] ?? null);
-          }}
-          onChangeRoom={setRoom}
-          loading={slotsQuery.isLoading}
-        />
-
         {selected ? (
           <SelectedSlotBody key={makeSlotKey(selected.day, selected.period, selected.room)} slot={selected} />
         ) : (
@@ -224,80 +225,78 @@ function SlotPickerBar({
 }) {
   void slots;
   return (
-    <div className="mb-4 flex flex-col gap-3 bg-card/60 border border-white/60 rounded-3xl p-4 shadow-cream">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            1단계 · 일자 선택
-          </span>
-          <Select
-            value={day != null ? String(day) : ""}
-            onValueChange={(v) => onChangeDay(parseInt(v, 10))}
-            disabled={daysAvailable.length === 0}
-          >
-            <SelectTrigger className={selectTriggerCls}>
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent className={selectContentCls}>
-              {daysAvailable.map((d) => (
-                <SelectItem key={d} value={String(d)} className={selectItemCls}>
-                  Day {d}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="flex flex-wrap items-end gap-2 bg-card/60 border border-white/60 rounded-2xl p-2 shadow-cream">
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+          일자
+        </span>
+        <Select
+          value={day != null ? String(day) : ""}
+          onValueChange={(v) => onChangeDay(parseInt(v, 10))}
+          disabled={daysAvailable.length === 0}
+        >
+          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[90px] text-xs`}>
+            <SelectValue placeholder="—" />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {daysAvailable.map((d) => (
+              <SelectItem key={d} value={String(d)} className={selectItemCls}>
+                Day {d}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            2단계 · 시간대 선택
-          </span>
-          <Select
-            value={period ?? ""}
-            onValueChange={(v) => onChangePeriod(v as Period)}
-            disabled={periodsAvailable.length === 0}
-          >
-            <SelectTrigger className={selectTriggerCls}>
-              <SelectValue placeholder="—" />
-            </SelectTrigger>
-            <SelectContent className={selectContentCls}>
-              {(["am", "pm"] as const).map((p) => (
-                <SelectItem
-                  key={p}
-                  value={p}
-                  disabled={!periodsAvailable.includes(p)}
-                  className={selectItemCls}
-                >
-                  {p === "am" ? "오전" : "오후"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+          시간대
+        </span>
+        <Select
+          value={period ?? ""}
+          onValueChange={(v) => onChangePeriod(v as Period)}
+          disabled={periodsAvailable.length === 0}
+        >
+          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[90px] text-xs`}>
+            <SelectValue placeholder="—" />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {(["am", "pm"] as const).map((p) => (
+              <SelectItem
+                key={p}
+                value={p}
+                disabled={!periodsAvailable.includes(p)}
+                className={selectItemCls}
+              >
+                {p === "am" ? "오전" : "오후"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-        <div className="flex flex-col gap-2">
-          <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-            3단계 · 세션 선택
-          </span>
-          <Select
-            value={room ?? ""}
-            onValueChange={onChangeRoom}
-            disabled={slotsInScope.length === 0}
-          >
-            <SelectTrigger className={selectTriggerCls}>
-              <SelectValue
-                placeholder={loading ? "불러오는 중…" : "발급된 세션이 없습니다"}
-              />
-            </SelectTrigger>
-            <SelectContent className={selectContentCls}>
-              {slotsInScope.map((s) => (
-                <SelectItem key={s.room} value={s.room} className={selectItemCls}>
-                  {s.room} — {s.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+          세션
+        </span>
+        <Select
+          value={room ?? ""}
+          onValueChange={onChangeRoom}
+          disabled={slotsInScope.length === 0}
+        >
+          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[180px] max-w-[260px] text-xs`}>
+            <SelectValue
+              placeholder={loading ? "불러오는 중…" : "발급된 세션 없음"}
+            />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {slotsInScope.map((s) => (
+              <SelectItem key={s.room} value={s.room} className={selectItemCls}>
+                {s.room} — {s.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
