@@ -14,7 +14,10 @@ import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { MAX_SCOOPS_CONST } from "@/lib/confesta/store";
-import { parseSessionQR } from "@/lib/confesta/shared";
+import { makeSlotKey, parseSessionQR, parseSlotKey } from "@/lib/confesta/shared";
+import { listIssuedSlots } from "@/lib/confesta/slots.functions";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useAudience } from "@/hooks/use-audience";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
@@ -114,6 +117,35 @@ function AudienceView() {
   }, [mySessionIds, selectedSessionId]);
 
   const activeSessionId = selectedSessionId;
+
+  const listIssuedSlotsFn = useServerFn(listIssuedSlots);
+  const { data: issuedSlotsData } = useQuery({
+    queryKey: ["issued-slots"],
+    queryFn: () => listIssuedSlotsFn(),
+    staleTime: 60_000,
+  });
+  const slotLabelMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of issuedSlotsData?.slots ?? []) {
+      const key = makeSlotKey(s.day, s.period, s.room);
+      const title = (s.title ?? "").trim();
+      const periodLabel = s.period === "am" ? "오전" : "오후";
+      m.set(key, `${title || s.room} · Day ${s.day} · ${periodLabel}`);
+    }
+    return m;
+  }, [issuedSlotsData]);
+  const labelForSessionId = (id: string): string | null => {
+    const fromIssued = slotLabelMap.get(id);
+    if (fromIssued) return fromIssued;
+    const slot = parseSlotKey(id);
+    if (slot) {
+      const periodLabel = slot.period === "am" ? "오전" : "오후";
+      return `${slot.room} · Day ${slot.day} · ${periodLabel}`;
+    }
+    const legacy = SESSIONS.find((x) => x.id === id);
+    if (legacy) return legacy.title;
+    return null;
+  };
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
@@ -347,11 +379,11 @@ function AudienceView() {
                       </SelectTrigger>
                       <SelectContent className={selectContentCls}>
                         {mySessionIds.map((id) => {
-                          const s = SESSIONS.find((x) => x.id === id);
-                          if (!s) return null;
+                          const label = labelForSessionId(id);
+                          if (!label) return null;
                           return (
                             <SelectItem key={id} value={id} className={selectItemCls}>
-                              {s.title}
+                              {label}
                             </SelectItem>
                           );
                         })}
