@@ -595,7 +595,7 @@ function SlotQRControls({
         open={open && !!payload}
         onClose={() => setOpen(false)}
         title={labelForModal}
-        subtitle={`Day ${day} · ${period === "am" ? "오전" : "오후"} · ${room}`}
+        subtitle={`Day ${day} · ${PERIOD_SHORT[period]} · ${room}`}
         payload={payload ?? ""}
         onRotate={() => {
           if (confirm("기존 QR을 무효화하고 새로 발급합니다. 계속할까요?")) {
