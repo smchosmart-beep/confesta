@@ -379,11 +379,11 @@ function AudienceView() {
                       </SelectTrigger>
                       <SelectContent className={selectContentCls}>
                         {mySessionIds.map((id) => {
-                          const s = SESSIONS.find((x) => x.id === id);
-                          if (!s) return null;
+                          const label = labelForSessionId(id);
+                          if (!label) return null;
                           return (
                             <SelectItem key={id} value={id} className={selectItemCls}>
-                              {s.title}
+                              {label}
                             </SelectItem>
                           );
                         })}
