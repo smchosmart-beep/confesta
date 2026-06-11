@@ -1,43 +1,24 @@
 ## 원인
 
-`src/routes/admin.tsx` 133-204줄의 `stats` 계산에서 룸 이름 문자코드로 `seed`를 만들어 `baseOrders / basePickups / baseToppings` 를 가짜로 깔아두고, 그 위에 실제 라이브 카운트(`orders / scoops / toppings`)를 더하고 있음. 그래서 스크린샷처럼 아직 아무도 주문/수령/토핑을 안 했는데도 "주문 2, 수령 1, 토핑 1" 같은 숫자가 보임. 상단 합계 KPI(`주문 21·수령 13`)도 이 가짜값의 합.
+청중이 주문/수령한 데이터의 `order.sessionId`는 슬롯키 형식(`"1|am|402-A"`)이고, store의 `orders / scoops / toppings`에도 모두 그 슬롯키가 들어 있음. 그런데 관리자 대시보드(`src/routes/admin.tsx`)는 mockData의 `SESSIONS`에서 room/day/period로 매칭한 후 `session.id`(예: `"s1"`)로 필터링하고 있어 절대 매칭되지 않음. 그래서 실데이터가 있어도 "주문 0, 수령 0, 토핑 0" 으로만 보임.
 
-## 수정 (admin.tsx 한 파일)
+스크린샷 401-A에 "주문 1"이 보이는 건 `SESSIONS`의 s1이 401-A로 매핑돼 있어 우연히 다른 슬롯의 주문이 잘못 잡힌 케이스로 추정 — 사실상 잘못된 매칭임.
 
-`stats` useMemo에서 baseline seed 로직을 전부 제거하고 실데이터만 사용:
+## 수정 (`src/routes/admin.tsx` 한 파일)
 
-```ts
-const ord = session
-  ? orders.filter((o) => o.sessionId === session.id).length
-  : 0;
-const pick = session
-  ? Math.min(scoops.filter((sc) => sc.sessionId === session.id).length, ord)
-  : 0;
-const tops = session
-  ? toppings.filter((t) => t.sessionId === session.id).length
-  : 0;
+`stats` useMemo 안에서 슬롯키 기반으로 카운트를 계산:
 
-return {
-  code: code || "—",
-  label: roomLabel,
-  orders: ord,
-  pickups: pick,
-  capacity: session?.capacity ?? 30,
-  sessionTitle: session?.title,
-  toppings: tops,
-};
-```
-
-- `seed`, `baseOrders`, `basePickups`, `baseToppings`, `liveOrders/livePickups/liveToppings` 분리 변수 삭제.
-- 카운트는 모두 실제 store 값(0 출발)으로만 계산 → 카드/합계 KPI 모두 빈 상태에서 0 표시.
-
-## 영향 범위
-
-- 변경 파일: `src/routes/admin.tsx` 만.
-- `mockData.ts`의 `SESSIONS / VENUES`는 평면도·세션 매칭에 계속 사용하므로 유지 (행사 공간 레이아웃은 데이터 아닌 구성 정보).
-- `SAMPLE_TOPPINGS`, `SampleAnswerPromptCard` 등은 발표자/관객 다른 화면용이라 이번 요청 범위 밖 — 유지.
+1. `shared.ts`의 `makeSlotKey` 임포트 추가.
+2. 각 sub(룸 코드)마다 `slotKey = makeSlotKey(selectedDay, selectedPeriod, roomLabel)` 생성.
+3. 카운트는 슬롯키로 매칭:
+   - `orders.filter(o => o.sessionId === slotKey).length`
+   - `scoops.filter(sc => sc.sessionId === slotKey).length`
+   - `toppings.filter(t => t.sessionId === slotKey).length`
+4. mock `SESSIONS` 매칭은 capacity/title 표시용으로만 유지 (없어도 0으로 그대로 동작).
+5. `pick`은 `Math.min(pickRaw, ord)` 그대로.
 
 ## 검증
 
-- `/admin`에서 아직 주문/수령/토핑 활동이 없는 슬롯은 "주문 0 · 수령 0 · 토핑 0", 상단 KPI도 0.
-- 청중이 실제 주문/수령/토핑을 하면 그 수만큼만 증가.
+- `/admin` Day1 · 오전 · 402-A: 청중에서 실제로 주문/수령한 1건이 "주문 1 · 수령 1"로 표시.
+- 활동 없는 슬롯은 0 유지.
+- 상단 KPI 합계도 실데이터 합산과 일치.
