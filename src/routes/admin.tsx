@@ -34,9 +34,14 @@ import {
   selectItemCls,
 } from "@/lib/confesta/selectStyles";
 
-type Period = "am" | "pm";
-const periodOf = (s: { timeSlot: string }): Period =>
-  parseInt(s.timeSlot.slice(0, 2), 10) < 12 ? "am" : "pm";
+const periodOf = (s: { timeSlot: string }): Period => {
+  const hh = parseInt(s.timeSlot.slice(0, 2), 10);
+  const mm = parseInt(s.timeSlot.slice(3, 5), 10) || 0;
+  const total = hh * 60 + mm;
+  if (total < 13 * 60) return "1000";
+  if (total < 15 * 60 + 30) return "1320";
+  return "1530";
+};
 
 
 
