@@ -4,7 +4,21 @@ import type { SessionQRKind, StackedScoop } from "./types";
 export const QR_PAYLOAD_PREFIX = "confesta:";
 export const MAX_SCOOPS = 3;
 
-export type Period = "am" | "pm";
+export const PERIODS = ["1000", "1320", "1530"] as const;
+export type Period = (typeof PERIODS)[number];
+export const PERIOD_LABELS: Record<Period, string> = {
+  "1000": "10:00~11:50",
+  "1320": "13:20~15:15",
+  "1530": "15:30~17:25",
+};
+export const PERIOD_SHORT: Record<Period, string> = {
+  "1000": "오전",
+  "1320": "오후 1교시",
+  "1530": "오후 2교시",
+};
+export function isPeriod(v: string): v is Period {
+  return (PERIODS as readonly string[]).includes(v);
+}
 
 // Slot key uses `|` as separator so QR payload (`:`-separated) parses cleanly.
 export function makeSlotKey(day: number, period: Period, room: string) {
@@ -17,7 +31,7 @@ export function parseSlotKey(
   if (parts.length < 3) return null;
   const day = parseInt(parts[0], 10);
   const period = parts[1];
-  if (!Number.isFinite(day) || (period !== "am" && period !== "pm")) return null;
+  if (!Number.isFinite(day) || !isPeriod(period)) return null;
   return { day, period, room: parts.slice(2).join("|") };
 }
 
