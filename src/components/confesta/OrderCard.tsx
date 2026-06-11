@@ -33,7 +33,7 @@ function resolveSessionDisplay(order: Order) {
   if (legacy) {
     return {
       title: legacy.title,
-      sub: `${legacy.presenter} · ${legacy.room} · ${legacy.timeSlot}`,
+      chips: [legacy.presenter, legacy.room, legacy.timeSlot],
       flavor: getCategory(legacy.category).flavor,
       catLabel: getCategory(legacy.category).label,
     };
@@ -45,7 +45,7 @@ function resolveSessionDisplay(order: Order) {
     const adminTitle = (order.sessionTitle ?? "").trim();
     return {
       title: adminTitle.length > 0 ? adminTitle : slot.room,
-      sub: `Day ${slot.day} · ${slot.period === "am" ? "오전" : "오후"} · ${slot.room}`,
+      chips: [`Day ${slot.day}`, slot.period === "am" ? "오전" : "오후", slot.room],
       flavor: cat.flavor,
       catLabel: cat.label,
     };
