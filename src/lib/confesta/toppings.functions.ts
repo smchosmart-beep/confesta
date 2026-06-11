@@ -154,9 +154,18 @@ export const toggleLikeTopping = createServerFn({ method: "POST" })
         .eq("device_id", data.deviceId);
       if (error) throw error;
     } else {
+      const { data: topping } = await supabaseAdmin
+        .from("toppings")
+        .select("session_id")
+        .eq("id", data.toppingId)
+        .maybeSingle();
       const { error } = await supabaseAdmin
         .from("topping_likes")
-        .insert({ topping_id: data.toppingId, device_id: data.deviceId });
+        .insert({
+          topping_id: data.toppingId,
+          device_id: data.deviceId,
+          session_id: topping?.session_id ?? "",
+        });
       if (error && error.code !== "23505") throw error;
     }
 
