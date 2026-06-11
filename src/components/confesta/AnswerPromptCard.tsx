@@ -1,17 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-} from "recharts";
 import { Send, Lock, Megaphone } from "lucide-react";
 import type { AnswerPromptDTO } from "@/lib/confesta/prompts.functions";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useToppingGate } from "@/hooks/use-topping-gate";
+import { AnswerPie } from "./AnswerPie";
+
 
 const PALETTE = [
   "var(--scoop-strawberry)",
