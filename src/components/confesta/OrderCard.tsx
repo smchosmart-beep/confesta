@@ -45,7 +45,7 @@ function resolveSessionDisplay(order: Order) {
     const adminTitle = (order.sessionTitle ?? "").trim();
     return {
       title: adminTitle.length > 0 ? adminTitle : slot.room,
-      chips: [`Day ${slot.day}`, slot.period === "am" ? "오전" : "오후", slot.room],
+      chips: [`Day ${slot.day}`, PERIOD_SHORT[slot.period], slot.room],
       flavor: cat.flavor,
       catLabel: cat.label,
     };
