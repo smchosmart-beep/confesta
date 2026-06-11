@@ -121,7 +121,7 @@ function AudienceView() {
   const listIssuedSlotsFn = useServerFn(listIssuedSlots);
   const { data: issuedSlotsData } = useQuery({
     queryKey: ["issued-slots"],
-    queryFn: () => listIssuedSlotsFn({}),
+    queryFn: () => listIssuedSlotsFn(),
     staleTime: 60_000,
   });
   const slotLabelMap = useMemo(() => {
