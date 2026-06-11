@@ -340,8 +340,8 @@ function AdminView() {
 
 /** 실제 평면도 배치를 반영한 서브공간 그리드 스타일 */
 function subGridStyle(venueId: string): React.CSSProperties {
-  // 401~404: 모든 서브공간 타일을 동일한 고정 높이로 (A,B,C,D 카드 크기 균일)
-  const tileRow = "168px";
+  // 401~404: 모든 서브공간 타일을 동일한 최소 높이로 (콘텐츠가 많으면 자연스럽게 확장)
+  const tileRow = "minmax(208px, auto)";
   switch (venueId) {
     case "401":
       // 위→아래: D, C, B, A (세로 1열)
@@ -691,7 +691,7 @@ function VenueCard({
           <div
             key={sub.label}
             title={displayTitle}
-            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col justify-center min-h-[120px] shadow-sm"
+            className="rounded-lg border-2 border-foreground/15 bg-gradient-to-br from-white to-white/60 px-2 py-1.5 flex flex-col justify-center min-h-[120px] shadow-sm overflow-hidden"
             style={{ gridArea: sub.code.toLowerCase() }}
           >
             <div className={`flex items-center justify-between gap-1 ${isHall ? 'mb-2' : 'mb-1'}`}>
@@ -723,7 +723,7 @@ function VenueCard({
                 compact
               />
             </div>
-            <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center">
+            <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center min-w-0">
               {/* 좌측: 수령률 원그래프 */}
               <div className="flex flex-col items-center gap-1.5">
                 <div
@@ -749,7 +749,7 @@ function VenueCard({
                 </div>
               </div>
               {/* 우측: 토핑(질문) 수 카드 */}
-              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-8 py-2 h-full gap-2">
+              <div className="flex flex-col items-center justify-center rounded-lg border-2 border-grad-mango/30 bg-gradient-to-br from-grad-mango/15 to-grad-mango/5 px-3 sm:px-4 py-2 h-full gap-2 min-w-0">
                 <div className="flex flex-col items-center">
                   <span className="text-[9px] font-bold text-muted-foreground leading-none mb-1">
                     토핑 (질문)
