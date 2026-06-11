@@ -39,7 +39,18 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
   };
   const [text, setText] = useState("");
   const [sprinkles, setSprinkles] = useState<Sprinkle[]>([]);
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const { submit } = useSessionToppings(sessionId);
+
+  const autosize = () => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 192) + "px";
+  };
+  useEffect(() => {
+    autosize();
+  }, [text]);
   const { gate } = useToppingGate(sessionId);
   const idRef = useRef(0);
 
@@ -157,27 +168,44 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
       ) : (
         <form onSubmit={handleSubmit} className="relative">
           <div
-            className={`flex items-center gap-2 bg-card border border-white/60 rounded-full p-1.5 pl-5 shadow-pink ${
+            className={`flex flex-col gap-2 bg-card border border-white/60 rounded-2xl p-3 shadow-pink ${
               !currentOpen ? "opacity-60" : ""
             }`}
           >
-            <Sparkles className="w-5 h-5 text-primary shrink-0" />
-            <input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={placeholder}
-              disabled={!currentOpen}
-              className="flex-1 bg-transparent outline-none text-sm py-2 disabled:cursor-not-allowed"
-              maxLength={kind === "answer" ? 24 : 140}
-            />
-            <button
-              type="submit"
-              disabled={!text.trim() || !currentOpen}
-              className="bounce-press bg-grad-strawberry text-white rounded-full p-2.5 shadow-pink disabled:opacity-40 disabled:hover:scale-100"
-              aria-label="토핑 전송"
-            >
-              <Send className="w-4 h-4" />
-            </button>
+            <div className="flex items-start gap-2">
+              <Sparkles className="w-5 h-5 text-primary shrink-0 mt-1.5" />
+              <textarea
+                ref={taRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                    e.preventDefault();
+                    handleSubmit(e as unknown as React.FormEvent);
+                  }
+                }}
+                placeholder={placeholder}
+                disabled={!currentOpen}
+                rows={1}
+                className="flex-1 min-w-0 bg-transparent outline-none text-sm py-1.5 resize-none overflow-y-auto disabled:cursor-not-allowed leading-relaxed break-words"
+                style={{ maxHeight: 192 }}
+                maxLength={kind === "answer" ? 24 : 140}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 pl-7">
+              <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
+                {text.length}/{kind === "answer" ? 24 : 140}
+              </span>
+              <button
+                type="submit"
+                disabled={!text.trim() || !currentOpen}
+                className="bounce-press inline-flex items-center gap-1.5 bg-grad-strawberry text-white rounded-full px-4 py-2 text-xs font-bold shadow-pink disabled:opacity-40 disabled:hover:scale-100"
+                aria-label="토핑 전송"
+              >
+                <Send className="w-3.5 h-3.5" />
+                보내기
+              </button>
+            </div>
           </div>
 
           <div className="pointer-events-none absolute inset-x-0 -top-2 h-2">
