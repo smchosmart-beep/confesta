@@ -17,8 +17,10 @@ export type ToppingDTO = {
   addressed: boolean;
   likes: number;
   likedByMe: boolean;
+  mine: boolean;
   createdAt: number;
 };
+
 
 export const listToppings = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -33,7 +35,7 @@ export const listToppings = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("toppings")
-      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at")
+      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id")
       .eq("session_id", data.sessionId)
       .order("created_at", { ascending: false });
     if (error) throw error;
@@ -63,10 +65,49 @@ export const listToppings = createServerFn({ method: "POST" })
         addressed: r.addressed,
         likes: r.likes,
         likedByMe: myLikes.has(r.id),
+        mine: !!data.deviceId && r.device_id === data.deviceId,
         createdAt: new Date(r.created_at).getTime(),
       })),
     };
   });
+
+export const deleteOwnTopping = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        deviceId: DeviceIdSchema,
+        toppingId: ToppingIdSchema,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error: selErr } = await supabaseAdmin
+      .from("toppings")
+      .select("id, device_id, pinned, addressed")
+      .eq("id", data.toppingId)
+      .maybeSingle();
+    if (selErr) throw selErr;
+    if (!row || row.device_id !== data.deviceId) {
+      return { ok: false as const, message: "본인이 보낸 질문만 삭제할 수 있어요" };
+    }
+    if (row.pinned || row.addressed) {
+      return { ok: false as const, message: "발표자가 다루는 중이라 삭제할 수 없어요" };
+    }
+    const { error: likeErr } = await supabaseAdmin
+      .from("topping_likes")
+      .delete()
+      .eq("topping_id", data.toppingId);
+    if (likeErr) throw likeErr;
+    const { error: delErr } = await supabaseAdmin
+      .from("toppings")
+      .delete()
+      .eq("id", data.toppingId)
+      .eq("device_id", data.deviceId);
+    if (delErr) throw delErr;
+    return { ok: true as const };
+  });
+
 
 export const addTopping = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
