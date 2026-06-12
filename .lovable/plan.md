@@ -1,35 +1,22 @@
-## 원인
+# QR 스캔 즉시 카메라 닫기
 
-`ToppingTubScene` 내부 `IceCreamTub` SVG는 그라데이션·필터 id에 `sessionId`를 그대로 끼워 넣고 있습니다.
+## 문제
+청중 화면에서 주문/수령 QR을 스캔해도 "이미 주문한 세션이에요" 같은 에러일 때 카메라 창이 계속 열려 있어, 사용자가 인식이 안 된 줄 알고 반복해서 비춤. 성공일 때만 닫히는 현재 동작 때문.
 
-```tsx
-<linearGradient id={`tub-body-${sessionId}`} ... />
-<path fill={`url(#tub-body-${sessionId})`} ... />
-```
+## 변경
+`src/routes/audience.tsx`의 `handleOrderScan` / `handleConeScan`에서, QR이 올바른 형식(`parseSessionQR` 성공)이면 **결과(성공·실패) 관계없이 카메라 창을 즉시 닫고** 피드백 메시지만 카드 아래에 노출.
 
-그런데 `sessionId = makeSlotKey(day, period, room)` → 예: `Day1|1000|A` 처럼 **`|` 문자**가 포함됩니다.
+### handleOrderScan
+1. `parseSessionQR(text)` 호출.
+2. 파싱 실패 → 카메라 유지, "QR 형식이 올바르지 않아요" 표시 (스캐너가 다른 코드를 계속 인식할 수 있게).
+3. 파싱 성공 → `setOrderScanOpen(false)` 먼저 호출.
+   - `kind==="pickup"`이면 "수령 QR은 …" 안내.
+   - `kind==="order"`이면 `placeOrder(text)` 결과의 ok/메시지를 그대로 피드백.
 
-- `|`는 IRI fragment 규격상 유효하지 않은 문자라, 브라우저(특히 Chromium)는 `url(#tub-body-Day1|1000|A)` 참조를 **해석하지 못하고 fallback인 black으로 칠합니다**.
-- 그래서 그라데이션을 쓰는 스쿱 3개(딸기·민트·망고), 통 본체, 라벨 밴드까지 모두 검은색이 되고, 직접 색을 지정한 흰색 림/하이라이트 스트로크만 정상 표시됩니다.
-- 시간대 코드를 `am/pm → 1000/1320/1530`로 바꾸기 전에도 `|`는 들어 있었지만, 이번 슬롯 재발급 과정에서 이 화면을 처음 본 것으로 추정됩니다(이전엔 잠금 해제된 슬롯이 없어 본 적이 없었음).
-
-## 수정안
-
-`sessionId`를 SVG id에 직접 쓰지 않고, React `useId()`로 컴포넌트 인스턴스별 고유·안전한 접미사를 만들어 사용합니다. `useId()`가 돌려주는 문자열에는 `:` 같은 문자가 포함될 수 있으므로 한 번 더 정제(`replace(/[^a-zA-Z0-9_-]/g, "")`)한 값을 사용합니다.
-
-### 변경 파일: `src/components/confesta/ToppingTubScene.tsx`
-
-1. `import { useEffect, useMemo, useState, useId } from "react";`
-2. `IceCreamTub` 컴포넌트에서:
-   - `const rawId = useId(); const uid = rawId.replace(/[^a-zA-Z0-9_-]/g, "");`
-   - 기존 `${sessionId}` 자리 5곳(그라데이션 3개 + 라벨 그라데이션 + 필터 1개의 정의/참조)을 모두 `${uid}`로 교체.
-   - `sessionId` prop은 더 이상 SVG id 계산에 쓰지 않으므로 prop 자체를 제거(상위 호출부도 정리).
-3. `ToppingTubScene`의 `<IceCreamTub compact={compact} sessionId={sessionId} />` → `<IceCreamTub compact={compact} />`로 단순화.
-
-존재하지 않는 `url(#shimmer-overlay)` 참조는 `opacity="0.0"`이라 시각 영향 없으므로 이번 작업에서는 그대로 둡니다(별도 정리 시점에 제거).
+### handleConeScan
+동일 패턴으로, 파싱 성공 시 `setConeScanOpen(false)` 후 결과 메시지 표시.
 
 ## 영향 범위
-
-- 발표자 화면(`/presenter`)의 토핑 파인트/스테이지 뷰 시각만 영향. 데이터/이벤트/QR/주문 로직과 무관.
-- 다른 컴포넌트(`ToppingWordCloud`, `OrderCard` 등)는 손대지 않음.
-- 검증: 빌드 후 `/presenter`에서 슬롯 잠금 해제 → 파인트 스쿱/통 본체/라벨이 그라데이션 색으로 렌더되는지 스크린샷으로 확인.
+- UI/프론트엔드 로직만 수정. 서버 함수·DB·실시간 구독 변경 없음.
+- CameraScanner 컴포넌트는 그대로.
+- 잘못된(다른 앱의) QR을 비출 때는 카메라가 닫히지 않아 정상 QR로 다시 비출 수 있음.
