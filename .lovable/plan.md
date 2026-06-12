@@ -1,22 +1,31 @@
-# 문제
+# 발표자 화면에 "주문 QR" 버튼 추가
 
-`SlotQRModal.tsx`의 `handlePrint`에서 원본 SVG를 복제한 뒤 `width`/`height` 속성과 `style.width`/`style.height`를 2배로 설정하지만, 화면용 `<QRCode>` 컴포넌트가 SVG에 `style="width:100%;height:auto;max-width:320px"` 인라인 스타일을 그대로 박아두기 때문에 복제본에도 그 스타일이 따라옵니다. CSS 우선순위상 인라인 `width:100%`가 내가 새로 넣는 `width:${w}px`을 덮어써서, 인쇄 미리보기에서 QR 크기가 한 번도 커지지 않은 것입니다.
+수령 QR 왼쪽에 **주문 QR** 버튼을 새로 두고, 클릭하면 관리자 화면에서 발급한 그 세션의 주문 QR을 모달로 보여줍니다. 주문 QR은 갱신되지 않는 고정 QR이라 수령 QR과 달리 회전 타이머가 없습니다.
 
-# 수정 방향
+## 동작
 
-`handlePrint` 내부에서 복제한 SVG에 대해:
+- 버튼 위치: `UnlockedSlotView` 헤더 카드에서 `수령 QR` 버튼 **왼쪽**, 동일한 사각형 스타일(아이콘 + "주문 QR" 라벨), 색은 구분을 위해 `bg-grad-blueberry` 계열.
+- 클릭 시: 신규 모달 오픈 → 해당 세션의 주문 QR(payload) 표시. 관리자가 아직 발급하지 않았다면 "관리자에게 주문 QR 발급을 요청해주세요" 안내.
+- 모달에는 `SlotQRModal`을 재사용해 인쇄 버튼도 그대로 지원(재발급 버튼은 제외 — 발표자는 회전 권한 없음).
 
-1. `removeAttribute("style")`로 화면용 인라인 스타일 (`width:100%`, `max-width:320px` 등)을 제거.
-2. `viewBox`가 이미 있으면 그대로 두고, 없으면 원본 `width`/`height`로 `viewBox`를 세팅 (스케일 기준 보존).
-3. `width`/`height` 속성을 2배 픽셀 값으로 명시 (`setAttribute`).
-4. 그 위에 `style.width`/`style.height`도 2배 픽셀로 다시 한 번 강제.
-5. 인쇄 HTML의 `.qr svg` CSS에서는 `width`/`height`를 지정하지 않거나 `!important`로 2배 값을 박아 다른 inherited 스타일이 영향 못 주게 함.
+## 서버
 
-# 검증 방법
+- `src/lib/confesta/slots.functions.ts`에 신규 serverFn 추가
+  - 이름: `getOrderQRForPresenter`
+  - 입력: `{ day, period, room }`
+  - 권한: `assertPresenterSlot(makeSlotKey(...))` (기존 `issuePickupQR`와 동일한 발표자 쿠키 검증)
+  - 동작: `session_nonces`에서 `kind='order'`인 행을 조회만 함(생성/회전 X). 있으면 `{ payload: makeOrderQR(key, nonce) }`, 없으면 `{ payload: null }`.
 
-- 관리자 화면에서 주문 QR 모달 → 인쇄 클릭 → 새 창 인쇄 미리보기에서 QR이 페이지 폭 가까이(원본 대비 약 2배) 차는지 확인.
-- 텍스트(주문 QR / 테스트 / Day 1 · 오전 · 402-B)는 기존 크기 유지.
+## 클라이언트
 
-# 변경 파일
+- `src/routes/presenter.tsx`
+  - `getOrderQRForPresenter`, `SlotQRModal` import 추가
+  - `UnlockedSlotView`에 상태: `orderOpen`, `orderPayload`
+  - 모달 열 때 serverFn 1회 호출(useMutation) → 응답으로 payload 세팅
+  - 수령 QR 버튼 옆에 "주문 QR" 버튼 렌더
+  - `SlotQRModal`로 표시 (title=`slot.title`, subtitle=`Day {n} · {period 한글} · {room}`)
 
-- `src/components/confesta/SlotQRModal.tsx` — `handlePrint` 내부의 SVG 복제·치환 로직과 인쇄 HTML `<style>`의 `.qr svg` 규칙.
+## 변경 파일
+
+- `src/lib/confesta/slots.functions.ts` — `getOrderQRForPresenter` serverFn 추가
+- `src/routes/presenter.tsx` — 버튼/상태/모달 추가
