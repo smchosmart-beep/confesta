@@ -3,7 +3,7 @@ import type React from "react";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { QrCode, Plus } from "lucide-react";
+import { QrCode, Plus, RotateCcw } from "lucide-react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
@@ -17,7 +17,7 @@ import {
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
-import { getSlotAggregates } from "@/lib/confesta/admin.functions";
+import { getSlotAggregates, resetSlotData } from "@/lib/confesta/admin.functions";
 import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
@@ -626,6 +626,52 @@ function SlotQRControls({
 
 
 
+function SlotResetButton({
+  day,
+  period,
+  room,
+  label,
+  compact,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  label: string;
+  compact?: boolean;
+}) {
+  const qc = useQueryClient();
+  const resetFn = useServerFn(resetSlotData);
+  const mut = useMutation({
+    mutationFn: () => resetFn({ data: { day, period, room } }),
+    onSuccess: () => {
+      toast.success(`${label} 데이터를 초기화했어요`);
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+      qc.invalidateQueries({ queryKey: ["slot-aggregates", day, period] });
+    },
+    onError: (e) => {
+      console.error(e);
+      toast.error("초기화 중 오류가 발생했어요");
+    },
+  });
+  const sizeCls = compact ? "w-6 h-6" : "w-7 h-7";
+  const iconCls = compact ? "w-3 h-3" : "w-3.5 h-3.5";
+  return (
+    <button
+      type="button"
+      aria-label={`${label} 초기화`}
+      title="주문/수령/토핑 초기화"
+      disabled={mut.isPending}
+      onClick={() => {
+        if (!window.confirm(`${label}의 모든 주문/수령/토핑을 초기화할까요?\n되돌릴 수 없습니다.`)) return;
+        mut.mutate();
+      }}
+      className={`bounce-press shrink-0 inline-flex items-center justify-center rounded-full ${sizeCls} text-muted-foreground/80 bg-white/80 border border-white hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50`}
+    >
+      <RotateCcw className={iconCls} />
+    </button>
+  );
+}
+
 function VenueCard({
   venue,
   day,
@@ -697,14 +743,23 @@ function VenueCard({
               <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
-              <SlotQRControls
-                day={day}
-                period={period}
-                room={sub.label}
-                slot={slot}
-                labelForModal={displayTitle || sub.label}
-                compact
-              />
+              <div className="flex items-center gap-1">
+                <SlotQRControls
+                  day={day}
+                  period={period}
+                  room={sub.label}
+                  slot={slot}
+                  labelForModal={displayTitle || sub.label}
+                  compact
+                />
+                <SlotResetButton
+                  day={day}
+                  period={period}
+                  room={sub.label}
+                  label={displayTitle || sub.label}
+                  compact
+                />
+              </div>
             </div>
             <div className={`${isHall ? 'mb-2' : 'mb-1'} flex flex-col gap-1`}>
               <SlotTitleInput
@@ -928,6 +983,13 @@ function MobileVenueCard({
                       room={sub.label}
                       slot={slot}
                       labelForModal={displayTitle || sub.label}
+                      compact
+                    />
+                    <SlotResetButton
+                      day={day}
+                      period={period}
+                      room={sub.label}
+                      label={displayTitle || sub.label}
                       compact
                     />
                   </div>
