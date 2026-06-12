@@ -3,7 +3,7 @@ import type React from "react";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { QrCode, Plus } from "lucide-react";
+import { QrCode, Plus, RotateCcw } from "lucide-react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
