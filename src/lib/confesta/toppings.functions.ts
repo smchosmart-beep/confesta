@@ -35,7 +35,7 @@ export const listToppings = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin.rpc(
       "list_toppings_with_my_like",
-      { _session_id: data.sessionId, _device_id: data.deviceId ?? null },
+      { _session_id: data.sessionId, _device_id: data.deviceId },
     );
     if (error) throw error;
 
