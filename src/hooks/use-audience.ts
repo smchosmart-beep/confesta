@@ -24,6 +24,7 @@ export function useAudience() {
   const pickupFn = useServerFn(pickupFromQR);
   const receiptFn = useServerFn(generateReceipt);
   const resetFn = useServerFn(resetMyCone);
+  const deleteOrderFn = useServerFn(deleteOrder);
 
   const queryKey = ["audience-state", deviceId] as const;
 
