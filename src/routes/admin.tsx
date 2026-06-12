@@ -603,7 +603,7 @@ function SlotQRControls({
           className={`inline-flex items-center gap-1 rounded-md bg-grad-blueberry text-white font-extrabold shadow-cream whitespace-nowrap ${btnSize}`}
         >
           <QrCode className="w-3 h-3" />
-          QR 보기
+          주문QR
         </button>
       ) : (
         <button
