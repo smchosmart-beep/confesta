@@ -393,10 +393,13 @@ function UnlockedSlotView({
 }) {
   const issueFn = useServerFn(issuePickupQR);
   const rotateFn = useServerFn(rotatePickupQR);
+  const getOrderFn = useServerFn(getOrderQRForPresenter);
 
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
   const [progress, setProgress] = useState(100);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [orderPayload, setOrderPayload] = useState<string | null>(null);
 
   const issue = useMutation({
     mutationFn: () =>
@@ -408,6 +411,16 @@ function UnlockedSlotView({
       rotateFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
     onSuccess: (r) => setPickupPayload(r.payload),
   });
+  const fetchOrder = useMutation({
+    mutationFn: () =>
+      getOrderFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
+    onSuccess: (r) => setOrderPayload(r.payload),
+  });
+
+  const openOrder = () => {
+    setOrderOpen(true);
+    fetchOrder.mutate();
+  };
 
   useEffect(() => {
     if (!pickupOpen) return;
