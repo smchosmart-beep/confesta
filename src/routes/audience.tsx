@@ -167,7 +167,12 @@ function AudienceView() {
 
   const handleOrderScan = async (text: string) => {
     const parsed = parseSessionQR(text);
-    if (parsed?.kind === "pickup") {
+    if (!parsed) {
+      setOrderFeedback({ ok: false, msg: "QR 형식이 올바르지 않아요" });
+      return;
+    }
+    setOrderScanOpen(false);
+    if (parsed.kind === "pickup") {
       setOrderFeedback({
         ok: false,
         msg: "수령 QR은 해당 주문 카드의 '수령 QR 스캔' 버튼에서 찍어주세요",
@@ -176,12 +181,7 @@ function AudienceView() {
     }
     try {
       const result = await placeOrder(text);
-      if (result.ok) {
-        setOrderFeedback({ ok: true, msg: result.message });
-        setOrderScanOpen(false);
-      } else {
-        setOrderFeedback({ ok: false, msg: result.message });
-      }
+      setOrderFeedback({ ok: result.ok, msg: result.message });
     } catch (e) {
       setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
       console.error(e);
@@ -190,7 +190,12 @@ function AudienceView() {
 
   const handleConeScan = async (text: string) => {
     const parsed = parseSessionQR(text);
-    if (parsed?.kind === "order") {
+    if (!parsed) {
+      setConeFeedback({ ok: false, msg: "QR 형식이 올바르지 않아요" });
+      return;
+    }
+    setConeScanOpen(false);
+    if (parsed.kind === "order") {
       setConeFeedback({
         ok: false,
         msg: "주문 QR은 '주문' 탭에서 먼저 스캔하세요",
@@ -199,12 +204,7 @@ function AudienceView() {
     }
     try {
       const result = await pickup(text);
-      if (result.ok) {
-        setConeFeedback({ ok: true, msg: result.message });
-        setConeScanOpen(false);
-      } else {
-        setConeFeedback({ ok: false, msg: result.message });
-      }
+      setConeFeedback({ ok: result.ok, msg: result.message });
     } catch (e) {
       setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
       console.error(e);
