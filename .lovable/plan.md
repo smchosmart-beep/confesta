@@ -1,26 +1,22 @@
-# QR 인쇄 시 페이로드/버튼 제외하고 QR만 인쇄
+# 문제
 
-## 문제
-현재 `SlotQRModal`의 인쇄 버튼은 `window.print()`로 페이지 전체를 인쇄합니다. 그 결과:
-- 관리자 대시보드(목록, 게이지 등) 전체가 같이 인쇄됨 (3페이지)
-- 인쇄된 QR 종이에 `confesta:order:...` 페이로드 문자열, 인쇄·재발급 버튼이 남음
+`SlotQRModal.tsx`의 `handlePrint`에서 원본 SVG를 복제한 뒤 `width`/`height` 속성과 `style.width`/`style.height`를 2배로 설정하지만, 화면용 `<QRCode>` 컴포넌트가 SVG에 `style="width:100%;height:auto;max-width:320px"` 인라인 스타일을 그대로 박아두기 때문에 복제본에도 그 스타일이 따라옵니다. CSS 우선순위상 인라인 `width:100%`가 내가 새로 넣는 `width:${w}px`을 덮어써서, 인쇄 미리보기에서 QR 크기가 한 번도 커지지 않은 것입니다.
 
-## 해결 방법
-인쇄 전용 새 창을 열어 QR + 제목/부제만 담은 자체완결 HTML을 인쇄합니다. 메인 페이지의 print CSS를 전혀 건드리지 않아 사이드이펙트 없음.
+# 수정 방향
 
-### 변경 파일: `src/components/confesta/SlotQRModal.tsx`
-- 모달의 QR 컨테이너에 `ref` 추가 → 인쇄 시 `react-qr-code`가 렌더한 `<svg>`를 `XMLSerializer`로 직렬화
-- 새 `handlePrint()`:
-  1. `window.open("", "_blank", "width=480,height=640")`
-  2. 새 창에 작성: `<title>제목 · 주문 QR</title>`, "주문 QR" 라벨, 슬롯 제목, 부제(`Day · 시간 · 호실`), 그리고 QR SVG만
-  3. `@page { size: A4; margin: 18mm }`, 중앙정렬, 흑백
-  4. **payload 문자열, 인쇄/재발급 버튼은 포함하지 않음**
-  5. `load` 후 `print()`, `afterprint`에 `close()`
-  6. 팝업 차단 시 alert로 안내
-- 인쇄 버튼 `onClick`을 `handlePrint`로 교체
-- 더 이상 필요 없는 `print:` Tailwind 클래스 모두 제거 (화면 표시 전용 모달)
-- 화면 상의 payload 표시는 그대로 유지(관리자 디버깅용) — 인쇄물에만 빠짐
+`handlePrint` 내부에서 복제한 SVG에 대해:
 
-## 결과
-- 인쇄 미리보기: A4 1장, QR과 슬롯명/시간만. payload 문자열·버튼 없음.
-- 관리자 페이지 본문은 인쇄되지 않음.
+1. `removeAttribute("style")`로 화면용 인라인 스타일 (`width:100%`, `max-width:320px` 등)을 제거.
+2. `viewBox`가 이미 있으면 그대로 두고, 없으면 원본 `width`/`height`로 `viewBox`를 세팅 (스케일 기준 보존).
+3. `width`/`height` 속성을 2배 픽셀 값으로 명시 (`setAttribute`).
+4. 그 위에 `style.width`/`style.height`도 2배 픽셀로 다시 한 번 강제.
+5. 인쇄 HTML의 `.qr svg` CSS에서는 `width`/`height`를 지정하지 않거나 `!important`로 2배 값을 박아 다른 inherited 스타일이 영향 못 주게 함.
+
+# 검증 방법
+
+- 관리자 화면에서 주문 QR 모달 → 인쇄 클릭 → 새 창 인쇄 미리보기에서 QR이 페이지 폭 가까이(원본 대비 약 2배) 차는지 확인.
+- 텍스트(주문 QR / 테스트 / Day 1 · 오전 · 402-B)는 기존 크기 유지.
+
+# 변경 파일
+
+- `src/components/confesta/SlotQRModal.tsx` — `handlePrint` 내부의 SVG 복제·치환 로직과 인쇄 HTML `<style>`의 `.qr svg` 규칙.
