@@ -3,6 +3,8 @@ import type { SessionQRKind, StackedScoop } from "./types";
 
 export const QR_PAYLOAD_PREFIX = "confesta:";
 export const MAX_SCOOPS = 3;
+// Backward-compatible alias (was previously exported from store.ts).
+export const MAX_SCOOPS_CONST = MAX_SCOOPS;
 
 export const PERIODS = ["1000", "1320", "1530"] as const;
 export type Period = (typeof PERIODS)[number];

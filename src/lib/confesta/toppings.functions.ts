@@ -71,6 +71,35 @@ export const listToppings = createServerFn({ method: "POST" })
     };
   });
 
+export const listMyToppings = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ deviceId: DeviceIdSchema }).parse(input),
+  )
+  .handler(async ({ data }): Promise<{ toppings: ToppingDTO[] }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("toppings")
+      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id")
+      .eq("device_id", data.deviceId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return {
+      toppings: (rows ?? []).map((r) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        text: r.text,
+        kind: r.kind as "question" | "answer",
+        promptId: r.prompt_id,
+        pinned: r.pinned,
+        addressed: r.addressed,
+        likes: r.likes,
+        likedByMe: false,
+        mine: true,
+        createdAt: new Date(r.created_at).getTime(),
+      })),
+    };
+  });
+
 export const deleteOwnTopping = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
