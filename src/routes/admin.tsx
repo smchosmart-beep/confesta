@@ -626,6 +626,52 @@ function SlotQRControls({
 
 
 
+function SlotResetButton({
+  day,
+  period,
+  room,
+  label,
+  compact,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  label: string;
+  compact?: boolean;
+}) {
+  const qc = useQueryClient();
+  const resetFn = useServerFn(resetSlotData);
+  const mut = useMutation({
+    mutationFn: () => resetFn({ data: { day, period, room } }),
+    onSuccess: () => {
+      toast.success(`${label} 데이터를 초기화했어요`);
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+      qc.invalidateQueries({ queryKey: ["slot-aggregates", day, period] });
+    },
+    onError: (e) => {
+      console.error(e);
+      toast.error("초기화 중 오류가 발생했어요");
+    },
+  });
+  const sizeCls = compact ? "w-6 h-6" : "w-7 h-7";
+  const iconCls = compact ? "w-3 h-3" : "w-3.5 h-3.5";
+  return (
+    <button
+      type="button"
+      aria-label={`${label} 초기화`}
+      title="주문/수령/토핑 초기화"
+      disabled={mut.isPending}
+      onClick={() => {
+        if (!window.confirm(`${label}의 모든 주문/수령/토핑을 초기화할까요?\n되돌릴 수 없습니다.`)) return;
+        mut.mutate();
+      }}
+      className={`bounce-press shrink-0 inline-flex items-center justify-center rounded-full ${sizeCls} text-muted-foreground/80 bg-white/80 border border-white hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50`}
+    >
+      <RotateCcw className={iconCls} />
+    </button>
+  );
+}
+
 function VenueCard({
   venue,
   day,
