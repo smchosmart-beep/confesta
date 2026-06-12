@@ -64,6 +64,12 @@ export function useAudience() {
     onSuccess: applyResult,
   });
 
+  const removeOrder = useMutation({
+    mutationFn: (orderId: string) =>
+      deleteOrderFn({ data: { deviceId: deviceId!, orderId } }),
+    onSuccess: applyResult,
+  });
+
   const state = data ?? EMPTY_STATE;
 
   const orders: Order[] = useMemo(
