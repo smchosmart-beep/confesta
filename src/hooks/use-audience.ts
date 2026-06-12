@@ -7,6 +7,7 @@ import {
   pickupFromQR,
   generateReceipt,
   resetMyCone,
+  deleteOrder,
   type AudienceStateDTO,
   type AudienceMutationResult,
 } from "@/lib/confesta/audience.functions";
