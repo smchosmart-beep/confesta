@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Check, IceCream, Info } from "lucide-react";
+import { Camera, Check, IceCream, Info, Trash2 } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
 import { SESSIONS, getCategory, CATEGORIES } from "@/lib/confesta/mockData";
 import { parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
