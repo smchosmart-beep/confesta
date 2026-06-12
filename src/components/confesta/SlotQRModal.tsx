@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import QRCode from "react-qr-code";
 import { X, Printer, RefreshCw } from "lucide-react";
 
@@ -21,6 +21,8 @@ export function SlotQRModal({
   onRotate,
   rotating,
 }: Props) {
+  const qrRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -32,24 +34,75 @@ export function SlotQRModal({
 
   if (!open) return null;
 
+  const handlePrint = () => {
+    const svgEl = qrRef.current?.querySelector("svg");
+    if (!svgEl) return;
+    const svgMarkup = new XMLSerializer().serializeToString(svgEl);
+    const win = window.open("", "_blank", "width=480,height=640");
+    if (!win) {
+      alert("팝업이 차단되어 인쇄할 수 없습니다. 브라우저의 팝업 차단을 해제해주세요.");
+      return;
+    }
+    const esc = (s: string) =>
+      s.replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+      );
+    win.document.write(`<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>${esc(title)} · 주문 QR</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  html, body { margin: 0; padding: 0; background: #fff; color: #000;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", system-ui, sans-serif; }
+  .wrap { min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 24px; text-align: center; }
+  .label { font-size: 12px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: #555; }
+  h1 { font-size: 28px; font-weight: 800; margin: 6px 0 4px; }
+  .sub { font-size: 14px; color: #444; margin: 0 0 24px; }
+  .qr { width: min(70vw, 380px); aspect-ratio: 1 / 1; display: flex;
+    align-items: center; justify-content: center; }
+  .qr svg { width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="label">주문 QR</div>
+    <h1>${esc(title)}</h1>
+    <p class="sub">${esc(subtitle)}</p>
+    <div class="qr">${svgMarkup}</div>
+  </div>
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () { window.focus(); window.print(); }, 50);
+    });
+    window.addEventListener('afterprint', function () { window.close(); });
+  </script>
+</body>
+</html>`);
+    win.document.close();
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:bg-white print:p-0"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md bg-card rounded-3xl p-6 sm:p-8 shadow-pink border border-white/60 print:shadow-none print:border-0 print:max-w-none print:rounded-none"
+        className="relative w-full max-w-md bg-card rounded-3xl p-6 sm:p-8 shadow-pink border border-white/60"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center print:hidden"
+          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center"
           aria-label="닫기"
         >
           <X className="w-4 h-4" />
         </button>
 
-        <div className="text-center mb-5 print:mb-8">
+        <div className="text-center mb-5">
           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
             주문 QR
           </p>
@@ -57,17 +110,20 @@ export function SlotQRModal({
           <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
         </div>
 
-        <div className="bg-white p-4 sm:p-6 rounded-2xl flex items-center justify-center print:p-8">
+        <div
+          ref={qrRef}
+          className="bg-white p-4 sm:p-6 rounded-2xl flex items-center justify-center"
+        >
           <QRCode value={payload} size={280} style={{ width: "100%", height: "auto", maxWidth: 320 }} />
         </div>
 
-        <p className="text-center text-[11px] text-muted-foreground mt-3 font-mono break-all print:text-[10px]">
+        <p className="text-center text-[11px] text-muted-foreground mt-3 font-mono break-all">
           {payload}
         </p>
 
-        <div className="mt-5 flex gap-2 print:hidden">
+        <div className="mt-5 flex gap-2">
           <button
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="bounce-press flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-grad-blueberry text-white font-bold px-4 py-2.5 shadow-cream"
           >
             <Printer className="w-4 h-4" />
