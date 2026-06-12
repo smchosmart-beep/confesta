@@ -15,14 +15,16 @@ import {
   issuePickupQR,
   listIssuedSlots,
   rotatePickupQR,
+  getOrderQRForPresenter,
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import {
   checkPresenterSlot,
   clearPresenterSlot,
 } from "@/lib/confesta/presenter.functions";
-import { makeSlotKey, PERIODS, PERIOD_LABELS, type Period } from "@/lib/confesta/shared";
+import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import { QrCode, X, LogOut, IceCream2, PieChart as PieChartIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPie } from "@/components/confesta/AnswerPie";
@@ -391,10 +393,13 @@ function UnlockedSlotView({
 }) {
   const issueFn = useServerFn(issuePickupQR);
   const rotateFn = useServerFn(rotatePickupQR);
+  const getOrderFn = useServerFn(getOrderQRForPresenter);
 
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
   const [progress, setProgress] = useState(100);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [orderPayload, setOrderPayload] = useState<string | null>(null);
 
   const issue = useMutation({
     mutationFn: () =>
@@ -406,6 +411,24 @@ function UnlockedSlotView({
       rotateFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
     onSuccess: (r) => setPickupPayload(r.payload),
   });
+  const fetchOrder = useMutation({
+    mutationFn: () =>
+      getOrderFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
+    onSuccess: (r) => setOrderPayload(r.payload),
+  });
+
+  const openOrder = () => {
+    setOrderPayload(null);
+    fetchOrder
+      .mutateAsync()
+      .then((r) => {
+        if (r.payload) setOrderOpen(true);
+        else alert("관리자 화면에서 아직 주문 QR이 발급되지 않았어요. 관리자에게 발급을 요청해주세요.");
+      })
+      .catch(() => {
+        alert("주문 QR을 불러오지 못했어요.");
+      });
+  };
 
   useEffect(() => {
     if (!pickupOpen) return;
@@ -436,6 +459,14 @@ function UnlockedSlotView({
           <p className="text-sm font-extrabold truncate">{slot.title}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={openOrder}
+            className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-blueberry text-white shadow-cream"
+          >
+            <QrCode className="w-5 h-5" />
+            주문 QR
+          </button>
           <button
             type="button"
             onClick={() => setPickupOpen(true)}
@@ -565,6 +596,14 @@ function UnlockedSlotView({
           </div>
         </div>
       )}
+
+      <SlotQRModal
+        open={orderOpen}
+        onClose={() => setOrderOpen(false)}
+        title={slot.title}
+        subtitle={`Day ${slot.day} · ${PERIOD_SHORT[slot.period]} · ${slot.room}`}
+        payload={orderPayload ?? ""}
+      />
     </>
   );
 }
