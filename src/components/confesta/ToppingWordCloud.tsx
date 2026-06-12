@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useConfestaStore } from "@/lib/confesta/store";
+import { useSessionToppings } from "@/hooks/use-toppings";
 import { ToppingScatter } from "./ToppingDecor";
 
 const FLAVOR_GRADIENTS = [
@@ -32,11 +32,7 @@ interface Props {
 }
 
 export function ToppingWordCloud({ sessionId, compact = false }: Props) {
-  const allToppings = useConfestaStore((s) => s.toppings);
-  const toppings = useMemo(
-    () => allToppings.filter((t) => t.sessionId === sessionId),
-    [allToppings, sessionId],
-  );
+  const { toppings } = useSessionToppings(sessionId);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
