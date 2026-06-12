@@ -56,6 +56,8 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/audience")({
+  validateSearch: (search: Record<string, unknown>) =>
+    z.object({ qr: z.string().min(1).max(300).optional() }).parse(search),
   head: () => ({
     meta: [
       { title: "청중 뷰 — Confesta" },
