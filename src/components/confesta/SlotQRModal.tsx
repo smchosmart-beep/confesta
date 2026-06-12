@@ -53,16 +53,16 @@ export function SlotQRModal({
 <meta charset="utf-8" />
 <title>${esc(title)} · 주문 QR</title>
 <style>
-  @page { size: A4; margin: 10mm; }
+  @page { size: A4; margin: 5mm; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", system-ui, sans-serif; }
   .wrap { min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 8mm; text-align: center; box-sizing: border-box; }
-  .label { font-size: 24px; font-weight: 700; letter-spacing: .12em;
+    align-items: center; justify-content: center; padding: 4mm; text-align: center; box-sizing: border-box; }
+  .label { font-size: 22px; font-weight: 700; letter-spacing: .12em;
     text-transform: uppercase; color: #555; }
-  h1 { font-size: 96px; font-weight: 900; margin: 12px 0 8px; line-height: 1.1; }
-  .sub { font-size: 36px; color: #222; margin: 0 0 24px; font-weight: 600; }
-  .qr { width: 170mm; height: 170mm; max-width: 90vw; max-height: 60vh; display: flex;
+  h1 { font-size: 80px; font-weight: 900; margin: 8px 0 6px; line-height: 1.1; }
+  .sub { font-size: 32px; color: #222; margin: 0 0 16px; font-weight: 600; }
+  .qr { width: 200mm; height: 200mm; display: flex;
     align-items: center; justify-content: center; }
   .qr svg { width: 100%; height: 100%; display: block; }
 </style>
