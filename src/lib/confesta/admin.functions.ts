@@ -70,14 +70,27 @@ export const getSlotAggregates = createServerFn({ method: "POST" })
 
 export const resetSlotData = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({ day: DaySchema, period: PeriodSchema, room: RoomSchema }).parse(input),
+    z
+      .object({
+        day: DaySchema,
+        period: PeriodSchema,
+        room: RoomSchema,
+        pin: z.string().min(1).max(32),
+      })
+      .parse(input),
   )
   .handler(async ({ data }): Promise<{ ok: true; sessionId: string }> => {
     const { assertRole } = await import("./assertRole");
     await assertRole("admin");
 
+    const { verifyPinValue } = await import("./pin.server");
+    if (!verifyPinValue("admin", data.pin)) {
+      throw new Error("INVALID_PIN");
+    }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const sessionId = makeSlotKey(data.day, data.period as Period, data.room);
+
 
     // Delete dependents first (topping_likes references toppings.id).
     const likesRes = await supabaseAdmin
