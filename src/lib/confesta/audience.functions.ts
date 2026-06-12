@@ -112,7 +112,14 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
   };
 }
 
+const TOUCH_THROTTLE_MS = 60_000;
+const lastTouched = new Map<string, number>();
+
 async function touchDevice(deviceId: string) {
+  const now = Date.now();
+  const prev = lastTouched.get(deviceId) ?? 0;
+  if (now - prev < TOUCH_THROTTLE_MS) return;
+  lastTouched.set(deviceId, now);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   await supabaseAdmin
     .from("audience_devices")
