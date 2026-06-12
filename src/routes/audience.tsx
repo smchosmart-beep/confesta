@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
@@ -55,6 +56,8 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/audience")({
+  validateSearch: (search: Record<string, unknown>) =>
+    z.object({ qr: z.string().min(1).max(300).optional() }).parse(search),
   head: () => ({
     meta: [
       { title: "청중 뷰 — Confesta" },
@@ -79,7 +82,9 @@ function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
 
   // Server-backed audience state (orders, scoops, receipt)
-  const { orders, scoops, placeOrder, pickup } = useAudience();
+  const { deviceId, orders, scoops, placeOrder, pickup } = useAudience();
+  const navigate = useNavigate();
+  const { qr: qrFromUrl } = Route.useSearch();
 
   // Topping/answerPrompt state server-backed via hooks (require sessionId)
 
@@ -210,6 +215,43 @@ function AudienceView() {
       console.error(e);
     }
   };
+
+  // Auto-process QR payload from URL (?qr=...) — handles native-camera scans.
+  const processedQrRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!qrFromUrl || !deviceId) return;
+    if (processedQrRef.current === qrFromUrl) return;
+    processedQrRef.current = qrFromUrl;
+
+    const parsed = parseSessionQR(qrFromUrl);
+    // Clear the query string so refresh doesn't re-trigger.
+    navigate({ to: "/audience", search: {}, replace: true });
+
+    if (!parsed) {
+      setOrderFeedback({ ok: false, msg: "QR 형식이 올바르지 않아요" });
+      setSection("orders");
+      return;
+    }
+    if (parsed.kind === "order") {
+      setSection("orders");
+      setOrderFeedback(null);
+      placeOrder(qrFromUrl)
+        .then((r) => setOrderFeedback({ ok: r.ok, msg: r.message }))
+        .catch((e) => {
+          console.error(e);
+          setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
+        });
+    } else {
+      setSection("live");
+      setConeFeedback(null);
+      pickup(qrFromUrl)
+        .then((r) => setConeFeedback({ ok: r.ok, msg: r.message }))
+        .catch((e) => {
+          console.error(e);
+          setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
+        });
+    }
+  }, [qrFromUrl, deviceId, navigate, placeOrder, pickup]);
 
   return (
     <main className="min-h-screen pb-32">

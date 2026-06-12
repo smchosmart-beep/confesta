@@ -37,18 +37,42 @@ export function parseSlotKey(
   return { day, period, room: parts.slice(2).join("|") };
 }
 
+// QR-encoded as an https deep link so phones' native camera apps open the
+// audience page directly. The page reads `?qr=` and processes the payload.
+const PUBLIC_SITE_URL =
+  (typeof import.meta !== "undefined" &&
+    (import.meta as { env?: { VITE_PUBLIC_SITE_URL?: string } }).env
+      ?.VITE_PUBLIC_SITE_URL) ||
+  "https://confesta.lovable.app";
+
+function makeDeepLink(inner: string) {
+  return `${PUBLIC_SITE_URL}/audience?qr=${encodeURIComponent(inner)}`;
+}
+
 export function makeOrderQR(slotKey: string, nonce: string) {
-  return `${QR_PAYLOAD_PREFIX}order:${slotKey}:${nonce}`;
+  return makeDeepLink(`${QR_PAYLOAD_PREFIX}order:${slotKey}:${nonce}`);
 }
 export function makePickupQR(slotKey: string, nonce: string) {
-  return `${QR_PAYLOAD_PREFIX}pickup:${slotKey}:${nonce}`;
+  return makeDeepLink(`${QR_PAYLOAD_PREFIX}pickup:${slotKey}:${nonce}`);
 }
 
 export function parseSessionQR(
   payload: string,
 ): { kind: SessionQRKind; sessionId: string; nonce: string } | null {
-  if (!payload.startsWith(QR_PAYLOAD_PREFIX)) return null;
-  const parts = payload.split(":");
+  let inner = payload.trim();
+  // Accept https deep link: https://.../audience?qr=confesta:order:...
+  if (inner.startsWith("http://") || inner.startsWith("https://")) {
+    try {
+      const url = new URL(inner);
+      const qr = url.searchParams.get("qr");
+      if (!qr) return null;
+      inner = qr;
+    } catch {
+      return null;
+    }
+  }
+  if (!inner.startsWith(QR_PAYLOAD_PREFIX)) return null;
+  const parts = inner.split(":");
   if (parts.length !== 4) return null;
   const kind = parts[1];
   if (kind !== "order" && kind !== "pickup") return null;
