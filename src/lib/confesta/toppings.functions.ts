@@ -33,29 +33,26 @@ export const listToppings = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }): Promise<{ toppings: ToppingDTO[] }> => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin
-      .from("toppings")
-      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id")
-      .eq("session_id", data.sessionId)
-      .order("created_at", { ascending: false });
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "list_toppings_with_my_like",
+      { _session_id: data.sessionId, _device_id: data.deviceId },
+    );
     if (error) throw error;
 
-    let myLikes = new Set<string>();
-    if (data.deviceId && rows && rows.length) {
-      const { data: likeRows, error: likeErr } = await supabaseAdmin
-        .from("topping_likes")
-        .select("topping_id")
-        .eq("device_id", data.deviceId)
-        .in(
-          "topping_id",
-          rows.map((r) => r.id),
-        );
-      if (likeErr) throw likeErr;
-      myLikes = new Set((likeRows ?? []).map((l) => l.topping_id));
-    }
-
     return {
-      toppings: (rows ?? []).map((r) => ({
+      toppings: ((rows ?? []) as Array<{
+        id: string;
+        session_id: string;
+        text: string;
+        kind: string;
+        prompt_id: string | null;
+        pinned: boolean;
+        addressed: boolean;
+        likes: number;
+        created_at: string;
+        device_id: string | null;
+        liked_by_me: boolean;
+      }>).map((r) => ({
         id: r.id,
         sessionId: r.session_id,
         text: r.text,
@@ -64,7 +61,7 @@ export const listToppings = createServerFn({ method: "POST" })
         pinned: r.pinned,
         addressed: r.addressed,
         likes: r.likes,
-        likedByMe: myLikes.has(r.id),
+        likedByMe: r.liked_by_me,
         mine: !!data.deviceId && r.device_id === data.deviceId,
         createdAt: new Date(r.created_at).getTime(),
       })),
@@ -209,48 +206,13 @@ export const toggleLikeTopping = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: existing } = await supabaseAdmin
-      .from("topping_likes")
-      .select("topping_id")
-      .eq("topping_id", data.toppingId)
-      .eq("device_id", data.deviceId)
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabaseAdmin
-        .from("topping_likes")
-        .delete()
-        .eq("topping_id", data.toppingId)
-        .eq("device_id", data.deviceId);
-      if (error) throw error;
-    } else {
-      const { data: topping } = await supabaseAdmin
-        .from("toppings")
-        .select("session_id")
-        .eq("id", data.toppingId)
-        .maybeSingle();
-      const { error } = await supabaseAdmin
-        .from("topping_likes")
-        .insert({
-          topping_id: data.toppingId,
-          device_id: data.deviceId,
-          session_id: topping?.session_id ?? "",
-        });
-      if (error && error.code !== "23505") throw error;
-    }
-
-    // Recount likes from authoritative source
-    const { count } = await supabaseAdmin
-      .from("topping_likes")
-      .select("topping_id", { count: "exact", head: true })
-      .eq("topping_id", data.toppingId);
-
-    await supabaseAdmin
-      .from("toppings")
-      .update({ likes: count ?? 0 })
-      .eq("id", data.toppingId);
-
-    return { ok: true as const, liked: !existing, likes: count ?? 0 };
+    const { data: rows, error } = await supabaseAdmin.rpc("toggle_topping_like", {
+      _topping_id: data.toppingId,
+      _device_id: data.deviceId,
+    });
+    if (error) throw error;
+    const row = (rows as Array<{ liked: boolean; likes: number }> | null)?.[0];
+    return { ok: true as const, liked: !!row?.liked, likes: row?.likes ?? 0 };
   });
 
 export const togglePinTopping = createServerFn({ method: "POST" })

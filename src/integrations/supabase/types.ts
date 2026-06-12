@@ -310,7 +310,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      list_toppings_with_my_like: {
+        Args: { _device_id?: string; _session_id: string }
+        Returns: {
+          addressed: boolean
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          liked_by_me: boolean
+          likes: number
+          pinned: boolean
+          prompt_id: string
+          session_id: string
+          text: string
+        }[]
+      }
+      toggle_topping_like: {
+        Args: { _device_id: string; _topping_id: string }
+        Returns: {
+          liked: boolean
+          likes: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
