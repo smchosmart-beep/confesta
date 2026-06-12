@@ -79,7 +79,7 @@ export function SlotQRModal({
   h1 { font-size: 56px; font-weight: 900; margin: 4px 0 2px; line-height: 1.05; }
   .sub { font-size: 24px; color: #222; margin: 0 0 6mm; font-weight: 600; }
   .qr { display: inline-flex; align-items: center; justify-content: center; }
-  .qr svg { display: block; width: ${w}px; height: ${h}px; }
+  .qr svg { display: block !important; width: ${w}px !important; height: ${h}px !important; max-width: none !important; }
 </style>
 </head>
 <body>
