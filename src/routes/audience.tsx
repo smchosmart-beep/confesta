@@ -82,7 +82,9 @@ function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
 
   // Server-backed audience state (orders, scoops, receipt)
-  const { orders, scoops, placeOrder, pickup } = useAudience();
+  const { deviceId, orders, scoops, placeOrder, pickup } = useAudience();
+  const navigate = useNavigate();
+  const { qr: qrFromUrl } = Route.useSearch();
 
   // Topping/answerPrompt state server-backed via hooks (require sessionId)
 
