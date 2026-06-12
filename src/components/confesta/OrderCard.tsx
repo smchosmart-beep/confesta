@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Camera, Check, IceCream, Info } from "lucide-react";
+import { Camera, Check, IceCream, Info, Trash2 } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
 import { SESSIONS, getCategory, CATEGORIES } from "@/lib/confesta/mockData";
 import { parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
@@ -55,7 +55,7 @@ function resolveSessionDisplay(order: Order) {
 
 export function OrderCard({ order }: Props) {
   const display = resolveSessionDisplay(order);
-  const { pickup } = useAudience();
+  const { pickup, deleteOrder } = useAudience();
   const [scanning, setScanning] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(
     null,
@@ -100,13 +100,35 @@ export function OrderCard({ order }: Props) {
         >
           {display.catLabel}
         </span>
-        <span
-          className={`text-xs font-extrabold px-3 py-1 rounded-full text-white shadow-cream ${
-            picked ? "bg-grad-success" : "bg-grad-blueberry"
-          }`}
-        >
-          {picked ? "② 수령 완료" : "① 주문 접수"}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`text-xs font-extrabold px-3 py-1 rounded-full text-white shadow-cream ${
+              picked ? "bg-grad-success" : "bg-grad-blueberry"
+            }`}
+          >
+            {picked ? "② 수령 완료" : "① 주문 접수"}
+          </span>
+          {!picked && (
+            <button
+              type="button"
+              aria-label="주문 삭제"
+              title="잘못 스캔한 주문 삭제"
+              onClick={async () => {
+                if (!window.confirm("이 주문을 삭제할까요? (잘못된 QR을 스캔한 경우)")) return;
+                try {
+                  const r = await deleteOrder(order.id);
+                  if (!r.ok) setFeedback({ ok: false, msg: r.message });
+                } catch (e) {
+                  console.error(e);
+                  setFeedback({ ok: false, msg: "삭제 중 오류가 발생했어요" });
+                }
+              }}
+              className="bounce-press shrink-0 inline-flex items-center justify-center rounded-full w-7 h-7 text-muted-foreground/70 bg-white/70 border border-white hover:text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative">

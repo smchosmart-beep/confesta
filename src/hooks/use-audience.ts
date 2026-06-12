@@ -7,6 +7,7 @@ import {
   pickupFromQR,
   generateReceipt,
   resetMyCone,
+  deleteOrder,
   type AudienceStateDTO,
   type AudienceMutationResult,
 } from "@/lib/confesta/audience.functions";
@@ -23,6 +24,7 @@ export function useAudience() {
   const pickupFn = useServerFn(pickupFromQR);
   const receiptFn = useServerFn(generateReceipt);
   const resetFn = useServerFn(resetMyCone);
+  const deleteOrderFn = useServerFn(deleteOrder);
 
   const queryKey = ["audience-state", deviceId] as const;
 
@@ -62,6 +64,12 @@ export function useAudience() {
     onSuccess: applyResult,
   });
 
+  const removeOrder = useMutation({
+    mutationFn: (orderId: string) =>
+      deleteOrderFn({ data: { deviceId: deviceId!, orderId } }),
+    onSuccess: applyResult,
+  });
+
   const state = data ?? EMPTY_STATE;
 
   const orders: Order[] = useMemo(
@@ -97,6 +105,7 @@ export function useAudience() {
     pickup: pickup.mutateAsync,
     issueReceipt: issueReceipt.mutateAsync,
     reset: reset.mutateAsync,
+    deleteOrder: removeOrder.mutateAsync,
     issuingReceipt: issueReceipt.isPending,
   };
 }

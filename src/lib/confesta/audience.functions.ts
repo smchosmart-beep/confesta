@@ -308,3 +308,27 @@ export const resetMyCone = createServerFn({ method: "POST" })
     ]);
     return { ok: true, message: "콘을 초기화했어요", state: await loadState(data.deviceId) };
   });
+
+export const deleteOrder = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ deviceId: DeviceIdSchema, orderId: z.string().uuid() }).parse(input),
+  )
+  .handler(async ({ data }): Promise<AudienceMutationResult> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: deleted, error } = await supabaseAdmin
+      .from("orders")
+      .delete()
+      .eq("id", data.orderId)
+      .eq("device_id", data.deviceId)
+      .is("picked_up_at", null)
+      .select("id");
+    if (error) throw error;
+    if (!deleted || deleted.length === 0) {
+      return {
+        ok: false,
+        message: "삭제할 수 없는 주문이에요 (이미 수령 완료)",
+        state: await loadState(data.deviceId),
+      };
+    }
+    return { ok: true, message: "주문을 삭제했어요", state: await loadState(data.deviceId) };
+  });
