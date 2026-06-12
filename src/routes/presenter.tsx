@@ -15,8 +15,11 @@ import {
   issuePickupQR,
   listIssuedSlots,
   rotatePickupQR,
+  getOrderQRForPresenter,
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { SlotQRModal } from "@/components/confesta/SlotQRModal";
+import { PERIOD_SHORT } from "@/lib/confesta/shared";
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import {
   checkPresenterSlot,
