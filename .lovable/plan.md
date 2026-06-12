@@ -1,28 +1,40 @@
 ## 목표
-청중이 잘못된 QR을 스캔해 주문이 잘못 들어간 경우, 해당 주문 카드를 삭제하고 슬롯을 비워서 다른 QR을 다시 스캔할 수 있게 합니다.
+관리자 화면의 각 호실(서브 그리드 셀)에 "초기화" 버튼을 추가하여, 해당 슬롯(day|period|room)의 모든 토핑·주문·수령 데이터를 한 번에 비울 수 있게 합니다.
 
-## 동작 규칙
-- 삭제 가능: **수령 전(picked_up_at 없음)** 주문만 삭제 허용
-- 수령 완료된 주문은 스쿱이 이미 콘에 적립되어 있으므로 삭제 버튼을 노출하지 않음 (기존 "콘 초기화"로 처리)
-- 삭제 시 확인 다이얼로그 한 번 띄움 ("이 주문을 삭제할까요?")
-- 삭제 후 슬롯이 비므로 (3개 미만이면) "주문 QR 스캔" 버튼이 다시 노출되어 새 QR 스캔 가능
+## 초기화 범위 (해당 `session_id`에 한해)
+- `orders` 행 전체 삭제 (주문 + picked_up_at 수령기록)
+- `scoops` 행 전체 삭제 (청중 콘에서 적립된 스쿱)
+- `toppings` 행 전체 삭제 (질문/토핑) — `topping_likes`는 FK 또는 명시 삭제로 함께 제거
+- `topping_likes` 명시 삭제 (session_id 기준)
+- `answer_prompts` 삭제 (해당 슬롯의 답변형 질문 프롬프트)
+- `topping_gates` 삭제 (필터/잠금 설정)
+- `slide_state`는 보존 (발표자가 보고 있는 슬라이드 상태는 운영 설정에 가까움)
+- `session_slots`(QR/비밀번호/제목)와 `session_secrets`/`session_nonces`는 보존
+
+수령 영수증(`receipts`)은 device_id 단위라 슬롯과 직접 묶이지 않으므로 건드리지 않습니다. (해당 슬롯 스쿱이 사라지면 기존 영수증은 무해한 과거 기록으로 남음.)
+
+## UX
+- 위치: 각 서브 셀(VenueCard 내 sub.code 셀, MobileVenueCard 동일) 우상단의 QR 컨트롤 옆에 작은 휴지통/리셋 아이콘 버튼
+- 클릭 시 `window.confirm("○○○호의 주문/수령/토핑을 모두 초기화할까요? 되돌릴 수 없습니다.")`로 한 번 확인
+- 성공 시 토스트 + 집계 쿼리(`admin-slots`, `slot-aggregates`) 무효화 → 카운트 즉시 0으로 갱신
+- 진행 중 버튼 비활성화
 
 ## 변경 사항
 
-### 1. `src/lib/confesta/audience.functions.ts`
-- `deleteOrder` 서버 함수 신규 추가
-  - 입력: `{ deviceId, orderId }`
-  - 본인 deviceId의 주문만, `picked_up_at IS NULL` 조건으로만 삭제
-  - 삭제 후 `loadState(deviceId)` 반환
+### 1. `src/lib/confesta/admin.functions.ts`
+- `resetSlotData` 서버 함수 신규 추가
+  - 입력: `{ day, period, room }` → `sessionId = makeSlotKey(...)`
+  - `assertRole("admin")` 후 위 6개 테이블에서 `session_id = sessionId`로 삭제 (Promise.all)
+  - 반환: `{ ok: true, deleted: { orders, scoops, toppings, ... } }`
 
-### 2. `src/hooks/use-audience.ts`
-- `deleteOrder` mutation 추가하여 `useAudience()`에서 노출
-
-### 3. `src/components/confesta/OrderCard.tsx`
-- 수령 전(`!picked`)일 때만 카드 우상단 또는 하단에 작은 삭제 버튼(쓰레기통 아이콘) 추가
-- 클릭 시 `confirm()`으로 한 번 확인 → `deleteOrder({ orderId })` 호출
-- 실패 시 기존 feedback 영역에 메시지 표시
+### 2. `src/routes/admin.tsx`
+- 새 컴포넌트 `SlotResetButton` 추가 (VenueCard 및 MobileVenueCard 양쪽에서 재사용)
+  - props: `day`, `period`, `room`, `label`
+  - `useServerFn(resetSlotData)` + `useMutation` 사용
+  - 성공 시 `admin-slots`, `slot-aggregates` 쿼리 invalidate
+- VenueCard 서브 셀 헤더 줄(696행 부근, SlotQRControls 옆)에 버튼 배치
+- MobileVenueCard에도 동일하게 추가
 
 ## 비변경
-- 수령 완료 주문, 스쿱, 영수증 로직은 그대로
-- 주문 최대 3개 제한도 그대로 (삭제로 슬롯이 비면 자연히 다시 스캔 가능)
+- QR/비밀번호/세션 제목, slide_state, receipts는 그대로
+- 발표자/청중 화면 로직 무변경 (다음 새로고침/실시간 invalidation으로 빈 상태 반영)
