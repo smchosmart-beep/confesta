@@ -18,6 +18,15 @@ import {
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
 import { getSlotAggregates, resetSlotData } from "@/lib/confesta/admin.functions";
+import { verifyPin } from "@/lib/confesta/auth.functions";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
