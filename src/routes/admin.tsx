@@ -650,34 +650,125 @@ function SlotResetButton({
 }) {
   const qc = useQueryClient();
   const resetFn = useServerFn(resetSlotData);
-  const mut = useMutation({
-    mutationFn: () => resetFn({ data: { day, period, room } }),
-    onSuccess: () => {
+  const verifyFn = useServerFn(verifyPin);
+  const [open, setOpen] = useState(false);
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [shake, setShake] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const sizeCls = compact ? "w-6 h-6" : "w-7 h-7";
+  const iconCls = compact ? "w-3 h-3" : "w-3.5 h-3.5";
+
+  const reset = () => {
+    setPin("");
+    setError(null);
+    setShake(false);
+    setBusy(false);
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = pin.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const v = await verifyFn({ data: { role: "admin", pin: trimmed } });
+      if (!v.ok) {
+        setError("PIN이 맞지 않아요");
+        setShake(true);
+        setPin("");
+        window.setTimeout(() => setShake(false), 450);
+        setBusy(false);
+        return;
+      }
+      await resetFn({ data: { day, period, room, pin: trimmed } });
       toast.success(`${label} 데이터를 초기화했어요`);
       qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
       qc.invalidateQueries({ queryKey: ["slot-aggregates", day, period] });
-    },
-    onError: (e) => {
-      console.error(e);
+      setOpen(false);
+      reset();
+    } catch (err) {
+      console.error(err);
       toast.error("초기화 중 오류가 발생했어요");
-    },
-  });
-  const sizeCls = compact ? "w-6 h-6" : "w-7 h-7";
-  const iconCls = compact ? "w-3 h-3" : "w-3.5 h-3.5";
+      setBusy(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      aria-label={`${label} 초기화`}
-      title="주문/수령/토핑 초기화"
-      disabled={mut.isPending}
-      onClick={() => {
-        if (!window.confirm(`${label}의 모든 주문/수령/토핑을 초기화할까요?\n되돌릴 수 없습니다.`)) return;
-        mut.mutate();
-      }}
-      className={`bounce-press shrink-0 inline-flex items-center justify-center rounded-full ${sizeCls} text-muted-foreground/80 bg-white/80 border border-white hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50`}
-    >
-      <RotateCcw className={iconCls} />
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label={`${label} 초기화`}
+        title="주문/수령/토핑 초기화"
+        onClick={() => setOpen(true)}
+        className={`bounce-press shrink-0 inline-flex items-center justify-center rounded-full ${sizeCls} text-muted-foreground/80 bg-white/80 border border-white hover:text-red-600 hover:bg-red-50 transition-colors`}
+      >
+        <RotateCcw className={iconCls} />
+      </button>
+      <Dialog
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) reset();
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-md rounded-2xl"
+          style={shake ? { animation: "var(--animate-shake)" } : undefined}
+        >
+          <DialogHeader>
+            <DialogTitle>{label} 초기화</DialogTitle>
+            <DialogDescription>
+              이 공간의 모든 주문 / 수령 / 토핑이 삭제됩니다. 되돌릴 수 없습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={submit} className="flex flex-col gap-2">
+            <label htmlFor={`reset-pin-${day}-${period}-${room}`} className="text-xs font-bold text-muted-foreground">
+              관리자 PIN
+            </label>
+            <input
+              id={`reset-pin-${day}-${period}-${room}`}
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              autoFocus
+              value={pin}
+              onChange={(e) => {
+                setPin(e.target.value);
+                if (error) setError(null);
+              }}
+              placeholder="관리자 PIN"
+              className={`w-full rounded-full bg-white/80 border px-4 py-2.5 text-sm outline-none transition ${
+                error ? "border-red-400 focus:border-red-500" : "border-white focus:border-primary"
+              }`}
+            />
+            {error && (
+              <p className="text-xs font-semibold text-red-600 px-1">{error}</p>
+            )}
+            <DialogFooter className="mt-3 gap-2 sm:gap-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                disabled={busy}
+                className="bounce-press inline-flex items-center justify-center rounded-full bg-white/80 border border-white px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-white disabled:opacity-40"
+              >
+                취소
+              </button>
+              <button
+                type="submit"
+                disabled={!pin.trim() || busy}
+                className="bounce-press inline-flex items-center justify-center gap-2 rounded-full bg-red-500 text-white font-bold px-5 py-2 text-sm shadow-cream disabled:opacity-40"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                {busy ? "초기화 중…" : "초기화"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
