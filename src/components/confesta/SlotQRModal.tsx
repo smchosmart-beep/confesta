@@ -44,10 +44,15 @@ export function SlotQRModal({
     const baseH = rect.height || svgEl.clientHeight || 280;
     const w = Math.round(baseW * 2);
     const h = Math.round(baseH * 2);
+    // 화면용 인라인 스타일(width:100%, max-width:320px 등) 제거
+    cloned.removeAttribute("style");
+    // viewBox 보존 (없으면 원본 크기로 설정)
+    if (!cloned.getAttribute("viewBox")) {
+      cloned.setAttribute("viewBox", `0 0 ${Math.round(baseW)} ${Math.round(baseH)}`);
+    }
     cloned.setAttribute("width", String(w));
     cloned.setAttribute("height", String(h));
-    cloned.style.width = `${w}px`;
-    cloned.style.height = `${h}px`;
+    cloned.setAttribute("style", `width:${w}px !important;height:${h}px !important;max-width:none !important;display:block;`);
     const svgMarkup = new XMLSerializer().serializeToString(cloned);
     const win = window.open("", "_blank", "width=480,height=640");
     if (!win) {
@@ -74,7 +79,7 @@ export function SlotQRModal({
   h1 { font-size: 56px; font-weight: 900; margin: 4px 0 2px; line-height: 1.05; }
   .sub { font-size: 24px; color: #222; margin: 0 0 6mm; font-weight: 600; }
   .qr { display: inline-flex; align-items: center; justify-content: center; }
-  .qr svg { display: block; width: ${w}px; height: ${h}px; }
+  .qr svg { display: block !important; width: ${w}px !important; height: ${h}px !important; max-width: none !important; }
 </style>
 </head>
 <body>
