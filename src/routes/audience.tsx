@@ -216,6 +216,43 @@ function AudienceView() {
     }
   };
 
+  // Auto-process QR payload from URL (?qr=...) — handles native-camera scans.
+  const processedQrRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!qrFromUrl || !deviceId) return;
+    if (processedQrRef.current === qrFromUrl) return;
+    processedQrRef.current = qrFromUrl;
+
+    const parsed = parseSessionQR(qrFromUrl);
+    // Clear the query string so refresh doesn't re-trigger.
+    navigate({ to: "/audience", search: {}, replace: true });
+
+    if (!parsed) {
+      setOrderFeedback({ ok: false, msg: "QR 형식이 올바르지 않아요" });
+      setSection("orders");
+      return;
+    }
+    if (parsed.kind === "order") {
+      setSection("orders");
+      setOrderFeedback(null);
+      placeOrder(qrFromUrl)
+        .then((r) => setOrderFeedback({ ok: r.ok, msg: r.message }))
+        .catch((e) => {
+          console.error(e);
+          setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
+        });
+    } else {
+      setSection("live");
+      setConeFeedback(null);
+      pickup(qrFromUrl)
+        .then((r) => setConeFeedback({ ok: r.ok, msg: r.message }))
+        .catch((e) => {
+          console.error(e);
+          setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
+        });
+    }
+  }, [qrFromUrl, deviceId, navigate, placeOrder, pickup]);
+
   return (
     <main className="min-h-screen pb-32">
       <RoleHeader
