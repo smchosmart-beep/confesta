@@ -19,13 +19,12 @@ import {
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
-import { PERIOD_SHORT } from "@/lib/confesta/shared";
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import {
   checkPresenterSlot,
   clearPresenterSlot,
 } from "@/lib/confesta/presenter.functions";
-import { makeSlotKey, PERIODS, PERIOD_LABELS, type Period } from "@/lib/confesta/shared";
+import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import { QrCode, X, LogOut, IceCream2, PieChart as PieChartIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPie } from "@/components/confesta/AnswerPie";
