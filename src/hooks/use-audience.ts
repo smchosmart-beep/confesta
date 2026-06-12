@@ -105,6 +105,7 @@ export function useAudience() {
     pickup: pickup.mutateAsync,
     issueReceipt: issueReceipt.mutateAsync,
     reset: reset.mutateAsync,
+    deleteOrder: removeOrder.mutateAsync,
     issuingReceipt: issueReceipt.isPending,
   };
 }
