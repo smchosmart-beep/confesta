@@ -418,8 +418,16 @@ function UnlockedSlotView({
   });
 
   const openOrder = () => {
-    setOrderOpen(true);
-    fetchOrder.mutate();
+    setOrderPayload(null);
+    fetchOrder
+      .mutateAsync()
+      .then((r) => {
+        if (r.payload) setOrderOpen(true);
+        else alert("관리자 화면에서 아직 주문 QR이 발급되지 않았어요. 관리자에게 발급을 요청해주세요.");
+      })
+      .catch(() => {
+        alert("주문 QR을 불러오지 못했어요.");
+      });
   };
 
   useEffect(() => {
