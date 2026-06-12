@@ -17,7 +17,7 @@ import {
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
-import { getSlotAggregates } from "@/lib/confesta/admin.functions";
+import { getSlotAggregates, resetSlotData } from "@/lib/confesta/admin.functions";
 import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
