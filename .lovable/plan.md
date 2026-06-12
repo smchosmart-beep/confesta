@@ -1,40 +1,33 @@
-## 목표
-관리자 화면의 각 호실(서브 그리드 셀)에 "초기화" 버튼을 추가하여, 해당 슬롯(day|period|room)의 모든 토핑·주문·수령 데이터를 한 번에 비울 수 있게 합니다.
+# 초기화 액션에 인앱 모달 + PIN 재확인 추가
 
-## 초기화 범위 (해당 `session_id`에 한해)
-- `orders` 행 전체 삭제 (주문 + picked_up_at 수령기록)
-- `scoops` 행 전체 삭제 (청중 콘에서 적립된 스쿱)
-- `toppings` 행 전체 삭제 (질문/토핑) — `topping_likes`는 FK 또는 명시 삭제로 함께 제거
-- `topping_likes` 명시 삭제 (session_id 기준)
-- `answer_prompts` 삭제 (해당 슬롯의 답변형 질문 프롬프트)
-- `topping_gates` 삭제 (필터/잠금 설정)
-- `slide_state`는 보존 (발표자가 보고 있는 슬라이드 상태는 운영 설정에 가까움)
-- `session_slots`(QR/비밀번호/제목)와 `session_secrets`/`session_nonces`는 보존
-
-수령 영수증(`receipts`)은 device_id 단위라 슬롯과 직접 묶이지 않으므로 건드리지 않습니다. (해당 슬롯 스쿱이 사라지면 기존 영수증은 무해한 과거 기록으로 남음.)
-
-## UX
-- 위치: 각 서브 셀(VenueCard 내 sub.code 셀, MobileVenueCard 동일) 우상단의 QR 컨트롤 옆에 작은 휴지통/리셋 아이콘 버튼
-- 클릭 시 `window.confirm("○○○호의 주문/수령/토핑을 모두 초기화할까요? 되돌릴 수 없습니다.")`로 한 번 확인
-- 성공 시 토스트 + 집계 쿼리(`admin-slots`, `slot-aggregates`) 무효화 → 카운트 즉시 0으로 갱신
-- 진행 중 버튼 비활성화
+현재 `SlotResetButton`은 브라우저 기본 `window.confirm()`을 사용하고, 관리자 인증은 `AdminAuthGate`에서 한 번만 확인합니다. 실수로 초기화되는 것을 막기 위해, 초기화 시점에 앱 내 모달을 띄우고 관리자 PIN을 다시 입력해야 실행되도록 변경합니다.
 
 ## 변경 사항
 
-### 1. `src/lib/confesta/admin.functions.ts`
-- `resetSlotData` 서버 함수 신규 추가
-  - 입력: `{ day, period, room }` → `sessionId = makeSlotKey(...)`
-  - `assertRole("admin")` 후 위 6개 테이블에서 `session_id = sessionId`로 삭제 (Promise.all)
-  - 반환: `{ ok: true, deleted: { orders, scoops, toppings, ... } }`
+### 1. `src/routes/admin.tsx` — `SlotResetButton` 리팩터링
+- `window.confirm` 제거.
+- 버튼 클릭 시 `Dialog`(shadcn) 모달을 연다.
+- 모달 구성:
+  - 제목: `"{label} 초기화"` (예: `"402 B 초기화"`)
+  - 설명: `"이 공간의 모든 주문 / 수령 / 토핑이 삭제됩니다. 되돌릴 수 없습니다."`
+  - 입력: `type="password"`, `inputMode="numeric"`, placeholder `"관리자 PIN"`, autoFocus
+  - 잘못된 PIN이면 빨간 헬퍼 텍스트 + shake 애니메이션 (`AdminAuthGate`와 동일한 패턴)
+  - 버튼: `취소` / `초기화` (PIN 비어있으면 disabled, 진행 중이면 spinner+disabled)
+- 제출 흐름:
+  1. `verifyPin({ role: "admin", pin })` 호출
+  2. `ok === false` → 에러 표시, 입력란 비우고 재포커스, 모달 유지
+  3. `ok === true` → 이어서 `resetSlotData({ day, period, room })` 호출 → 성공 시 toast + 쿼리 invalidate + 모달 닫기
+- 모달이 닫힐 때 PIN 입력값과 에러 상태 초기화.
 
-### 2. `src/routes/admin.tsx`
-- 새 컴포넌트 `SlotResetButton` 추가 (VenueCard 및 MobileVenueCard 양쪽에서 재사용)
-  - props: `day`, `period`, `room`, `label`
-  - `useServerFn(resetSlotData)` + `useMutation` 사용
-  - 성공 시 `admin-slots`, `slot-aggregates` 쿼리 invalidate
-- VenueCard 서브 셀 헤더 줄(696행 부근, SlotQRControls 옆)에 버튼 배치
-- MobileVenueCard에도 동일하게 추가
+### 2. 서버 측 보강 (선택적, 권장)
+`src/lib/confesta/admin.functions.ts`의 `resetSlotData` 입력 스키마에 `pin: z.string().min(1).max(32)`을 추가하고, 핸들러 진입 시 `verifyPinValue("admin", data.pin)`로 한 번 더 검증한다. 이렇게 하면 쿠키가 탈취된 상황에서도 초기화에는 별도 PIN이 필요하다.
+- `verifyPinValue`는 `src/lib/confesta/pin.server.ts`에 이미 존재하므로 동적 import만 추가.
+- 클라이언트 호출부도 `pin`을 함께 보내도록 수정.
 
-## 비변경
-- QR/비밀번호/세션 제목, slide_state, receipts는 그대로
-- 발표자/청중 화면 로직 무변경 (다음 새로고침/실시간 invalidation으로 빈 상태 반영)
+## 영향 범위
+- 영향 파일: `src/routes/admin.tsx`, `src/lib/confesta/admin.functions.ts`
+- 기존 `AdminAuthGate`, `verifyPin` 서버 함수, 다른 서버 함수 동작은 변경되지 않음.
+- UI 톤은 기존 `AdminAuthGate`(빨간 헬퍼/shake, 둥근 입력) 스타일을 그대로 따라 일관성 유지.
+
+## 확인 사항
+- 서버 측에서도 PIN을 재확인할까요? (권장) 아니면 클라이언트에서 `verifyPin`만 확인하고 `resetSlotData`는 기존대로 둘까요?
