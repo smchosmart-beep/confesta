@@ -282,3 +282,25 @@ export const rotatePickupQR = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true as const, payload: makePickupQR(key, nonce) };
   });
+
+export const getOrderQRForPresenter = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({ day: DaySchema, period: PeriodSchema, room: RoomSchema })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertPresenterSlotKey(data.day, data.period, data.room);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const key = makeSlotKey(data.day, data.period, data.room);
+    const { data: existing } = await supabaseAdmin
+      .from("session_nonces")
+      .select("nonce")
+      .eq("session_id", key)
+      .eq("kind", "order")
+      .maybeSingle();
+    return {
+      ok: true as const,
+      payload: existing ? makeOrderQR(key, existing.nonce) : null,
+    };
+  });
