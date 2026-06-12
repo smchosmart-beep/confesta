@@ -453,6 +453,14 @@ function UnlockedSlotView({
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
+            onClick={openOrder}
+            className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-blueberry text-white shadow-cream"
+          >
+            <QrCode className="w-5 h-5" />
+            주문 QR
+          </button>
+          <button
+            type="button"
             onClick={() => setPickupOpen(true)}
             className="bounce-press inline-flex flex-col items-center justify-center gap-1.5 rounded-2xl w-[88px] h-[72px] text-xs font-semibold bg-grad-strawberry text-white shadow-pink"
           >
