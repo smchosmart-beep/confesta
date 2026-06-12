@@ -19,6 +19,7 @@ import {
 } from "@/lib/confesta/slots.functions";
 import { getSlotAggregates } from "@/lib/confesta/admin.functions";
 import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
 import { KeyRound, Check, X as XIcon } from "lucide-react";
 import {
@@ -127,6 +128,21 @@ function AdminView() {
     refetchInterval: 30_000,
   });
   const aggregates = aggQuery.data?.aggregates ?? {};
+
+  // Realtime: invalidate slots/aggregates on any orders or session_slots change.
+  const qcRT = useQueryClient();
+  useEffect(() => {
+    const offOrders = subscribeOrders(() => {
+      qcRT.invalidateQueries({ queryKey: ["admin-aggregates", selectedDay, selectedPeriod] });
+    });
+    const offSlots = subscribeSlots(() => {
+      qcRT.invalidateQueries({ queryKey: ["admin-slots", selectedDay, selectedPeriod] });
+    });
+    return () => {
+      offOrders();
+      offSlots();
+    };
+  }, [qcRT, selectedDay, selectedPeriod]);
 
   const stats: VenueStat[] = useMemo(() => {
     return VENUES.map((v) => {
