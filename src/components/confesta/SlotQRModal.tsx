@@ -91,6 +91,10 @@ export function SlotQRModal({
     <h1>${esc(title)}</h1>
     <p class="sub">${esc(subtitle)}</p>
     <div class="qr">${svgMarkup}</div>
+    <div class="footer">
+      <div class="event">2026 AI 디지털 컨퍼런스&amp;페스티벌</div>
+      <div class="name">Confesta</div>
+    </div>
   </div>
   <script>
     window.addEventListener('load', function () {
