@@ -55,7 +55,7 @@ export function AnswerPie({ sessionId, promptId }: Props) {
 
   if (promptId == null) {
     return (
-      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+      <div className="h-full flex justify-center pt-10 text-sm text-muted-foreground">
         통계를 볼 응답 질문을 선택하세요
       </div>
     );
@@ -63,56 +63,57 @@ export function AnswerPie({ sessionId, promptId }: Props) {
 
   if (total === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+      <div className="h-full flex justify-center pt-10 text-sm text-muted-foreground">
         아직 도착한 응답이 없어요 🍒
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full min-h-[280px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart margin={{ top: 24, right: 24, bottom: 32, left: 24 }}>
-          <Pie
-            data={data}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="45%"
-            outerRadius="62%"
-            innerRadius="34%"
-            paddingAngle={2}
-            stroke="var(--card)"
-            strokeWidth={2}
-            labelLine={false}
-            label={(entry: { name: string; value: number }) =>
-              `${entry.name} ${entry.value}`
-            }
-          >
-
-            {data.map((_, i) => (
-              <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-            ))}
-          </Pie>
-          <Tooltip
-            contentStyle={{
-              borderRadius: 12,
-              border: "1px solid var(--border)",
-              background: "var(--card)",
-              fontSize: 12,
-            }}
-            formatter={(value: number, name: string) => [
-              `${value}개 (${Math.round((value / total) * 100)}%)`,
-              name,
-            ]}
-          />
-          <Legend
-            verticalAlign="bottom"
-            iconType="circle"
-            wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
+    <div className="w-full h-full flex flex-col items-stretch">
+      <div className="w-full h-[min(420px,60vh)]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 24, right: 24, bottom: 32, left: 24 }}>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="42%"
+              outerRadius="62%"
+              innerRadius="34%"
+              paddingAngle={2}
+              stroke="var(--card)"
+              strokeWidth={2}
+              labelLine={false}
+              label={(entry: { name: string; value: number }) =>
+                `${entry.name} ${entry.value}`
+              }
+            >
+              {data.map((_, i) => (
+                <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                borderRadius: 12,
+                border: "1px solid var(--border)",
+                background: "var(--card)",
+                fontSize: 12,
+              }}
+              formatter={(value: number, name: string) => [
+                `${value}개 (${Math.round((value / total) * 100)}%)`,
+                name,
+              ]}
+            />
+            <Legend
+              verticalAlign="bottom"
+              iconType="circle"
+              wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
