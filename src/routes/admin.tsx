@@ -985,6 +985,13 @@ function MobileVenueCard({
                       labelForModal={displayTitle || sub.label}
                       compact
                     />
+                    <SlotResetButton
+                      day={day}
+                      period={period}
+                      room={sub.label}
+                      label={displayTitle || sub.label}
+                      compact
+                    />
                   </div>
                 </div>
 
