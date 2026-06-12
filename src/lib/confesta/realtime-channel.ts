@@ -218,3 +218,41 @@ export function useRealtimeHealth(
     () => true, // SSR: assume healthy → no polling
   );
 }
+
+// ── Global (publication-wide) subscriptions ──────────────────────────────
+// Used for tables where we don't filter by session_id (orders aggregates,
+// session_slots edits, my-toppings by device_id). Each subscriber gets a
+// dedicated channel — these are admin/presenter-only and low-volume, so we
+// skip the ref-counted registry to keep the code simple.
+
+type GlobalTable = "orders" | "session_slots" | "toppings";
+
+function subscribeGlobalTable(
+  table: GlobalTable,
+  cb: () => void,
+  filter?: string,
+): () => void {
+  const channelName = `${table}:${filter ?? "all"}:${Math.random().toString(36).slice(2, 8)}`;
+  const ch = supabase.channel(channelName);
+  ch.on(
+    "postgres_changes" as never,
+    {
+      event: "*",
+      schema: "public",
+      table,
+      ...(filter ? { filter } : {}),
+    } as never,
+    () => cb(),
+  );
+  ch.subscribe();
+  return () => {
+    void supabase.removeChannel(ch);
+  };
+}
+
+export const subscribeOrders = (cb: () => void) =>
+  subscribeGlobalTable("orders", cb);
+export const subscribeSlots = (cb: () => void) =>
+  subscribeGlobalTable("session_slots", cb);
+export const subscribeMyToppings = (deviceId: string, cb: () => void) =>
+  subscribeGlobalTable("toppings", cb, `device_id=eq.${deviceId}`);

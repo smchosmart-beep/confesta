@@ -4,7 +4,7 @@ import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { Download, Ticket } from "lucide-react";
 import { IceCreamCone } from "./IceCreamCone";
-import { useConfestaStore } from "@/lib/confesta/store";
+import { useMyToppings } from "@/hooks/use-my-toppings";
 import { useAudience } from "@/hooks/use-audience";
 // Note: floating background toppings are intentionally NOT used on the receipt tab.
 import { SESSIONS } from "@/lib/confesta/mockData";
@@ -30,10 +30,9 @@ export function ReceiptCard() {
   const { scoops, receipt, issueReceipt, reset, issuingReceipt } = useAudience();
   const token = receipt?.token ?? null;
   const redeemed = receipt?.redeemedAt ? { at: receipt.redeemedAt } : null;
-  const allToppings = useConfestaStore((s) => s.toppings);
-  // user-created toppings only (seed ids start with "seed-")
-  const myToppings = allToppings
-    .filter((t) => !t.id.startsWith("seed-"))
+  const { toppings: myToppingsAll } = useMyToppings();
+  // sort by createdAt asc for chronological receipt order
+  const myToppings = myToppingsAll
     .slice()
     .sort((a, b) => a.createdAt - b.createdAt);
 

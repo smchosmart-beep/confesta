@@ -1,23 +1,23 @@
 import { useMemo } from "react";
-import { useConfestaStore } from "@/lib/confesta/store";
+import { useSessionToppings } from "@/hooks/use-toppings";
 
 interface Props {
   sessionId: string;
 }
 
 export function StageMarquee({ sessionId }: Props) {
-  const allToppings = useConfestaStore((s) => s.toppings);
+  const { toppings } = useSessionToppings(sessionId);
   const sorted = useMemo(
     () =>
-      allToppings
-        .filter((t) => t.sessionId === sessionId)
+      toppings
+        .slice()
         .sort((a, b) => {
           if (a.pinned && !b.pinned) return -1;
           if (!a.pinned && b.pinned) return 1;
           return b.createdAt - a.createdAt;
         })
         .slice(0, 12),
-    [allToppings, sessionId],
+    [toppings],
   );
 
   if (sorted.length === 0) {

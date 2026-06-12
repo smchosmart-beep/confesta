@@ -17,6 +17,7 @@ import {
   rotatePickupQR,
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import {
   checkPresenterSlot,
   clearPresenterSlot,
@@ -66,9 +67,24 @@ function PresenterPage() {
   const slotsQuery = useQuery({
     queryKey: ["presenter-issued-slots"],
     queryFn: () => listFn(),
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
   });
   const slots: IssuedSlotDTO[] = slotsQuery.data?.slots ?? [];
+
+  // Realtime: refresh slot list immediately on orders/slots changes.
+  const qcRT = useQueryClient();
+  useEffect(() => {
+    const offOrders = subscribeOrders(() =>
+      qcRT.invalidateQueries({ queryKey: ["presenter-issued-slots"] }),
+    );
+    const offSlots = subscribeSlots(() =>
+      qcRT.invalidateQueries({ queryKey: ["presenter-issued-slots"] }),
+    );
+    return () => {
+      offOrders();
+      offSlots();
+    };
+  }, [qcRT]);
 
   const [day, setDay] = useState<number | null>(null);
   const [period, setPeriod] = useState<Period | null>(null);
