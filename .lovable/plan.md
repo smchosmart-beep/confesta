@@ -1,22 +1,14 @@
-# QR 스캔 즉시 카메라 닫기
-
-## 문제
-청중 화면에서 주문/수령 QR을 스캔해도 "이미 주문한 세션이에요" 같은 에러일 때 카메라 창이 계속 열려 있어, 사용자가 인식이 안 된 줄 알고 반복해서 비춤. 성공일 때만 닫히는 현재 동작 때문.
+# 통계 그래프 위쪽 정렬
 
 ## 변경
-`src/routes/audience.tsx`의 `handleOrderScan` / `handleConeScan`에서, QR이 올바른 형식(`parseSessionQR` 성공)이면 **결과(성공·실패) 관계없이 카메라 창을 즉시 닫고** 피드백 메시지만 카드 아래에 노출.
+`src/components/confesta/AnswerPie.tsx`에서 차트가 부모 영역 전체 높이를 채우며 세로 중앙에 배치되던 것을 위쪽 정렬로 변경.
 
-### handleOrderScan
-1. `parseSessionQR(text)` 호출.
-2. 파싱 실패 → 카메라 유지, "QR 형식이 올바르지 않아요" 표시 (스캐너가 다른 코드를 계속 인식할 수 있게).
-3. 파싱 성공 → `setOrderScanOpen(false)` 먼저 호출.
-   - `kind==="pickup"`이면 "수령 QR은 …" 안내.
-   - `kind==="order"`이면 `placeOrder(text)` 결과의 ok/메시지를 그대로 피드백.
+- 최상위 wrapper를 `w-full h-full` → `w-full h-full flex flex-col items-stretch`로 변경.
+- 차트 영역에 고정된 비율/최대 높이 부여: `h-[min(420px,60vh)]` 정도로 위쪽에 고정해 아래쪽 공간은 비움.
+- `PieChart`의 `cy`를 `45%` → `42%`로 살짝 위로 보정 (Legend가 아래 붙으므로 균형 유지).
 
-### handleConeScan
-동일 패턴으로, 파싱 성공 시 `setConeScanOpen(false)` 후 결과 메시지 표시.
+비어있는/안내 메시지(`promptId==null`, `total===0`) 상태도 동일하게 위쪽 정렬로 통일 (`items-center justify-center` → `items-center pt-10`).
 
 ## 영향 범위
-- UI/프론트엔드 로직만 수정. 서버 함수·DB·실시간 구독 변경 없음.
-- CameraScanner 컴포넌트는 그대로.
-- 잘못된(다른 앱의) QR을 비출 때는 카메라가 닫히지 않아 정상 QR로 다시 비출 수 있음.
+- 프론트엔드 레이아웃만 수정. 데이터·서버 로직 변경 없음.
+- 사용처는 발표자 뷰의 통계 탭 하나뿐이라 다른 화면에 영향 없음.
