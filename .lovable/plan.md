@@ -1,31 +1,38 @@
-# 발표자 화면에 "주문 QR" 버튼 추가
+## 문제
 
-수령 QR 왼쪽에 **주문 QR** 버튼을 새로 두고, 클릭하면 관리자 화면에서 발급한 그 세션의 주문 QR을 모달로 보여줍니다. 주문 QR은 갱신되지 않는 고정 QR이라 수령 QR과 달리 회전 타이머가 없습니다.
+청중이 인쇄된 주문 QR을 폰 기본 카메라 앱으로 스캔하면 OS가 "사용 가능한 앱 데이터가 없습니다."를 표시합니다. QR 페이로드가 `confesta:order:...`라는 비표준 URL 스킴이라 OS가 처리할 앱을 못 찾기 때문입니다.
 
-## 동작
+## 해결 방향
 
-- 버튼 위치: `UnlockedSlotView` 헤더 카드에서 `수령 QR` 버튼 **왼쪽**, 동일한 사각형 스타일(아이콘 + "주문 QR" 라벨), 색은 구분을 위해 `bg-grad-blueberry` 계열.
-- 클릭 시: 신규 모달 오픈 → 해당 세션의 주문 QR(payload) 표시. 관리자가 아직 발급하지 않았다면 "관리자에게 주문 QR 발급을 요청해주세요" 안내.
-- 모달에는 `SlotQRModal`을 재사용해 인쇄 버튼도 그대로 지원(재발급 버튼은 제외 — 발표자는 회전 권한 없음).
+주문 QR을 **https 링크 형태로 인코딩**하되, 기존 `confesta:` 페이로드 검증 로직은 그대로 유지합니다. 청중 페이지가 URL의 `?qr=...` 파라미터를 읽어 자동으로 주문 처리를 트리거합니다.
 
-## 서버
+## 변경 사항
 
-- `src/lib/confesta/slots.functions.ts`에 신규 serverFn 추가
-  - 이름: `getOrderQRForPresenter`
-  - 입력: `{ day, period, room }`
-  - 권한: `assertPresenterSlot(makeSlotKey(...))` (기존 `issuePickupQR`와 동일한 발표자 쿠키 검증)
-  - 동작: `session_nonces`에서 `kind='order'`인 행을 조회만 함(생성/회전 X). 있으면 `{ payload: makeOrderQR(key, nonce) }`, 없으면 `{ payload: null }`.
+### 1. QR 페이로드 형식 (`src/lib/confesta/shared.ts`)
+- `makeOrderQR(slotKey, nonce)` → `https://confesta.lovable.app/audience?qr=confesta:order:{slotKey}:{nonce}` 반환
+- `makePickupQR`도 동일하게 변경 (일관성)
+- `parseSessionQR(payload)`: 입력이 https URL이면 `qr` 쿼리 파라미터를 추출한 뒤 기존 `confesta:...` 파싱 로직 재사용 → 카메라에서 스캔한 원본 URL과 앱 내 스캐너에서 읽은 페이로드 모두 호환
+- 베이스 URL은 `VITE_PUBLIC_SITE_URL` env (없으면 `https://confesta.lovable.app` 기본값)로 처리
 
-## 클라이언트
+### 2. 청중 라우트 자동 처리 (`src/routes/audience.tsx`)
+- `useSearch` 또는 `window.location.search`로 `qr` 파라미터 읽기
+- 값이 있으면:
+  - `kind === "order"` → 자동으로 `placeOrder(payload)` 호출 + "주문" 탭으로 이동
+  - `kind === "pickup"` → 자동으로 `pickup(payload)` 호출 + "My 콘" 탭으로 이동
+  - 결과를 기존 feedback 영역에 표시
+- 처리 후 `navigate({ to: "/audience", replace: true })`로 쿼리 제거 (새로고침 시 중복 실행 방지)
+- deviceId 준비 전이면 대기 후 처리
 
-- `src/routes/presenter.tsx`
-  - `getOrderQRForPresenter`, `SlotQRModal` import 추가
-  - `UnlockedSlotView`에 상태: `orderOpen`, `orderPayload`
-  - 모달 열 때 serverFn 1회 호출(useMutation) → 응답으로 payload 세팅
-  - 수령 QR 버튼 옆에 "주문 QR" 버튼 렌더
-  - `SlotQRModal`로 표시 (title=`slot.title`, subtitle=`Day {n} · {period 한글} · {room}`)
+### 3. 기존 인쇄물 안내
+`SlotQRModal` 푸터에 "기본 카메라 앱으로 스캔 가능" 한 줄 추가 (선택).
 
-## 변경 파일
+## 영향 없음
 
-- `src/lib/confesta/slots.functions.ts` — `getOrderQRForPresenter` serverFn 추가
-- `src/routes/presenter.tsx` — 버튼/상태/모달 추가
+- 검증 로직(`session_nonces`, `assertPresenter*`)은 변경 없음
+- 발표자/관리자가 이미 발급한 QR은 자동으로 새 형식으로 재렌더링됨 (DB에는 nonce만 저장하고 페이로드는 `make*QR`로 매번 생성하므로)
+- 인쇄된 기존 QR이 있다면 재인쇄 필요
+
+## 기술 메모
+
+- TanStack Router `validateSearch`로 `qr?: string` 타입 정의
+- 자동 처리 useEffect는 `deviceId && qrParam && !processedRef.current` 가드로 1회만 실행
