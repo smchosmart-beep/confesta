@@ -1,23 +1,28 @@
-# 질문 목록 카드 내부 스크롤 (모바일/태블릿 레이아웃)
+## 목표
+청중이 잘못된 QR을 스캔해 주문이 잘못 들어간 경우, 해당 주문 카드를 삭제하고 슬롯을 비워서 다른 QR을 다시 스캔할 수 있게 합니다.
 
-## 원인
-`src/routes/presenter.tsx`의 xl 이상 레이아웃은 `ResizablePanelGroup`이 `h-[calc(100vh-220px)]`로 높이를 고정해서 `flex-1 min-h-0 + overflow-y-auto`가 정상 동작 → 내부 스크롤이 생김.
+## 동작 규칙
+- 삭제 가능: **수령 전(picked_up_at 없음)** 주문만 삭제 허용
+- 수령 완료된 주문은 스쿱이 이미 콘에 적립되어 있으므로 삭제 버튼을 노출하지 않음 (기존 "콘 초기화"로 처리)
+- 삭제 시 확인 다이얼로그 한 번 띄움 ("이 주문을 삭제할까요?")
+- 삭제 후 슬롯이 비므로 (3개 미만이면) "주문 QR 스캔" 버튼이 다시 노출되어 새 QR 스캔 가능
 
-`xl:hidden` 모바일/태블릿 레이아웃은 단순 `flex flex-col gap-4`로 높이 제약이 없음. 그래서 질문 목록 카드의 `flex-1`이 무한히 늘어나 페이지 전체가 길어지고 카드 내부 스크롤이 안 생김.
+## 변경 사항
 
-## 변경
-`src/routes/presenter.tsx`의 질문 목록 카드(479행 부근) 클래스에 모바일에서만 적용되는 높이 상한 추가:
+### 1. `src/lib/confesta/audience.functions.ts`
+- `deleteOrder` 서버 함수 신규 추가
+  - 입력: `{ deviceId, orderId }`
+  - 본인 deviceId의 주문만, `picked_up_at IS NULL` 조건으로만 삭제
+  - 삭제 후 `loadState(deviceId)` 반환
 
-```tsx
-<div className="bg-card/60 ... rounded-2xl p-3 shadow-cream flex-1 min-h-0 max-h-[70vh] xl:max-h-none flex flex-col gap-2 overflow-hidden">
-```
+### 2. `src/hooks/use-audience.ts`
+- `deleteOrder` mutation 추가하여 `useAudience()`에서 노출
 
-이렇게 하면:
-- xl 이상: 기존 동작 그대로 (ResizablePanel 높이에 맞춰 `flex-1`).
-- xl 미만: `max-h-[70vh]`가 카드 높이를 캡 → 내부 `overflow-y-auto` div가 스크롤됨.
+### 3. `src/components/confesta/OrderCard.tsx`
+- 수령 전(`!picked`)일 때만 카드 우상단 또는 하단에 작은 삭제 버튼(쓰레기통 아이콘) 추가
+- 클릭 시 `confirm()`으로 한 번 확인 → `deleteOrder({ orderId })` 호출
+- 실패 시 기존 feedback 영역에 메시지 표시
 
-토핑 키워드 카드(459행)도 동일한 증상이 있을 수 있으므로 같은 방식(`max-h-[70vh] xl:max-h-none`) 추가.
-
-## 영향 범위
-- 발표자 화면 모바일/태블릿 레이아웃만 영향. xl 이상은 변화 없음.
-- 데이터·서버 로직 변경 없음.
+## 비변경
+- 수령 완료 주문, 스쿱, 영수증 로직은 그대로
+- 주문 최대 3개 제한도 그대로 (삭제로 슬롯이 비면 자연히 다시 스캔 가능)
