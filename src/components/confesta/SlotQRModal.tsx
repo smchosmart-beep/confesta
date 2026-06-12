@@ -81,8 +81,8 @@ export function SlotQRModal({
   .qr { display: inline-flex; align-items: center; justify-content: center; margin: 0 0 10mm; }
   .qr svg { display: block !important; width: ${w}px !important; height: ${h}px !important; max-width: none !important; }
   .footer { margin-top: 8mm; text-align: center; }
-  .footer .event { font-size: 11px; color: #777; letter-spacing: 0.08em; }
-  .footer .name { font-size: 28px; font-weight: 900; color: #111; margin-top: 2px; letter-spacing: 0.06em; }
+  .footer .event { font-size: 22px; color: #777; letter-spacing: 0.08em; }
+  .footer .name { font-size: 56px; font-weight: 900; color: #111; margin-top: 4px; letter-spacing: 0.06em; }
 </style>
 </head>
 <body>
