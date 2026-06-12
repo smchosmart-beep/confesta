@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { z } from "zod";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
