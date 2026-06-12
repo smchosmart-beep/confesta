@@ -37,7 +37,18 @@ export function SlotQRModal({
   const handlePrint = () => {
     const svgEl = qrRef.current?.querySelector("svg");
     if (!svgEl) return;
-    const svgMarkup = new XMLSerializer().serializeToString(svgEl);
+    // 원본 QR SVG를 가로/세로 2배로 확대해서 인쇄
+    const cloned = svgEl.cloneNode(true) as SVGSVGElement;
+    const rect = svgEl.getBoundingClientRect();
+    const baseW = rect.width || svgEl.clientWidth || 280;
+    const baseH = rect.height || svgEl.clientHeight || 280;
+    const w = Math.round(baseW * 2);
+    const h = Math.round(baseH * 2);
+    cloned.setAttribute("width", String(w));
+    cloned.setAttribute("height", String(h));
+    cloned.style.width = `${w}px`;
+    cloned.style.height = `${h}px`;
+    const svgMarkup = new XMLSerializer().serializeToString(cloned);
     const win = window.open("", "_blank", "width=480,height=640");
     if (!win) {
       alert("팝업이 차단되어 인쇄할 수 없습니다. 브라우저의 팝업 차단을 해제해주세요.");
@@ -62,9 +73,8 @@ export function SlotQRModal({
     text-transform: uppercase; color: #555; }
   h1 { font-size: 56px; font-weight: 900; margin: 4px 0 2px; line-height: 1.05; }
   .sub { font-size: 24px; color: #222; margin: 0 0 6mm; font-weight: 600; }
-  .qr { width: 205mm; height: 205mm; display: flex;
-    align-items: center; justify-content: center; }
-  .qr svg { width: 100%; height: 100%; display: block; }
+  .qr { display: inline-flex; align-items: center; justify-content: center; }
+  .qr svg { display: block; width: ${w}px; height: ${h}px; }
 </style>
 </head>
 <body>
