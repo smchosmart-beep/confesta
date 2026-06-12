@@ -588,6 +588,14 @@ function UnlockedSlotView({
           </div>
         </div>
       )}
+
+      <SlotQRModal
+        open={orderOpen}
+        onClose={() => setOrderOpen(false)}
+        title={slot.title}
+        subtitle={`Day ${slot.day} · ${PERIOD_SHORT[slot.period]} · ${slot.room}`}
+        payload={orderPayload ?? ""}
+      />
     </>
   );
 }
