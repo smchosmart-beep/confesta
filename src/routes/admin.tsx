@@ -743,14 +743,23 @@ function VenueCard({
               <span className="text-lg font-extrabold leading-none">
                 {sub.code}
               </span>
-              <SlotQRControls
-                day={day}
-                period={period}
-                room={sub.label}
-                slot={slot}
-                labelForModal={displayTitle || sub.label}
-                compact
-              />
+              <div className="flex items-center gap-1">
+                <SlotQRControls
+                  day={day}
+                  period={period}
+                  room={sub.label}
+                  slot={slot}
+                  labelForModal={displayTitle || sub.label}
+                  compact
+                />
+                <SlotResetButton
+                  day={day}
+                  period={period}
+                  room={sub.label}
+                  label={displayTitle || sub.label}
+                  compact
+                />
+              </div>
             </div>
             <div className={`${isHall ? 'mb-2' : 'mb-1'} flex flex-col gap-1`}>
               <SlotTitleInput
