@@ -20,10 +20,24 @@ interface Entry {
 }
 
 const KIND_TABLES: Record<Kind, TableSpec[]> = {
-  toppings: [{ table: "toppings" }, { table: "topping_likes" }],
+  // topping_likes는 publication에서 제외됨. 좋아요 카운트는 toppings.likes UPDATE로 전파됨.
+  toppings: [{ table: "toppings" }],
   prompts: [{ table: "answer_prompts" }],
   gate: [{ table: "topping_gates" }],
 };
+
+// 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소)
+const NOTIFY_DEBOUNCE_MS = 200;
+const notifyTimers = new WeakMap<Set<() => void>, ReturnType<typeof setTimeout>>();
+function scheduleNotify(set: Set<() => void>) {
+  const existing = notifyTimers.get(set);
+  if (existing) return;
+  const t = setTimeout(() => {
+    notifyTimers.delete(set);
+    notifyAll(set);
+  }, NOTIFY_DEBOUNCE_MS);
+  notifyTimers.set(set, t);
+}
 
 const registries: Record<Kind, Map<string, Entry>> = {
   toppings: new Map(),
@@ -88,7 +102,7 @@ function buildChannel(kind: Kind, sessionId: string, entry: Entry) {
         table,
         filter: `session_id=eq.${sessionId}`,
       } as never,
-      () => notifyAll(entry.listeners),
+      () => scheduleNotify(entry.listeners),
     );
   }
 
@@ -225,7 +239,7 @@ export function useRealtimeHealth(
 // dedicated channel — these are admin/presenter-only and low-volume, so we
 // skip the ref-counted registry to keep the code simple.
 
-type GlobalTable = "orders" | "session_slots" | "toppings";
+type GlobalTable = "orders" | "session_slots";
 
 function subscribeGlobalTable(
   table: GlobalTable,
@@ -254,5 +268,5 @@ export const subscribeOrders = (cb: () => void) =>
   subscribeGlobalTable("orders", cb);
 export const subscribeSlots = (cb: () => void) =>
   subscribeGlobalTable("session_slots", cb);
-export const subscribeMyToppings = (deviceId: string, cb: () => void) =>
-  subscribeGlobalTable("toppings", cb, `device_id=eq.${deviceId}`);
+// subscribeMyToppings 제거: 청중당 글로벌 채널 비용을 없애기 위해 mutation onSuccess
+// invalidate (use-toppings.ts의 addTopping/deleteOwnMut)로 대체함.

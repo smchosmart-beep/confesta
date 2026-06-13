@@ -65,7 +65,10 @@ export function useSessionToppings(sessionId: string | null) {
           promptId: input.promptId,
         },
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+      qc.invalidateQueries({ queryKey: ["my-toppings", deviceId] });
+    },
   });
 
   const toggleLike = useMutation({
@@ -89,7 +92,10 @@ export function useSessionToppings(sessionId: string | null) {
   const deleteOwnMut = useMutation({
     mutationFn: (toppingId: string) =>
       deleteFn({ data: { deviceId: deviceId!, toppingId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+      qc.invalidateQueries({ queryKey: ["my-toppings", deviceId] });
+    },
   });
 
   const submit = useCallback(
