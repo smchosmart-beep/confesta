@@ -102,7 +102,7 @@ function buildChannel(kind: Kind, sessionId: string, entry: Entry) {
         table,
         filter: `session_id=eq.${sessionId}`,
       } as never,
-      () => notifyAll(entry.listeners),
+      () => scheduleNotify(entry.listeners),
     );
   }
 
