@@ -20,10 +20,24 @@ interface Entry {
 }
 
 const KIND_TABLES: Record<Kind, TableSpec[]> = {
-  toppings: [{ table: "toppings" }, { table: "topping_likes" }],
+  // topping_likes는 publication에서 제외됨. 좋아요 카운트는 toppings.likes UPDATE로 전파됨.
+  toppings: [{ table: "toppings" }],
   prompts: [{ table: "answer_prompts" }],
   gate: [{ table: "topping_gates" }],
 };
+
+// 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소)
+const NOTIFY_DEBOUNCE_MS = 200;
+const notifyTimers = new WeakMap<Set<() => void>, ReturnType<typeof setTimeout>>();
+function scheduleNotify(set: Set<() => void>) {
+  const existing = notifyTimers.get(set);
+  if (existing) return;
+  const t = setTimeout(() => {
+    notifyTimers.delete(set);
+    notifyAll(set);
+  }, NOTIFY_DEBOUNCE_MS);
+  notifyTimers.set(set, t);
+}
 
 const registries: Record<Kind, Map<string, Entry>> = {
   toppings: new Map(),
