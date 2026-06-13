@@ -239,7 +239,7 @@ export function useRealtimeHealth(
 // dedicated channel — these are admin/presenter-only and low-volume, so we
 // skip the ref-counted registry to keep the code simple.
 
-type GlobalTable = "orders" | "session_slots" | "toppings";
+type GlobalTable = "orders" | "session_slots";
 
 function subscribeGlobalTable(
   table: GlobalTable,
@@ -268,5 +268,5 @@ export const subscribeOrders = (cb: () => void) =>
   subscribeGlobalTable("orders", cb);
 export const subscribeSlots = (cb: () => void) =>
   subscribeGlobalTable("session_slots", cb);
-export const subscribeMyToppings = (deviceId: string, cb: () => void) =>
-  subscribeGlobalTable("toppings", cb, `device_id=eq.${deviceId}`);
+// subscribeMyToppings 제거: 청중당 글로벌 채널 비용을 없애기 위해 mutation onSuccess
+// invalidate (use-toppings.ts의 addTopping/deleteOwnMut)로 대체함.
