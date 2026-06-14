@@ -506,11 +506,11 @@ function UnlockedSlotView({
   const rightColumn = (
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <ToppingGateControl sessionId={sessionId} />
-      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 max-h-[70vh] xl:max-h-full flex flex-col gap-2 overflow-hidden">
-        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+      <div className="bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream flex-1 min-h-0 basis-0 max-h-[70vh] xl:max-h-none flex flex-col gap-2 overflow-hidden">
+        <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider shrink-0">
           질문 목록
         </h2>
-        <div className="h-0 flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto pr-1">
           <QuestionStream sessionId={sessionId} />
         </div>
       </div>
