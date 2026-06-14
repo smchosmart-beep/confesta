@@ -20,10 +20,10 @@ const SAMPLE_SCOOPS: StackedScoop[] = [
   { id: "sample-3", sessionId: "s3", flavor: "mango", stackedAt: 0 },
 ];
 
-const SAMPLE_TOPPING_TEXTS = [
-  "배수판별법을 초3 수업에 어떻게 녹이나요?",
-  "프롬프트 한 줄로 배수 패턴 찾기 데모 가능할까요?",
-  "AI 모델이 틀린 배수를 줄 때 대처법은?",
+const SAMPLE_TOPPING_ENTRIES: { kind: "question" | "answer"; promptText?: string; text: string }[] = [
+  { kind: "question", text: "배수판별법을 초3 수업에 어떻게 녹이나요?" },
+  { kind: "answer", promptText: "선호하는 LLM은?", text: "gemini" },
+  { kind: "question", text: "AI 모델이 틀린 배수를 줄 때 대처법은?" },
 ];
 
 export function ReceiptCard() {
@@ -169,7 +169,9 @@ export function ReceiptCard() {
                 <div key={t.id} className="flex justify-between gap-3 items-start">
                   <span className="shrink-0">토핑 #{i + 1}</span>
                   <span className="text-right break-keep leading-snug">
-                    {t.text}
+                    {t.kind === "answer" && t.promptText
+                      ? `${t.promptText} - ${t.text}`
+                      : t.text}
                   </span>
                 </div>
               ))}
@@ -255,10 +257,14 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
           ))}
 
           <div className="pt-2 mt-2 border-t border-dashed border-foreground/20 space-y-1">
-            {SAMPLE_TOPPING_TEXTS.map((text, i) => (
+            {SAMPLE_TOPPING_ENTRIES.map((entry, i) => (
               <div key={i} className="flex justify-between gap-3 items-start">
                 <span className="shrink-0">토핑 #{i + 1}</span>
-                <span className="text-right break-keep leading-snug">{text}</span>
+                <span className="text-right break-keep leading-snug">
+                  {entry.kind === "answer" && entry.promptText
+                    ? `${entry.promptText} - ${entry.text}`
+                    : entry.text}
+                </span>
               </div>
             ))}
           </div>
