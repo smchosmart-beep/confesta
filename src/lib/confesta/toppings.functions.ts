@@ -13,6 +13,7 @@ export type ToppingDTO = {
   text: string;
   kind: "question" | "answer";
   promptId: string | null;
+  promptText: string | null;
   pinned: boolean;
   addressed: boolean;
   likes: number;
@@ -58,6 +59,7 @@ export const listToppings = createServerFn({ method: "POST" })
         text: r.text,
         kind: r.kind as "question" | "answer",
         promptId: r.prompt_id,
+        promptText: null,
         pinned: r.pinned,
         addressed: r.addressed,
         likes: r.likes,
@@ -80,6 +82,24 @@ export const listMyToppings = createServerFn({ method: "POST" })
       .eq("device_id", data.deviceId)
       .order("created_at", { ascending: true });
     if (error) throw error;
+
+    const promptIds = Array.from(
+      new Set(
+        (rows ?? [])
+          .filter((r) => r.kind === "answer" && r.prompt_id)
+          .map((r) => r.prompt_id as string),
+      ),
+    );
+    const promptTextById = new Map<string, string>();
+    if (promptIds.length > 0) {
+      const { data: prompts, error: pErr } = await supabaseAdmin
+        .from("answer_prompts")
+        .select("id, text")
+        .in("id", promptIds);
+      if (pErr) throw pErr;
+      for (const p of prompts ?? []) promptTextById.set(p.id, p.text);
+    }
+
     return {
       toppings: (rows ?? []).map((r) => ({
         id: r.id,
@@ -87,6 +107,7 @@ export const listMyToppings = createServerFn({ method: "POST" })
         text: r.text,
         kind: r.kind as "question" | "answer",
         promptId: r.prompt_id,
+        promptText: r.prompt_id ? promptTextById.get(r.prompt_id) ?? null : null,
         pinned: r.pinned,
         addressed: r.addressed,
         likes: r.likes,
