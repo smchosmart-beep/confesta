@@ -71,17 +71,17 @@ export function AnswerPie({ sessionId, promptId }: Props) {
 
   return (
     <div className="w-full h-full flex flex-col items-stretch">
-      <div className="w-full h-[min(420px,60vh)]">
+      <div className="w-full flex-1 min-h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 24, right: 24, bottom: 32, left: 24 }}>
+          <PieChart margin={{ top: 16, right: 16, bottom: 24, left: 16 }}>
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
               cx="50%"
-              cy="42%"
-              outerRadius="62%"
-              innerRadius="34%"
+              cy="45%"
+              outerRadius="82%"
+              innerRadius="44%"
               paddingAngle={2}
               stroke="var(--card)"
               strokeWidth={2}
@@ -109,7 +109,7 @@ export function AnswerPie({ sessionId, promptId }: Props) {
             <Legend
               verticalAlign="bottom"
               iconType="circle"
-              wrapperStyle={{ fontSize: 11, paddingTop: 16 }}
+              wrapperStyle={{ fontSize: 13, paddingTop: 12 }}
             />
           </PieChart>
         </ResponsiveContainer>

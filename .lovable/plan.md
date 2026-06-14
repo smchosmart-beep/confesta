@@ -1,36 +1,38 @@
-# 질문 목록 카드 내부 세로 스크롤 (PC)
+# 통계 원그래프 ~3배 확대
 
-## 문제
-`src/routes/presenter.tsx` 514줄 부근, 우측 컬럼 `질문 목록` 카드:
+## 현황
+`src/components/confesta/AnswerPie.tsx`:
+- 차트 컨테이너: `h-[min(420px,60vh)]` (최대 420px로 캡)
+- Pie: `outerRadius="62%" innerRadius="34%"`, margin `top:24 right:24 bottom:32 left:24`
+- 발표자 `/presenter` 통계 탭 부모는 `flex-1 min-h-0`로 가용 공간이 ~600–700px 있는데도 420px에 묶임
+- 청중용 `AnswerPromptCard`는 `<div className="w-full h-80">` 320px 박스로 감싸 사용 → 변경에 영향 없음(부모가 더 작게 잡으므로 그쪽이 우선)
 
-```tsx
-<div className="bg-card/60 ... flex-1 min-h-0 max-h-[70vh] xl:max-h-none flex flex-col gap-2 overflow-hidden">
-  ...
-  <div className="h-0 flex-1 overflow-y-auto">
-    <QuestionStream sessionId={sessionId} />
-  </div>
-</div>
-```
+## 변경
+오직 `src/components/confesta/AnswerPie.tsx` 1파일.
 
-- 모바일/태블릿: `max-h-[70vh]`로 제한되어 내부 스크롤 정상 동작
-- PC(xl≥1280): `xl:max-h-none`이 제한을 풀어버려, ResizablePanel 안에서 `flex-1 + min-h-0` 체인이 의도대로 동작하지 못하고 카드가 질문 개수만큼 그대로 늘어남 → 페이지 자체가 길어지고 카드 내부에는 스크롤이 안 생김
+1. 차트 컨테이너 클래스 변경
+   - 기존: `w-full h-[min(420px,60vh)]`
+   - 변경: `w-full flex-1 min-h-[320px]`
+   - 효과: 발표자 통계 탭에서 `flex-1` 부모를 가득 채워 ~3배 가까이 커짐. AnswerPromptCard의 고정 `h-80` 래퍼 안에서는 그대로 320px 유지(부모가 작아 시각적 변화 없음).
 
-## 수정
-같은 줄 좌측 컬럼의 `토핑 키워드` 카드도 동일 패턴(`max-h-[70vh] xl:max-h-none`)이지만 본 요청은 질문 목록 한정이므로 우측 카드만 손봅니다.
+2. 외부 래퍼도 컬럼을 다 쓸 수 있게
+   - 기존: `<div className="w-full h-full flex flex-col items-stretch">`
+   - 그대로 유지(이미 `h-full`).
 
-`presenter.tsx` 509번 라인:
+3. 파이 비율 조금 키워 시각적 임팩트 강화
+   - `outerRadius="62%"` → `"82%"`
+   - `innerRadius="34%"` → `"44%"`
+   - `cy="42%"` → `"45%"` (Legend 공간 확보 유지)
+   - margin `top:24 right:24 bottom:32 left:24` → `top:16 right:16 bottom:24 left:16`
 
-- `max-h-[70vh] xl:max-h-none` → `max-h-[70vh] xl:max-h-full`
-  - xl에서는 ResizablePanel이 부여하는 높이(`h-[calc(100vh-220px)]` - ToppingGateControl 높이)를 그대로 받아 카드 높이가 패널 안에 묶이고, 내부 `overflow-y-auto`가 동작
-  - 비-xl에서는 기존 `max-h-[70vh]` 동작 그대로 유지
-
-내부 스크롤 영역은 이미 `h-0 flex-1 overflow-y-auto`라 추가 변경 불필요.
-
-## 영향 범위
-- 변경 파일: `src/routes/presenter.tsx` 1줄
-- 좌측 `토핑 키워드` 카드, 모바일 레이아웃, ToppingGateControl 등 다른 동작 영향 없음
-- 질문이 5개 이하일 때는 카드가 콘텐츠 높이대로 줄어들고 스크롤 미노출 — 기존과 동일한 모양
+4. 라벨/레전드는 그대로 두되 레전드 폰트 살짝 키움
+   - `wrapperStyle={{ fontSize: 11, paddingTop: 16 }}` → `{{ fontSize: 13, paddingTop: 12 }}`
 
 ## 검증
-- PC 뷰포트(1406×853) `/presenter`에서 질문 7개 이상일 때 카드 내부 스크롤이 생기는지 확인
-- 모바일 뷰포트에서 기존 70vh 제한이 유지되는지 확인
+- `/presenter` 통계 탭 진입 → 차트가 좌측 컬럼 가용 높이를 채우며 약 2.5–3배 확대되는지 확인
+- 청중 화면 `AnswerPromptCard` 내부 통계 미니 차트가 깨지지 않는지 확인 (h-80 박스 안 유지)
+- 응답이 0개일 때 placeholder 위치가 어색하지 않은지 확인
+
+## 영향 범위
+- 변경 파일: `src/components/confesta/AnswerPie.tsx`
+- 데이터/로직 변경 없음, 순수 시각 사이즈 조정
