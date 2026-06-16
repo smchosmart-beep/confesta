@@ -22,6 +22,7 @@ import { useAudience } from "@/hooks/use-audience";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import type { ToppingKind } from "@/lib/confesta/types";
+import { playBeep } from "@/lib/confesta/beep";
 import {
   Select,
   SelectContent,
@@ -186,6 +187,7 @@ function AudienceView() {
     }
     try {
       const result = await placeOrder(text);
+      if (result.ok) playBeep();
       setOrderFeedback({ ok: result.ok, msg: result.message });
     } catch (e) {
       setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
@@ -209,6 +211,7 @@ function AudienceView() {
     }
     try {
       const result = await pickup(text);
+      if (result.ok) playBeep();
       setConeFeedback({ ok: result.ok, msg: result.message });
     } catch (e) {
       setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
@@ -236,7 +239,10 @@ function AudienceView() {
       setSection("orders");
       setOrderFeedback(null);
       placeOrder(qrFromUrl)
-        .then((r) => setOrderFeedback({ ok: r.ok, msg: r.message }))
+        .then((r) => {
+          if (r.ok) playBeep();
+          setOrderFeedback({ ok: r.ok, msg: r.message });
+        })
         .catch((e) => {
           console.error(e);
           setOrderFeedback({ ok: false, msg: "오류가 발생했어요" });
@@ -245,7 +251,10 @@ function AudienceView() {
       setSection("live");
       setConeFeedback(null);
       pickup(qrFromUrl)
-        .then((r) => setConeFeedback({ ok: r.ok, msg: r.message }))
+        .then((r) => {
+          if (r.ok) playBeep();
+          setConeFeedback({ ok: r.ok, msg: r.message });
+        })
         .catch((e) => {
           console.error(e);
           setConeFeedback({ ok: false, msg: "오류가 발생했어요" });

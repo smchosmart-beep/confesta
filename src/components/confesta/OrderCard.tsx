@@ -6,6 +6,7 @@ import { parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/share
 import { useAudience } from "@/hooks/use-audience";
 import { CameraScanner } from "./CameraScanner";
 import { ToppingScatter } from "./ToppingDecor";
+import { playBeep } from "@/lib/confesta/beep";
 
 const FLAVOR_GRAD: Record<string, string> = {
   mint: "bg-grad-mint",
@@ -78,6 +79,7 @@ export function OrderCard({ order }: Props) {
     try {
       const result = await pickup(text);
       if (result.ok) {
+        playBeep();
         setFeedback({ ok: true, msg: "수령 완료! 스쿱이 콘에 쌓였어요 🍦" });
         setScanning(false);
       } else {
