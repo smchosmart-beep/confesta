@@ -216,13 +216,19 @@ function AddBookmarkDialog({
         });
         if (!req) throw new Error("업로드 URL 발급 실패");
         uploadedPath = req.filePath;
-        const { error: upErr } = await supabase.storage
-          .from(BUCKET)
-          .uploadToSignedUrl(req.filePath, req.token, file, {
-            contentType: file.type || "application/octet-stream",
-            upsert: false,
-          });
-        if (upErr) throw upErr;
+        const putRes = await fetch(req.uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            "x-upsert": "false",
+          },
+          body: file,
+        });
+        if (!putRes.ok) {
+          const bodyText = await putRes.text().catch(() => "");
+          console.error("[bookmark upload] PUT failed", putRes.status, bodyText);
+          throw new Error(`파일 업로드에 실패했습니다 (${putRes.status})`);
+        }
         setProgress(100);
         filePath = req.filePath;
         fileName = req.fileName;
