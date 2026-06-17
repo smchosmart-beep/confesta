@@ -1,4 +1,4 @@
-// 청중 화면 — "토핑 보내기" 카드 위에 표시되는 바로가기 카드.
+// 청중 화면 — "토핑 보내기" 카드 위에 표시되는 세션별 자료 카드.
 // 등록된 항목이 없으면 아예 렌더링하지 않는다.
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
