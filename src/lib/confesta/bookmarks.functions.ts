@@ -257,10 +257,12 @@ export const createBookmark = createServerFn({ method: "POST" })
       if (!data.filePath || !data.fileName || !data.fileSize) {
         throw new Error("파일 정보가 불완전합니다.");
       }
-      // sessionId 접두사 검증
-      if (!data.filePath.startsWith(`${data.sessionId}/`)) {
+      // 세션 폴더 접두사 검증 (sessionFolder로 인코딩된 경로)
+      const folder = sessionFolder(data.sessionId);
+      if (!data.filePath.startsWith(`${folder}/`)) {
         throw new Error("잘못된 파일 경로입니다.");
       }
+
       validateFileAttrs(data.fileName, data.fileMime ?? "", data.fileSize);
       filePath = data.filePath;
       fileName = data.fileName;
