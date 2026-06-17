@@ -14,6 +14,7 @@ import { Route as PresenterRouteImport } from './routes/presenter'
 import { Route as AudienceRouteImport } from './routes/audience'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicBookmarkDownloadIdRouteImport } from './routes/api/public/bookmark-download.$id'
 
 const StaffRoute = StaffRouteImport.update({
   id: '/staff',
@@ -40,6 +41,12 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBookmarkDownloadIdRoute =
+  ApiPublicBookmarkDownloadIdRouteImport.update({
+    id: '/api/public/bookmark-download/$id',
+    path: '/api/public/bookmark-download/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -47,6 +54,7 @@ export interface FileRoutesByFullPath {
   '/audience': typeof AudienceRoute
   '/presenter': typeof PresenterRoute
   '/staff': typeof StaffRoute
+  '/api/public/bookmark-download/$id': typeof ApiPublicBookmarkDownloadIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +62,7 @@ export interface FileRoutesByTo {
   '/audience': typeof AudienceRoute
   '/presenter': typeof PresenterRoute
   '/staff': typeof StaffRoute
+  '/api/public/bookmark-download/$id': typeof ApiPublicBookmarkDownloadIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +71,33 @@ export interface FileRoutesById {
   '/audience': typeof AudienceRoute
   '/presenter': typeof PresenterRoute
   '/staff': typeof StaffRoute
+  '/api/public/bookmark-download/$id': typeof ApiPublicBookmarkDownloadIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/audience' | '/presenter' | '/staff'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/audience'
+    | '/presenter'
+    | '/staff'
+    | '/api/public/bookmark-download/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/audience' | '/presenter' | '/staff'
-  id: '__root__' | '/' | '/admin' | '/audience' | '/presenter' | '/staff'
+  to:
+    | '/'
+    | '/admin'
+    | '/audience'
+    | '/presenter'
+    | '/staff'
+    | '/api/public/bookmark-download/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/audience'
+    | '/presenter'
+    | '/staff'
+    | '/api/public/bookmark-download/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +106,7 @@ export interface RootRouteChildren {
   AudienceRoute: typeof AudienceRoute
   PresenterRoute: typeof PresenterRoute
   StaffRoute: typeof StaffRoute
+  ApiPublicBookmarkDownloadIdRoute: typeof ApiPublicBookmarkDownloadIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -116,6 +146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/bookmark-download/$id': {
+      id: '/api/public/bookmark-download/$id'
+      path: '/api/public/bookmark-download/$id'
+      fullPath: '/api/public/bookmark-download/$id'
+      preLoaderRoute: typeof ApiPublicBookmarkDownloadIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -125,6 +162,7 @@ const rootRouteChildren: RootRouteChildren = {
   AudienceRoute: AudienceRoute,
   PresenterRoute: PresenterRoute,
   StaffRoute: StaffRoute,
+  ApiPublicBookmarkDownloadIdRoute: ApiPublicBookmarkDownloadIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

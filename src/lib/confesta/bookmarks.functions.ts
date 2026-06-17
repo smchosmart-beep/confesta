@@ -135,15 +135,9 @@ export const listBookmarks = createServerFn({ method: "GET" })
 
     const items: BookmarkDTO[] = [];
     for (const r of rows ?? []) {
-      let fileUrl: string | null = null;
-      if (r.file_path) {
-        const { data: signed } = await supabaseAdmin.storage
-          .from(BUCKET)
-          .createSignedUrl(r.file_path, SIGNED_DOWNLOAD_TTL, {
-            download: r.file_name ?? undefined,
-          });
-        fileUrl = signed?.signedUrl ?? null;
-      }
+      const fileUrl: string | null = r.file_path
+        ? `/api/public/bookmark-download/${r.id as string}`
+        : null;
       items.push({
         id: r.id as string,
         title: r.title as string,
@@ -157,6 +151,7 @@ export const listBookmarks = createServerFn({ method: "GET" })
         createdAt: r.created_at as string,
       });
     }
+
 
     listCache.set(sessionId, { at: now, data: items });
     return { items };
