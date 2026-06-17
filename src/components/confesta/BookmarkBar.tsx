@@ -1,5 +1,5 @@
 // 발표자용 북마크 바 — RoleHeader 우측 상단에 표시.
-// 등록된 칩 + "+ 바로가기" 추가 다이얼로그(링크/파일 업로드).
+// 등록된 칩 + "+ 자료 추가" 추가 다이얼로그(링크/파일 업로드).
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -87,7 +87,7 @@ export function BookmarkBar({ sessionId }: Props) {
         onClick={() => setAddOpen(true)}
         className="inline-flex items-center gap-1 rounded-full border border-dashed border-white/80 bg-white/40 px-2.5 py-1 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-white/70 transition"
       >
-        <Plus className="w-3.5 h-3.5" /> 바로가기
+        <Plus className="w-3.5 h-3.5" /> 자료 추가
       </button>
 
       {addOpen && (
