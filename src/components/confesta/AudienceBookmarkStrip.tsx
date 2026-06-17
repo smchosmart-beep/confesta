@@ -28,7 +28,7 @@ export function AudienceBookmarkStrip({ sessionId }: Props) {
       <div className="relative">
         <h3 className="font-bold text-base mb-3 flex items-center gap-1.5">
           <Link2 className="w-4 h-4 text-primary" />
-          바로가기
+          세션별 자료
         </h3>
         <ul className="flex flex-col gap-2">
           {items.map((b) => (
