@@ -131,6 +131,45 @@ export type Database = {
         }
         Relationships: []
       }
+      session_bookmarks: {
+        Row: {
+          created_at: string
+          file_mime: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          session_id: string
+          sort_order: number
+          title: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          session_id: string
+          sort_order?: number
+          title: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_mime?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          session_id?: string
+          sort_order?: number
+          title?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       session_nonces: {
         Row: {
           kind: string
