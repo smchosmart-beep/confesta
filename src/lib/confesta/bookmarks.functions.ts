@@ -193,11 +193,12 @@ export const requestBookmarkUpload = createServerFn({ method: "POST" })
       throw new Error(`세션당 최대 ${MAX_PER_SESSION}개까지 등록할 수 있어요.`);
     }
 
-    // path 생성 + 서명 업로드 URL 발급. 충돌 시 1회 retry.
+    // path 생성 + 서명 업로드 URL 발급. 저장소 객체 키는 ASCII-safe 값만 사용하고,
+    // 실제 표시/다운로드 파일명은 DB의 fileName으로 보존한다. 충돌 시 1회 retry.
     const folder = sessionFolder(data.sessionId);
     const tryOnce = async () => {
       const uuid = crypto.randomUUID();
-      const filePath = `${folder}/${uuid}-${safeName}`;
+      const filePath = `${folder}/${uuid}${getExt(safeName)}`;
       const { data: signed, error } = await supabaseAdmin.storage
         .from(BUCKET)
         .createSignedUploadUrl(filePath);
