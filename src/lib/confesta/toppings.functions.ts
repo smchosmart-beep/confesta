@@ -40,26 +40,45 @@ export const listToppings = createServerFn({ method: "POST" })
     );
     if (error) throw error;
 
+    const rowsTyped = ((rows ?? []) as Array<{
+      id: string;
+      session_id: string;
+      text: string;
+      kind: string;
+      prompt_id: string | null;
+      pinned: boolean;
+      addressed: boolean;
+      likes: number;
+      created_at: string;
+      device_id: string | null;
+      liked_by_me: boolean;
+    }>);
+
+    const promptIds = Array.from(
+      new Set(
+        rowsTyped
+          .filter((r) => r.kind === "answer" && r.prompt_id)
+          .map((r) => r.prompt_id as string),
+      ),
+    );
+    const promptTextById = new Map<string, string>();
+    if (promptIds.length > 0) {
+      const { data: prompts, error: pErr } = await supabaseAdmin
+        .from("answer_prompts")
+        .select("id, text")
+        .in("id", promptIds);
+      if (pErr) throw pErr;
+      for (const p of prompts ?? []) promptTextById.set(p.id, p.text);
+    }
+
     return {
-      toppings: ((rows ?? []) as Array<{
-        id: string;
-        session_id: string;
-        text: string;
-        kind: string;
-        prompt_id: string | null;
-        pinned: boolean;
-        addressed: boolean;
-        likes: number;
-        created_at: string;
-        device_id: string | null;
-        liked_by_me: boolean;
-      }>).map((r) => ({
+      toppings: rowsTyped.map((r) => ({
         id: r.id,
         sessionId: r.session_id,
         text: r.text,
         kind: r.kind as "question" | "answer",
         promptId: r.prompt_id,
-        promptText: null,
+        promptText: r.prompt_id ? promptTextById.get(r.prompt_id) ?? null : null,
         pinned: r.pinned,
         addressed: r.addressed,
         likes: r.likes,
@@ -69,6 +88,7 @@ export const listToppings = createServerFn({ method: "POST" })
       })),
     };
   });
+
 
 export const listMyToppings = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
