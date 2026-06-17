@@ -773,7 +773,42 @@ function SlotResetButton({
   );
 }
 
+function SlotToppingsButton({
+  day,
+  period,
+  room,
+  title,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const sessionId = makeSlotKey(day, period, room);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-lg bg-grad-mango px-3 py-1 text-[10px] font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity whitespace-nowrap"
+      >
+        토핑확인
+      </button>
+      {open && (
+        <SlotToppingsModal
+          open={open}
+          onClose={() => setOpen(false)}
+          sessionId={sessionId}
+          title={title}
+        />
+      )}
+    </>
+  );
+}
+
 function VenueCard({
+
   venue,
   day,
   period,
