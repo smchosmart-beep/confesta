@@ -8,6 +8,7 @@ import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
+import { SlotToppingsModal } from "@/components/confesta/SlotToppingsModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import {
@@ -772,7 +773,42 @@ function SlotResetButton({
   );
 }
 
+function SlotToppingsButton({
+  day,
+  period,
+  room,
+  title,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const sessionId = makeSlotKey(day, period, room);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-lg bg-grad-mango px-3 py-1 text-[10px] font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity whitespace-nowrap"
+      >
+        토핑확인
+      </button>
+      {open && (
+        <SlotToppingsModal
+          open={open}
+          onClose={() => setOpen(false)}
+          sessionId={sessionId}
+          title={title}
+        />
+      )}
+    </>
+  );
+}
+
 function VenueCard({
+
   venue,
   day,
   period,
@@ -912,9 +948,13 @@ function VenueCard({
                     {sub.toppings}
                   </span>
                 </div>
-                <button className="rounded-lg bg-grad-mango px-3 py-1 text-[10px] font-extrabold text-white shadow-cream hover:opacity-90 transition-opacity whitespace-nowrap">
-                  토핑확인
-                </button>
+                <SlotToppingsButton
+                  day={day}
+                  period={period}
+                  room={sub.label}
+                  title={displayTitle || sub.label}
+                />
+
               </div>
             </div>
           </div>
