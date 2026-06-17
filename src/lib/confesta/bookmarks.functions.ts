@@ -194,9 +194,10 @@ export const requestBookmarkUpload = createServerFn({ method: "POST" })
     }
 
     // path 생성 + 서명 업로드 URL 발급. 충돌 시 1회 retry.
+    const folder = sessionFolder(data.sessionId);
     const tryOnce = async () => {
       const uuid = crypto.randomUUID();
-      const filePath = `${data.sessionId}/${uuid}-${safeName}`;
+      const filePath = `${folder}/${uuid}-${safeName}`;
       const { data: signed, error } = await supabaseAdmin.storage
         .from(BUCKET)
         .createSignedUploadUrl(filePath);
@@ -217,6 +218,7 @@ export const requestBookmarkUpload = createServerFn({ method: "POST" })
     if ("result" in second) return second.result;
     throw second.error!;
   });
+
 
 /** 발표자: 북마크 행 생성. 파일이 있으면 storage에 실제 객체가 있는지도 확인. */
 export const createBookmark = createServerFn({ method: "POST" })
