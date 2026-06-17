@@ -4,6 +4,7 @@ import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { BookmarkBar } from "@/components/confesta/BookmarkBar";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
