@@ -344,9 +344,10 @@ export const deleteBookmarkUpload = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { assertPresenterSlot } = await import("./assertRole");
     await assertPresenterSlot(data.sessionId);
-    if (!data.filePath.startsWith(`${data.sessionId}/`)) {
+    if (!data.filePath.startsWith(`${sessionFolder(data.sessionId)}/`)) {
       throw new Error("잘못된 파일 경로입니다.");
     }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.storage.from(BUCKET).remove([data.filePath]);
     return { ok: true as const };
