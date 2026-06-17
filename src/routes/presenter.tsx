@@ -461,10 +461,7 @@ function UnlockedSlotView({
     <div className="flex flex-col gap-3 min-h-0 h-full">
       <div className="flex items-center justify-between gap-3 bg-card/60 border border-white/60 rounded-2xl p-3 shadow-cream">
         <div className="min-w-0">
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-            잠금 해제됨
-          </p>
-          <p className="text-sm font-extrabold truncate">{slot.title}</p>
+          <p className="text-2xl font-extrabold truncate">{slot.title}</p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button

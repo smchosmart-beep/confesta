@@ -277,7 +277,7 @@ function AddBookmarkDialog({
       <Dialog open onOpenChange={(o) => !o && tryClose()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>바로가기 추가</DialogTitle>
+            <DialogTitle>자료 추가</DialogTitle>
             <DialogDescription>
               청중 화면에 표시될 외부 링크 또는 파일을 등록하세요. 링크와 파일을
               함께 담을 수도 있어요.
