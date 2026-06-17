@@ -1,5 +1,5 @@
 // 발표자용 북마크 바 — RoleHeader 우측 상단에 표시.
-// 등록된 칩 + "+ 바로가기" 추가 다이얼로그(링크/파일 업로드).
+// 등록된 칩 + "+ 자료 추가" 추가 다이얼로그(링크/파일 업로드).
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
