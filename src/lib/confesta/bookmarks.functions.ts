@@ -40,15 +40,30 @@ function getExt(name: string): string {
   return i < 0 ? "" : name.slice(i).toLowerCase();
 }
 
+// Supabase Storage 객체 키는 영문/숫자/`._-/` 위주만 안전. 세션 ID에 `|` 같은
+// 특수문자가 들어있어도 안전하게 폴더명으로 쓰기 위해 base64url로 인코딩한다.
+function sessionFolder(sessionId: string): string {
+  // 안전 문자만으로 구성된 경우 그대로 둔다 (가독성 + 기존 데이터 호환)
+  if (/^[A-Za-z0-9._-]+$/.test(sessionId)) return sessionId;
+  // btoa는 latin1만 지원 → UTF-8 안전 인코딩
+  const b64 =
+    typeof Buffer !== "undefined"
+      ? Buffer.from(sessionId, "utf8").toString("base64")
+      : btoa(unescape(encodeURIComponent(sessionId)));
+  return "s_" + b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 function sanitizeFileName(raw: string): string {
-  // 위험 문자 제거 + 길이 cap
+  // 위험 문자 제거 + 길이 cap. 저장소 키 규칙에 맞춰 일부 특수문자도 치환.
   const cleaned = raw
     .replace(/[\\/\x00]/g, "_")
+    .replace(/[|<>:"?*]/g, "_")
     .replace(/\.\.+/g, ".")
     .trim();
   if (cleaned.length === 0) return "file";
   return cleaned.length > 120 ? cleaned.slice(0, 120) : cleaned;
 }
+
 
 function validateFileAttrs(fileName: string, fileMime: string, fileSize: number) {
   if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > MAX_FILE_SIZE) {
@@ -179,9 +194,10 @@ export const requestBookmarkUpload = createServerFn({ method: "POST" })
     }
 
     // path 생성 + 서명 업로드 URL 발급. 충돌 시 1회 retry.
+    const folder = sessionFolder(data.sessionId);
     const tryOnce = async () => {
       const uuid = crypto.randomUUID();
-      const filePath = `${data.sessionId}/${uuid}-${safeName}`;
+      const filePath = `${folder}/${uuid}-${safeName}`;
       const { data: signed, error } = await supabaseAdmin.storage
         .from(BUCKET)
         .createSignedUploadUrl(filePath);
@@ -202,6 +218,7 @@ export const requestBookmarkUpload = createServerFn({ method: "POST" })
     if ("result" in second) return second.result;
     throw second.error!;
   });
+
 
 /** 발표자: 북마크 행 생성. 파일이 있으면 storage에 실제 객체가 있는지도 확인. */
 export const createBookmark = createServerFn({ method: "POST" })
@@ -240,10 +257,12 @@ export const createBookmark = createServerFn({ method: "POST" })
       if (!data.filePath || !data.fileName || !data.fileSize) {
         throw new Error("파일 정보가 불완전합니다.");
       }
-      // sessionId 접두사 검증
-      if (!data.filePath.startsWith(`${data.sessionId}/`)) {
+      // 세션 폴더 접두사 검증 (sessionFolder로 인코딩된 경로)
+      const folder = sessionFolder(data.sessionId);
+      if (!data.filePath.startsWith(`${folder}/`)) {
         throw new Error("잘못된 파일 경로입니다.");
       }
+
       validateFileAttrs(data.fileName, data.fileMime ?? "", data.fileSize);
       filePath = data.filePath;
       fileName = data.fileName;
@@ -325,9 +344,10 @@ export const deleteBookmarkUpload = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { assertPresenterSlot } = await import("./assertRole");
     await assertPresenterSlot(data.sessionId);
-    if (!data.filePath.startsWith(`${data.sessionId}/`)) {
+    if (!data.filePath.startsWith(`${sessionFolder(data.sessionId)}/`)) {
       throw new Error("잘못된 파일 경로입니다.");
     }
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     await supabaseAdmin.storage.from(BUCKET).remove([data.filePath]);
     return { ok: true as const };
