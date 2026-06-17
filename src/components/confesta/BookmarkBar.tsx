@@ -87,7 +87,7 @@ export function BookmarkBar({ sessionId }: Props) {
         onClick={() => setAddOpen(true)}
         className="inline-flex items-center gap-1 rounded-full border border-dashed border-white/80 bg-white/40 px-2.5 py-1 text-[11px] font-bold text-muted-foreground hover:text-foreground hover:bg-white/70 transition"
       >
-        <Plus className="w-3.5 h-3.5" /> 바로가기
+        <Plus className="w-3.5 h-3.5" /> 자료 추가
       </button>
 
       {addOpen && (
