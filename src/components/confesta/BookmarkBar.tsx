@@ -370,7 +370,7 @@ function AddBookmarkDialog({
             <Button variant="ghost" onClick={tryClose} disabled={submitting && progress !== null && progress < 100}>
               취소
             </Button>
-            <Button onClick={handleSubmit} disabled={!canSubmit}>
+            <Button onClick={handleSubmit} disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
