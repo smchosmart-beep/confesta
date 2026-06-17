@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { AudienceBookmarkStrip } from "@/components/confesta/AudienceBookmarkStrip";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
 import { OrderCard } from "@/components/confesta/OrderCard";
@@ -424,6 +425,7 @@ function AudienceView() {
               </div>
             ) : (
             <div className="mx-auto flex flex-col gap-4">
+              <AudienceBookmarkStrip sessionId={activeSessionId} />
               <div className="relative overflow-hidden bg-card rounded-3xl p-6 shadow-cream border border-white/60">
                 <div className="absolute inset-0 bg-grad-aurora-soft opacity-50" />
                 <ToppingScatter density="med" seed="audience-topping" />

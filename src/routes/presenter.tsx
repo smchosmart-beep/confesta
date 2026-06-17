@@ -4,6 +4,7 @@ import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
+import { BookmarkBar } from "@/components/confesta/BookmarkBar";
 import { QuestionStream } from "@/components/confesta/QuestionStream";
 import { ToppingTubScene } from "@/components/confesta/ToppingTubScene";
 import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
@@ -173,37 +174,44 @@ function PresenterPage() {
         }
         color="blue"
         right={
-          <SlotPickerBar
-            slots={slots}
-            day={day}
-            period={period}
-            room={room}
-            daysAvailable={daysAvailable}
-            periodsAvailable={periodsAvailable}
-            slotsInScope={slotsInScope}
-            onChangeDay={(d) => {
-              setDay(d);
-              const periods = Array.from(
-                new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
-              ) as Period[];
-              const nextPeriod =
-                period != null && periods.includes(period) ? period : periods[0] ?? null;
-              setPeriod(nextPeriod);
-              const rooms = slots
-                .filter((s) => s.day === d && s.period === nextPeriod)
-                .map((s) => s.room);
-              setRoom(rooms[0] ?? null);
-            }}
-            onChangePeriod={(p) => {
-              setPeriod(p);
-              const rooms = slots
-                .filter((s) => s.day === day && s.period === p)
-                .map((s) => s.room);
-              setRoom(rooms[0] ?? null);
-            }}
-            onChangeRoom={setRoom}
-            loading={slotsQuery.isLoading}
-          />
+          <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+            {selected && (
+              <BookmarkBar
+                sessionId={makeSlotKey(selected.day, selected.period, selected.room)}
+              />
+            )}
+            <SlotPickerBar
+              slots={slots}
+              day={day}
+              period={period}
+              room={room}
+              daysAvailable={daysAvailable}
+              periodsAvailable={periodsAvailable}
+              slotsInScope={slotsInScope}
+              onChangeDay={(d) => {
+                setDay(d);
+                const periods = Array.from(
+                  new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
+                ) as Period[];
+                const nextPeriod =
+                  period != null && periods.includes(period) ? period : periods[0] ?? null;
+                setPeriod(nextPeriod);
+                const rooms = slots
+                  .filter((s) => s.day === d && s.period === nextPeriod)
+                  .map((s) => s.room);
+                setRoom(rooms[0] ?? null);
+              }}
+              onChangePeriod={(p) => {
+                setPeriod(p);
+                const rooms = slots
+                  .filter((s) => s.day === day && s.period === p)
+                  .map((s) => s.room);
+                setRoom(rooms[0] ?? null);
+              }}
+              onChangeRoom={setRoom}
+              loading={slotsQuery.isLoading}
+            />
+          </div>
         }
       />
 
