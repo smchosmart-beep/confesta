@@ -209,6 +209,7 @@ function AddBookmarkDialog({
             fileSize: file.size,
           },
         });
+        if (!req) throw new Error("업로드 URL 발급 실패");
         uploadedPath = req.filePath;
         const { error: upErr } = await supabase.storage
           .from(BUCKET)
