@@ -114,7 +114,7 @@ export function ToppingTubScene({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-3xl border border-white/60 shadow-cream ${containerH}`}
+      className={`relative isolate overflow-hidden rounded-3xl border border-white/60 shadow-cream ${containerH}`}
     >
       <div className="absolute inset-0 bg-grad-cream" />
       <div className="absolute inset-0 bg-grad-aurora-soft opacity-40" />

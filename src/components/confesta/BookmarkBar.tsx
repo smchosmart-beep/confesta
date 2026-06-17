@@ -179,20 +179,25 @@ function AddBookmarkDialog({
     onClose();
   };
 
-  const canSubmit =
-    title.trim().length > 0 && (url.trim().length > 0 || file !== null) && !submitting;
-
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if (submitting) return;
+    const trimmedTitle = title.trim();
+    const trimmedUrl = url.trim();
+    if (trimmedTitle.length === 0) {
+      toast.error("버튼 제목을 입력하세요");
+      return;
+    }
+    if (trimmedUrl.length === 0 && !file) {
+      toast.error("링크 또는 파일 중 하나는 필요해요");
+      return;
+    }
+    if (trimmedUrl.length > 0 && !/^https?:\/\//i.test(trimmedUrl)) {
+      toast.error("URL은 http(s)://로 시작해야 합니다");
+      return;
+    }
     setSubmitting(true);
     let uploadedPath: string | null = null;
     try {
-      const trimmedUrl = url.trim();
-      if (trimmedUrl.length > 0 && !/^https?:\/\//i.test(trimmedUrl)) {
-        toast.error("URL은 http(s)://로 시작해야 합니다");
-        setSubmitting(false);
-        return;
-      }
 
       let filePath: string | undefined;
       let fileName: string | undefined;
@@ -365,7 +370,7 @@ function AddBookmarkDialog({
             <Button variant="ghost" onClick={tryClose} disabled={submitting && progress !== null && progress < 100}>
               취소
             </Button>
-            <Button onClick={handleSubmit} disabled={!canSubmit}>
+            <Button onClick={handleSubmit} disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 animate-spin" />
