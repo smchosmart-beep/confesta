@@ -15,6 +15,7 @@ import { ToppingInput } from "@/components/confesta/ToppingInput";
 import { ReceiptCard } from "@/components/confesta/ReceiptCard";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
+import { QuestionCommentBlock } from "@/components/confesta/QuestionCommentBlock";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { MAX_SCOOPS_CONST, makeSlotKey, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
