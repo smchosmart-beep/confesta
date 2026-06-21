@@ -209,6 +209,7 @@ export function QuestionStream({ sessionId }: Props) {
 
       <QuestionSpotlightModal
         topping={spotlight}
+        sessionId={sessionId}
         onClose={() => setSpotlight(null)}
         onPrev={() => {
           if (!spotlight) return;
