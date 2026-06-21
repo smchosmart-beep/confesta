@@ -192,6 +192,7 @@ export const addTopping = createServerFn({ method: "POST" })
         text: z.string().trim().min(1).max(500),
         kind: KindSchema.default("question"),
         promptId: PromptIdSchema.optional(),
+        role: RoleSchema.optional(),
       })
       .parse(input),
   )
@@ -238,6 +239,7 @@ export const addTopping = createServerFn({ method: "POST" })
       text: data.text,
       kind: data.kind,
       prompt_id: resolvedPromptId,
+      role: (data.role ?? "other") as "teacher" | "specialist" | "parent" | "other",
     });
     if (error) throw error;
     return { ok: true as const };
