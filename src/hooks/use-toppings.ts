@@ -106,14 +106,33 @@ export function useSessionToppings(sessionId: string | null) {
       }
       return { snapshots };
     },
-    onError: (_e, _v, ctx) => {
+    onError: (e, _v, ctx) => {
+      console.error("[toggleLike] failed", e);
       if (!ctx) return;
       for (const [key, prev] of ctx.snapshots) {
         qc.setQueryData(key, prev);
       }
     },
-    onSettled: () =>
-      qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    // 서버 응답({ ok, liked, likes })을 캐시에 직접 반영하여
+    // RPC commit 전 refetch가 0으로 덮어쓰는 race를 차단.
+    // 다른 사용자 변경은 toppings 테이블 realtime이 알아서 invalidate.
+    onSuccess: (res, toppingId) => {
+      if (!res || !("ok" in res) || !res.ok) return;
+      const liked = (res as { liked?: boolean }).liked ?? false;
+      const likes = (res as { likes?: number }).likes ?? 0;
+      const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+        queryKey: ["toppings", sessionId],
+      });
+      for (const [key, prev] of matches) {
+        if (!prev) continue;
+        qc.setQueryData<{ toppings: ToppingDTO[] }>(key, {
+          ...prev,
+          toppings: prev.toppings.map((t) =>
+            t.id === toppingId ? { ...t, likedByMe: liked, likes } : t,
+          ),
+        });
+      }
+    },
   });
 
   const togglePin = useMutation({
