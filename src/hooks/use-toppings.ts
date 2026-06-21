@@ -10,7 +10,9 @@ import {
   deleteOwnTopping as deleteOwnFn,
   type ToppingDTO,
 } from "@/lib/confesta/toppings.functions";
+import type { AudienceRole } from "@/lib/confesta/audienceRole";
 import { useDeviceId } from "./use-device-id";
+import { useAudienceRole } from "./use-audience-role";
 import {
   subscribeToppings,
   useRealtimeHealth,
@@ -18,6 +20,7 @@ import {
 
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
+  const { state: roleState } = useAudienceRole();
   const qc = useQueryClient();
   const listFn = useServerFn(listToppings);
   const addFn = useServerFn(addToppingFn);
@@ -55,16 +58,22 @@ export function useSessionToppings(sessionId: string | null) {
       text: string;
       kind?: "question" | "answer";
       promptId?: string;
-    }) =>
-      addFn({
+    }) => {
+      const role: AudienceRole | undefined =
+        roleState === "loading" || roleState === "none"
+          ? undefined
+          : roleState;
+      return addFn({
         data: {
           deviceId: deviceId!,
           sessionId: sessionId!,
           text: input.text,
           kind: input.kind,
           promptId: input.promptId,
+          role,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
       qc.invalidateQueries({ queryKey: ["my-toppings", deviceId] });
