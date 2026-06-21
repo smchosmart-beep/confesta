@@ -306,8 +306,10 @@ function AudienceView() {
           </button>
         }
       />
-      {/* clearRole 참조 보존 (사용 경로: 추후 로그아웃/초기화) */}
+      {/* clearRole 참조 보존 (현재 미사용 — 향후 로그아웃 시 호출) */}
       <span hidden aria-hidden onClick={clearRole} />
+
+      <DeviceFrame device="mobile">
         <div className="px-4 flex justify-center">
           <div className="w-full overflow-x-auto">
             <div className="flex justify-center min-w-max">
