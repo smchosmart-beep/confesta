@@ -1,5 +1,6 @@
 import { roleDef } from "@/lib/confesta/audienceRole";
 import type { AudienceRole } from "@/lib/confesta/audienceRole";
+import { RoleIcon } from "./RoleIcon";
 
 interface Props {
   role: AudienceRole | null | undefined;
@@ -13,12 +14,13 @@ export function RoleBadge({ role, size = "xs", showLabel = true, className = "" 
   const def = roleDef(role);
   const padding =
     size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-1.5 py-0.5 text-[10px]";
+  const iconSize = size === "sm" ? 14 : 12;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full font-bold text-white shadow-cream ${def.bg} ${padding} ${className}`}
+      className={`inline-flex items-center gap-1 rounded-full font-bold shadow-cream ${def.bg} ${def.text} ${padding} ${className}`}
       title={`청중 역할: ${def.ko}`}
     >
-      <span aria-hidden>{def.emoji}</span>
+      <RoleIcon role={def.key} size={iconSize} strokeWidth={2.5} />
       {showLabel && <span>{def.ko}</span>}
     </span>
   );
