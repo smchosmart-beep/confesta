@@ -2,10 +2,13 @@ import { useMemo, useState } from "react";
 import { Pin, Check, Heart, Maximize2 } from "lucide-react";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
+import { AUDIENCE_ROLES, type AudienceRole } from "@/lib/confesta/audienceRole";
+import { RoleBadge } from "./RoleBadge";
 import { QuestionSpotlightModal } from "./QuestionSpotlightModal";
 
 type Filter = "all" | "pinned" | "unaddressed" | "addressed";
 type Sort = "recent" | "likes";
+type RoleFilter = "all" | AudienceRole;
 
 interface Props {
   sessionId: string;
@@ -20,6 +23,7 @@ export function QuestionStream({ sessionId }: Props) {
 
   const [filter, setFilter] = useState<Filter>("all");
   const [sort, setSort] = useState<Sort>("recent");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [spotlight, setSpotlight] = useState<ToppingDTO | null>(null);
 
   const filtered = useMemo(() => {
@@ -28,6 +32,8 @@ export function QuestionStream({ sessionId }: Props) {
     else if (filter === "unaddressed") list = list.filter((t) => !t.addressed);
     else if (filter === "addressed") list = list.filter((t) => t.addressed);
 
+    if (roleFilter !== "all") list = list.filter((t) => t.role === roleFilter);
+
     list.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
@@ -35,7 +41,13 @@ export function QuestionStream({ sessionId }: Props) {
       return b.createdAt - a.createdAt;
     });
     return list;
-  }, [toppings, filter, sort]);
+  }, [toppings, filter, sort, roleFilter]);
+
+  const roleCounts = useMemo(() => {
+    const m = new Map<AudienceRole, number>();
+    for (const t of toppings) m.set(t.role, (m.get(t.role) ?? 0) + 1);
+    return m;
+  }, [toppings]);
 
   const filters: { value: Filter; label: string }[] = [
     { value: "all", label: `전체 ${toppings.length}` },
