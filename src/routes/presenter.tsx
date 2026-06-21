@@ -167,11 +167,9 @@ function PresenterPage() {
     <main className="min-h-screen pb-6">
       <RoleHeader
         role="발표자 (Presenter)"
-        description={selected ? selected.title : "세션을 선택해 주세요"}
-        subtitle={selected ? selected.room : undefined}
         color="blue"
         right={
-          <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+          <div className="flex flex-col items-start gap-2 w-full">
             {selected && (
               <BookmarkBar
                 sessionId={makeSlotKey(selected.day, selected.period, selected.room)}
@@ -255,7 +253,7 @@ function SlotPickerBar({
 }) {
   void slots;
   return (
-    <div className="flex flex-wrap items-end gap-2 bg-card/60 border border-white/60 rounded-2xl p-2 shadow-cream">
+    <div className="flex flex-wrap items-center gap-2 bg-card/60 border border-white/60 rounded-2xl p-2 shadow-cream w-full">
       <div className="flex flex-col gap-1">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
           일자
@@ -305,7 +303,7 @@ function SlotPickerBar({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 flex-1 min-w-0">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
           세션
         </span>
@@ -314,7 +312,7 @@ function SlotPickerBar({
           onValueChange={onChangeRoom}
           disabled={slotsInScope.length === 0}
         >
-          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[540px] max-w-[780px] text-xs`}>
+          <SelectTrigger className={`${selectTriggerCls} h-9 w-full text-xs`}>
             <SelectValue
               placeholder={loading ? "불러오는 중…" : "발급된 세션 없음"}
             />

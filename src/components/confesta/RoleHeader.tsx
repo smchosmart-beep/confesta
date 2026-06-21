@@ -4,7 +4,7 @@ import { ToppingScatter } from "./ToppingDecor";
 
 interface Props {
   role: string;
-  description: React.ReactNode;
+  description?: React.ReactNode;
   subtitle?: React.ReactNode;
   color: "pink" | "blue" | "mint" | "mango";
   right?: React.ReactNode;
@@ -33,16 +33,18 @@ export function RoleHeader({ role, description, subtitle, color, right }: Props)
         >
           <IceCream className="w-6 h-6 drop-shadow" />
         </span>
-        <div className="min-w-0 flex-1">
+        <div className={`min-w-0 ${right ? "" : "flex-1"}`}>
           <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
             {role}
           </h1>
-          <p className="text-sm text-muted-foreground truncate">{description}</p>
+          {description && (
+            <p className="text-sm text-muted-foreground truncate">{description}</p>
+          )}
           {subtitle && (
             <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
           )}
         </div>
-        {right && <div className="shrink-0 relative">{right}</div>}
+        {right && <div className="flex-1 min-w-0 relative">{right}</div>}
       </div>
     </header>
   );
