@@ -55,6 +55,7 @@ export const listToppings = createServerFn({ method: "POST" })
       likes: number;
       created_at: string;
       device_id: string | null;
+      role: AudienceRole | null;
       liked_by_me: boolean;
     }>);
 
@@ -88,6 +89,7 @@ export const listToppings = createServerFn({ method: "POST" })
         likes: r.likes,
         likedByMe: r.liked_by_me,
         mine: !!data.deviceId && r.device_id === data.deviceId,
+        role: (r.role ?? "other") as AudienceRole,
         createdAt: new Date(r.created_at).getTime(),
       })),
     };
@@ -102,7 +104,7 @@ export const listMyToppings = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("toppings")
-      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id")
+      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id, role")
       .eq("device_id", data.deviceId)
       .order("created_at", { ascending: true });
     if (error) throw error;
@@ -137,6 +139,7 @@ export const listMyToppings = createServerFn({ method: "POST" })
         likes: r.likes,
         likedByMe: false,
         mine: true,
+        role: (r.role ?? "other") as AudienceRole,
         createdAt: new Date(r.created_at).getTime(),
       })),
     };
