@@ -121,8 +121,18 @@ export function useSessionToppings(sessionId: string | null) {
   });
 
   const toggleLike = useMutation({
-    mutationFn: (toppingId: string) =>
-      likeFn({ data: { deviceId: deviceId!, toppingId } }),
+    mutationFn: async (toppingId: string) => {
+      const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
+      if (inflightLikes.has(k)) {
+        return { ok: false as const, skipped: true as const };
+      }
+      inflightLikes.add(k);
+      try {
+        return await likeFn({ data: { deviceId: deviceId!, toppingId } });
+      } finally {
+        inflightLikes.delete(k);
+      }
+    },
     // 작성자 본인 포함 모든 청중이 누를 수 있음. 낙관 업데이트로 즉시 반영.
     onMutate: async (toppingId: string) => {
       await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
@@ -153,13 +163,20 @@ export function useSessionToppings(sessionId: string | null) {
         qc.setQueryData(key, prev);
       }
     },
-    // 서버 응답({ ok, liked, likes })을 캐시에 직접 반영하여
-    // RPC commit 전 refetch가 0으로 덮어쓰는 race를 차단.
-    // 다른 사용자 변경은 toppings 테이블 realtime이 알아서 invalidate.
+    // 서버 응답({ ok, liked, likes })을 캐시에 반영 + 짧은 TTL 보호 구간 설정.
+    // 직후의 realtime invalidate→refetch가 stale 값으로 덮어쓰는 것을 차단.
     onSuccess: (res, toppingId) => {
       if (!res || !("ok" in res) || !res.ok) return;
+      if ("skipped" in res && res.skipped) return;
       const liked = (res as { liked?: boolean }).liked ?? false;
       const likes = (res as { likes?: number }).likes ?? 0;
+      if (sessionId && deviceId) {
+        likeGuards.set(guardKey(sessionId, deviceId, toppingId), {
+          liked,
+          likes,
+          expires: Date.now() + LIKE_GUARD_TTL_MS,
+        });
+      }
       const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
         queryKey: ["toppings", sessionId],
       });
@@ -174,6 +191,7 @@ export function useSessionToppings(sessionId: string | null) {
       }
     },
   });
+
 
   const togglePin = useMutation({
     mutationFn: (toppingId: string) =>
