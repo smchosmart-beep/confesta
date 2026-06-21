@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { PresenterCommentBlock } from "./PresenterCommentBlock";
 
 interface SpotlightTopping {
   id: string;
@@ -9,12 +10,13 @@ interface SpotlightTopping {
 
 interface Props {
   topping: SpotlightTopping | null;
+  sessionId: string;
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
 }
 
-export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Props) {
+export function QuestionSpotlightModal({ topping, sessionId, onClose, onPrev, onNext }: Props) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" && onPrev) {
