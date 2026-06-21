@@ -112,8 +112,27 @@ function BookmarkChip({
   onDelete: () => void;
   disabled: boolean;
 }) {
+  const href = item.url || item.fileUrl || null;
+  const handleOpen = () => {
+    if (!href) return;
+    window.open(href, "_blank", "noopener,noreferrer");
+  };
   return (
-    <span className="group relative inline-flex items-center gap-1 rounded-full bg-grad-aurora-soft border border-white/70 px-2.5 py-1 text-[11px] font-bold text-foreground shadow-cream">
+    <span
+      role={href ? "button" : undefined}
+      tabIndex={href ? 0 : undefined}
+      onClick={href ? handleOpen : undefined}
+      onKeyDown={(e) => {
+        if (!href) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleOpen();
+        }
+      }}
+      className={`group relative inline-flex items-center gap-1 rounded-full bg-grad-aurora-soft border border-white/70 px-2.5 py-1 text-[11px] font-bold text-foreground shadow-cream ${
+        href ? "cursor-pointer hover:brightness-105" : ""
+      }`}
+    >
       {item.url && <Link2 className="w-3 h-3 opacity-70" />}
       {item.filePath && <Paperclip className="w-3 h-3 opacity-70" />}
       <span className="max-w-[160px] truncate">{item.title}</span>
