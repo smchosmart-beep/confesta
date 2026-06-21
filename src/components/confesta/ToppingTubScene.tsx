@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { useSessionToppings } from "@/hooks/use-toppings";
-import { extractAnswerKeywords } from "@/lib/confesta/keywords";
+import { extractKeywords } from "@/lib/confesta/keywords";
 import { Cherry, ChocChip, StarSprinkle, Heart, Sprinkle } from "./ToppingDecor";
 
 interface Props {
