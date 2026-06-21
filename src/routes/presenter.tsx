@@ -303,6 +303,28 @@ function SlotPickerBar({
         </Select>
       </div>
 
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
+          장소
+        </span>
+        <Select
+          value={room ?? ""}
+          onValueChange={onChangeRoom}
+          disabled={slotsInScope.length === 0}
+        >
+          <SelectTrigger className={`${selectTriggerCls} h-9 min-w-[140px] text-xs`}>
+            <SelectValue placeholder={loading ? "불러오는 중…" : "—"} />
+          </SelectTrigger>
+          <SelectContent className={selectContentCls}>
+            {slotsInScope.map((s) => (
+              <SelectItem key={s.room} value={s.room} className={selectItemCls}>
+                {s.room}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="flex flex-col gap-1 flex-1 min-w-0">
         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-1">
           세션
@@ -320,7 +342,7 @@ function SlotPickerBar({
           <SelectContent className={selectContentCls}>
             {slotsInScope.map((s) => (
               <SelectItem key={s.room} value={s.room} className={selectItemCls}>
-                {s.room} — {s.title}
+                {s.title}
               </SelectItem>
             ))}
           </SelectContent>
