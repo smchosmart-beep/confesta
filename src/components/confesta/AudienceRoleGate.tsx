@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, IceCream } from "lucide-react";
 import { AUDIENCE_ROLES, type AudienceRole } from "@/lib/confesta/audienceRole";
+import { RoleIcon } from "./RoleIcon";
 import { ToppingScatter } from "./ToppingDecor";
 
 interface Props {
@@ -42,9 +43,9 @@ export function AudienceRoleGate({ onPick, onCancel }: Props) {
               key={r.key}
               type="button"
               onClick={() => onPick(r.key)}
-              className={`bounce-press relative overflow-hidden ${r.bg} text-white rounded-3xl px-4 py-5 shadow-cream border border-white/40 flex flex-col items-center gap-2 font-extrabold`}
+              className={`bounce-press relative overflow-hidden ${r.bg} ${r.text} rounded-3xl px-4 py-5 shadow-cream border border-white/60 flex flex-col items-center gap-2 font-extrabold`}
             >
-              <span className="text-3xl drop-shadow">{r.emoji}</span>
+              <RoleIcon role={r.key} size={32} strokeWidth={2.25} />
               <span className="text-base">{r.ko}</span>
             </button>
           ))}

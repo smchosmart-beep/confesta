@@ -296,6 +296,12 @@
 @utility bg-grad-danger     { background-image: var(--gradient-danger); }
 @utility bg-grad-muted      { background-image: var(--gradient-muted); }
 
+/* ─── Pastel solids (audience role chips/cards) ─── */
+@utility bg-pastel-mint     { background-color: #C9F0E2; }
+@utility bg-pastel-lavender { background-color: #D6D9FF; }
+@utility bg-pastel-peach    { background-color: #FFD3DD; }
+@utility bg-pastel-mango    { background-color: #FFE0B5; }
+
 @utility bg-grad-sunset-soft {
   background-image: linear-gradient(135deg,
     color-mix(in oklab, #FFD27F 35%, transparent) 0%,

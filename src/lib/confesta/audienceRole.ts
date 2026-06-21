@@ -13,10 +13,10 @@ export interface AudienceRoleDef {
 }
 
 export const AUDIENCE_ROLES: AudienceRoleDef[] = [
-  { key: "teacher",    ko: "교사",     emoji: "👩‍🏫", bg: "bg-grad-mint",       text: "text-teal-700" },
-  { key: "specialist", ko: "전문직",   emoji: "🎓",   bg: "bg-grad-blueberry",  text: "text-indigo-700" },
-  { key: "parent",     ko: "학부모",   emoji: "🧡",   bg: "bg-grad-strawberry", text: "text-pink-700" },
-  { key: "other",      ko: "기타",     emoji: "🍦",   bg: "bg-muted",           text: "text-muted-foreground" },
+  { key: "teacher",    ko: "교사",     emoji: "👩‍🏫", bg: "bg-pastel-mint",     text: "text-teal-800" },
+  { key: "specialist", ko: "전문직",   emoji: "🎓",   bg: "bg-pastel-lavender", text: "text-indigo-800" },
+  { key: "parent",     ko: "학부모",   emoji: "🧡",   bg: "bg-pastel-peach",    text: "text-pink-800" },
+  { key: "other",      ko: "기타",     emoji: "🍦",   bg: "bg-pastel-mango",    text: "text-amber-800" },
 ];
 
 const BY_KEY = new Map<AudienceRole, AudienceRoleDef>(
