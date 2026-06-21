@@ -38,6 +38,9 @@ export function RoleHeader({ role, description, subtitle, color, right }: Props)
             {role}
           </h1>
           <p className="text-sm text-muted-foreground truncate">{description}</p>
+          {subtitle && (
+            <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+          )}
         </div>
         {right && <div className="shrink-0 relative">{right}</div>}
       </div>
