@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { AUDIENCE_ROLE_KEYS, type AudienceRole } from "./audienceRole";
 
 const SessionIdSchema = z.string().min(1).max(120);
 const DeviceIdSchema = z.string().uuid();
 const ToppingIdSchema = z.string().uuid();
 const PromptIdSchema = z.string().uuid();
 const KindSchema = z.enum(["question", "answer"]);
+const RoleSchema = z.enum(AUDIENCE_ROLE_KEYS as [string, ...string[]]);
 
 export type ToppingDTO = {
   id: string;
@@ -19,6 +21,8 @@ export type ToppingDTO = {
   likes: number;
   likedByMe: boolean;
   mine: boolean;
+  /** 작성자의 청중 역할. 레거시(NULL) 또는 미지정 시 "other". */
+  role: AudienceRole;
   createdAt: number;
 };
 
@@ -51,6 +55,7 @@ export const listToppings = createServerFn({ method: "POST" })
       likes: number;
       created_at: string;
       device_id: string | null;
+      role: AudienceRole | null;
       liked_by_me: boolean;
     }>);
 
@@ -84,6 +89,7 @@ export const listToppings = createServerFn({ method: "POST" })
         likes: r.likes,
         likedByMe: r.liked_by_me,
         mine: !!data.deviceId && r.device_id === data.deviceId,
+        role: (r.role ?? "other") as AudienceRole,
         createdAt: new Date(r.created_at).getTime(),
       })),
     };
@@ -98,7 +104,7 @@ export const listMyToppings = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("toppings")
-      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id")
+      .select("id, session_id, text, kind, prompt_id, pinned, addressed, likes, created_at, device_id, role")
       .eq("device_id", data.deviceId)
       .order("created_at", { ascending: true });
     if (error) throw error;
@@ -133,6 +139,7 @@ export const listMyToppings = createServerFn({ method: "POST" })
         likes: r.likes,
         likedByMe: false,
         mine: true,
+        role: (r.role ?? "other") as AudienceRole,
         createdAt: new Date(r.created_at).getTime(),
       })),
     };
@@ -185,6 +192,7 @@ export const addTopping = createServerFn({ method: "POST" })
         text: z.string().trim().min(1).max(500),
         kind: KindSchema.default("question"),
         promptId: PromptIdSchema.optional(),
+        role: RoleSchema.optional(),
       })
       .parse(input),
   )
@@ -231,6 +239,7 @@ export const addTopping = createServerFn({ method: "POST" })
       text: data.text,
       kind: data.kind,
       prompt_id: resolvedPromptId,
+      role: (data.role ?? "other") as "teacher" | "specialist" | "parent" | "other",
     });
     if (error) throw error;
     return { ok: true as const };

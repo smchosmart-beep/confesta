@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { AudienceBookmarkStrip } from "@/components/confesta/AudienceBookmarkStrip";
+import { AudienceRoleGate } from "@/components/confesta/AudienceRoleGate";
+import { RoleBadge } from "@/components/confesta/RoleBadge";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
 import { OrderCard } from "@/components/confesta/OrderCard";
@@ -23,6 +25,7 @@ import { useAudience } from "@/hooks/use-audience";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import type { ToppingKind } from "@/lib/confesta/types";
+import { useAudienceRole } from "@/hooks/use-audience-role";
 import { playBeep } from "@/lib/confesta/beep";
 import {
   Select,
@@ -82,6 +85,8 @@ type Section = "orders" | "live" | "topping" | "receipt";
 
 function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
+  const { state: roleState, setRole } = useAudienceRole();
+  const [showRoleChange, setShowRoleChange] = useState(false);
 
   // Server-backed audience state (orders, scoops, receipt)
   const { deviceId, orders, scoops, placeOrder, pickup } = useAudience();
@@ -224,6 +229,8 @@ function AudienceView() {
   const processedQrRef = useRef<string | null>(null);
   useEffect(() => {
     if (!qrFromUrl || !deviceId) return;
+    // 역할 게이트 통과 전에는 자동 주문/수령 처리를 보류한다.
+    if (roleState === "loading" || roleState === "none") return;
     if (processedQrRef.current === qrFromUrl) return;
     processedQrRef.current = qrFromUrl;
 
@@ -261,7 +268,25 @@ function AudienceView() {
           setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
         });
     }
-  }, [qrFromUrl, deviceId, navigate, placeOrder, pickup]);
+  }, [qrFromUrl, deviceId, roleState, navigate, placeOrder, pickup]);
+
+  // 역할 미선택/로딩 시 게이트 표시. Hook 순서 유지를 위해 모든 hook 이후에 분기.
+  if (roleState === "loading") {
+    return <main className="min-h-screen" aria-hidden />;
+  }
+  if (roleState === "none" || showRoleChange) {
+    return (
+      <AudienceRoleGate
+        onPick={(r) => {
+          setRole(r);
+          setShowRoleChange(false);
+        }}
+        onCancel={showRoleChange ? () => setShowRoleChange(false) : undefined}
+      />
+    );
+  }
+
+  const currentRole = roleState;
 
   return (
     <main className="min-h-screen pb-32">
@@ -269,6 +294,17 @@ function AudienceView() {
         role="청중 (Audience)"
         description="세션 장소에서 주문 QR → 종료 직전 수령 QR — 콘에 스쿱을 차곡차곡"
         color="pink"
+        right={
+          <button
+            type="button"
+            onClick={() => setShowRoleChange(true)}
+            className="bounce-press inline-flex items-center gap-1"
+            aria-label="역할 변경"
+            title="역할 변경"
+          >
+            <RoleBadge role={currentRole} size="sm" />
+          </button>
+        }
       />
 
       <DeviceFrame device="mobile">
@@ -532,6 +568,9 @@ function AudienceView() {
                                       <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   )}
+                                </div>
+                                <div className="mt-2 pl-1">
+                                  <RoleBadge role={t.role} size="xs" />
                                 </div>
 
                               </li>
