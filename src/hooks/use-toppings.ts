@@ -18,6 +18,38 @@ import {
   useRealtimeHealth,
 } from "@/lib/confesta/realtime-channel";
 
+// 모듈 수준 좋아요 보호 구간: RPC commit 직후 refetch가 stale 값으로
+// 덮어쓰는 race를 차단. key = `${sessionId}:${deviceId}:${toppingId}`.
+const LIKE_GUARD_TTL_MS = 2000;
+const likeGuards = new Map<
+  string,
+  { liked: boolean; likes: number; expires: number }
+>();
+const guardKey = (s: string, d: string, t: string) => `${s}:${d}:${t}`;
+function applyLikeGuards<T extends { id: string; likedByMe: boolean; likes: number }>(
+  sessionId: string,
+  deviceId: string | null,
+  items: T[],
+): T[] {
+  if (!deviceId) return items;
+  const now = Date.now();
+  let changed = false;
+  const next = items.map((t) => {
+    const g = likeGuards.get(guardKey(sessionId, deviceId, t.id));
+    if (!g) return t;
+    if (g.expires < now) {
+      likeGuards.delete(guardKey(sessionId, deviceId, t.id));
+      return t;
+    }
+    if (t.likedByMe === g.liked && t.likes === g.likes) return t;
+    changed = true;
+    return { ...t, likedByMe: g.liked, likes: g.likes };
+  });
+  return changed ? next : items;
+}
+// 같은 토핑에 대한 동시 클릭 차단(낙관/서버 race 방지).
+const inflightLikes = new Set<string>();
+
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
   const { state: roleState } = useAudienceRole();
@@ -34,8 +66,15 @@ export function useSessionToppings(sessionId: string | null) {
 
   const { data } = useQuery({
     queryKey,
-    queryFn: () =>
-      listFn({ data: { sessionId: sessionId!, deviceId: deviceId ?? undefined } }),
+    queryFn: async () => {
+      const r = await listFn({
+        data: { sessionId: sessionId!, deviceId: deviceId ?? undefined },
+      });
+      return {
+        ...r,
+        toppings: applyLikeGuards(sessionId!, deviceId, r.toppings),
+      };
+    },
     enabled: !!sessionId,
     staleTime: 5_000,
     refetchOnWindowFocus: true,
@@ -50,6 +89,7 @@ export function useSessionToppings(sessionId: string | null) {
       qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
     );
   }, [sessionId, qc]);
+
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
 
