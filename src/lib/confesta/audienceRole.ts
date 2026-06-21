@@ -13,7 +13,7 @@ export interface AudienceRoleDef {
 }
 
 export const AUDIENCE_ROLES: AudienceRoleDef[] = [
-  { key: "teacher",    ko: "교사",     emoji: "👩‍🏫", bg: "bg-pastel-mint",     text: "text-teal-800" },
+  { key: "teacher",    ko: "교원",     emoji: "👩‍🏫", bg: "bg-pastel-mint",     text: "text-teal-800" },
   { key: "specialist", ko: "전문직",   emoji: "🎓",   bg: "bg-pastel-lavender", text: "text-indigo-800" },
   { key: "parent",     ko: "학부모",   emoji: "🧡",   bg: "bg-pastel-peach",    text: "text-pink-800" },
   { key: "other",      ko: "기타",     emoji: "🍦",   bg: "bg-pastel-mango",    text: "text-amber-800" },
