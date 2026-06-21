@@ -5,6 +5,7 @@ import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
 import { AUDIENCE_ROLES, type AudienceRole } from "@/lib/confesta/audienceRole";
 import { RoleBadge } from "./RoleBadge";
 import { QuestionSpotlightModal } from "./QuestionSpotlightModal";
+import { PresenterCommentBlock } from "./PresenterCommentBlock";
 
 type Filter = "all" | "pinned" | "unaddressed" | "addressed";
 type Sort = "recent" | "likes";
@@ -197,6 +198,9 @@ export function QuestionStream({ sessionId }: Props) {
                     </button>
                   </div>
                 </div>
+                <div className="relative">
+                  <PresenterCommentBlock sessionId={sessionId} toppingId={t.id} />
+                </div>
               </div>
             );
           })}
@@ -205,6 +209,7 @@ export function QuestionStream({ sessionId }: Props) {
 
       <QuestionSpotlightModal
         topping={spotlight}
+        sessionId={sessionId}
         onClose={() => setSpotlight(null)}
         onPrev={() => {
           if (!spotlight) return;

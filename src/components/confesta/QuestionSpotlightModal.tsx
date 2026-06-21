@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { PresenterCommentBlock } from "./PresenterCommentBlock";
 
 interface SpotlightTopping {
   id: string;
@@ -9,12 +10,13 @@ interface SpotlightTopping {
 
 interface Props {
   topping: SpotlightTopping | null;
+  sessionId: string;
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
 }
 
-export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Props) {
+export function QuestionSpotlightModal({ topping, sessionId, onClose, onPrev, onNext }: Props) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" && onPrev) {
@@ -80,23 +82,31 @@ export function QuestionSpotlightModal({ topping, onClose, onPrev, onNext }: Pro
       )}
 
       <div
-        className="relative overflow-hidden max-w-4xl w-full rounded-[2rem] p-10 sm:p-16 shadow-pink animate-scale-in border border-white/60"
+        className="relative overflow-hidden max-w-4xl w-full max-h-[85vh] overflow-y-auto rounded-[2rem] p-8 sm:p-12 shadow-pink animate-scale-in border border-white/60"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute inset-0 bg-grad-cream" />
-        <div className="absolute inset-0 bg-grad-sunset-soft opacity-60" />
-        
+        <div className="absolute inset-0 bg-grad-cream pointer-events-none" />
+        <div className="absolute inset-0 bg-grad-sunset-soft opacity-60 pointer-events-none" />
+
         <p className="relative text-xs uppercase tracking-widest font-bold mb-4 bg-clip-text text-transparent bg-grad-strawberry">
           청중 질문 스포트라이트
         </p>
-        <p className="relative text-3xl sm:text-5xl font-extrabold leading-tight text-foreground">
+        <p className="relative text-2xl sm:text-4xl font-extrabold leading-tight text-foreground">
           “{topping.text}”
         </p>
         {topping.createdAt && (
-          <p className="relative mt-6 text-sm text-muted-foreground font-mono">
+          <p className="relative mt-4 text-sm text-muted-foreground font-mono">
             {new Date(topping.createdAt).toLocaleString("ko-KR")}
           </p>
         )}
+        <div className="relative mt-6 pt-6 border-t border-white/70">
+          <PresenterCommentBlock
+            sessionId={sessionId}
+            toppingId={topping.id}
+            size="lg"
+            defaultOpen
+          />
+        </div>
       </div>
     </div>
   );
