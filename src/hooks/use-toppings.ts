@@ -18,6 +18,38 @@ import {
   useRealtimeHealth,
 } from "@/lib/confesta/realtime-channel";
 
+// 모듈 수준 좋아요 보호 구간: RPC commit 직후 refetch가 stale 값으로
+// 덮어쓰는 race를 차단. key = `${sessionId}:${deviceId}:${toppingId}`.
+const LIKE_GUARD_TTL_MS = 2000;
+const likeGuards = new Map<
+  string,
+  { liked: boolean; likes: number; expires: number }
+>();
+const guardKey = (s: string, d: string, t: string) => `${s}:${d}:${t}`;
+function applyLikeGuards<T extends { id: string; likedByMe: boolean; likes: number }>(
+  sessionId: string,
+  deviceId: string | null,
+  items: T[],
+): T[] {
+  if (!deviceId) return items;
+  const now = Date.now();
+  let changed = false;
+  const next = items.map((t) => {
+    const g = likeGuards.get(guardKey(sessionId, deviceId, t.id));
+    if (!g) return t;
+    if (g.expires < now) {
+      likeGuards.delete(guardKey(sessionId, deviceId, t.id));
+      return t;
+    }
+    if (t.likedByMe === g.liked && t.likes === g.likes) return t;
+    changed = true;
+    return { ...t, likedByMe: g.liked, likes: g.likes };
+  });
+  return changed ? next : items;
+}
+// 같은 토핑에 대한 동시 클릭 차단(낙관/서버 race 방지).
+const inflightLikes = new Set<string>();
+
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
   const { state: roleState } = useAudienceRole();
@@ -34,8 +66,15 @@ export function useSessionToppings(sessionId: string | null) {
 
   const { data } = useQuery({
     queryKey,
-    queryFn: () =>
-      listFn({ data: { sessionId: sessionId!, deviceId: deviceId ?? undefined } }),
+    queryFn: async () => {
+      const r = await listFn({
+        data: { sessionId: sessionId!, deviceId: deviceId ?? undefined },
+      });
+      return {
+        ...r,
+        toppings: applyLikeGuards(sessionId!, deviceId, r.toppings),
+      };
+    },
     enabled: !!sessionId,
     staleTime: 5_000,
     refetchOnWindowFocus: true,
@@ -50,6 +89,7 @@ export function useSessionToppings(sessionId: string | null) {
       qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
     );
   }, [sessionId, qc]);
+
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
 
@@ -81,8 +121,18 @@ export function useSessionToppings(sessionId: string | null) {
   });
 
   const toggleLike = useMutation({
-    mutationFn: (toppingId: string) =>
-      likeFn({ data: { deviceId: deviceId!, toppingId } }),
+    mutationFn: async (toppingId: string) => {
+      const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
+      if (inflightLikes.has(k)) {
+        return { ok: false as const, skipped: true as const };
+      }
+      inflightLikes.add(k);
+      try {
+        return await likeFn({ data: { deviceId: deviceId!, toppingId } });
+      } finally {
+        inflightLikes.delete(k);
+      }
+    },
     // 작성자 본인 포함 모든 청중이 누를 수 있음. 낙관 업데이트로 즉시 반영.
     onMutate: async (toppingId: string) => {
       await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
@@ -113,13 +163,20 @@ export function useSessionToppings(sessionId: string | null) {
         qc.setQueryData(key, prev);
       }
     },
-    // 서버 응답({ ok, liked, likes })을 캐시에 직접 반영하여
-    // RPC commit 전 refetch가 0으로 덮어쓰는 race를 차단.
-    // 다른 사용자 변경은 toppings 테이블 realtime이 알아서 invalidate.
+    // 서버 응답({ ok, liked, likes })을 캐시에 반영 + 짧은 TTL 보호 구간 설정.
+    // 직후의 realtime invalidate→refetch가 stale 값으로 덮어쓰는 것을 차단.
     onSuccess: (res, toppingId) => {
       if (!res || !("ok" in res) || !res.ok) return;
+      if ("skipped" in res && res.skipped) return;
       const liked = (res as { liked?: boolean }).liked ?? false;
       const likes = (res as { likes?: number }).likes ?? 0;
+      if (sessionId && deviceId) {
+        likeGuards.set(guardKey(sessionId, deviceId, toppingId), {
+          liked,
+          likes,
+          expires: Date.now() + LIKE_GUARD_TTL_MS,
+        });
+      }
       const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
         queryKey: ["toppings", sessionId],
       });
@@ -134,6 +191,7 @@ export function useSessionToppings(sessionId: string | null) {
       }
     },
   });
+
 
   const togglePin = useMutation({
     mutationFn: (toppingId: string) =>
