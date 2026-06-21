@@ -263,6 +263,44 @@ export type Database = {
         }
         Relationships: []
       }
+      topping_comments: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          role: Database["public"]["Enums"]["audience_role"]
+          session_id: string
+          text: string
+          topping_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          role: Database["public"]["Enums"]["audience_role"]
+          session_id: string
+          text: string
+          topping_id: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["audience_role"]
+          session_id?: string
+          text?: string
+          topping_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topping_comments_topping_id_fkey"
+            columns: ["topping_id"]
+            isOneToOne: false
+            referencedRelation: "toppings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       topping_gates: {
         Row: {
           active_prompt_id: string | null
