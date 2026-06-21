@@ -17,7 +17,7 @@ const ICON_GRAD: Record<Props["color"], string> = {
   mango: "bg-grad-mango",
 };
 
-export function RoleHeader({ role, description, color, right }: Props) {
+export function RoleHeader({ role, description, subtitle, color, right }: Props) {
   return (
     <header className="relative px-4 sm:px-6 pt-5 pb-4 overflow-hidden">
       <ToppingScatter density="low" seed={`hdr-${color}`} />
