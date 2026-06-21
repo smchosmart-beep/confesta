@@ -35,24 +35,20 @@ export function AnswerPie({ sessionId, promptId }: Props) {
       ),
     [toppings, promptId],
   );
-  const total = answers.length;
+  const sorted = useMemo(() => {
+    const kws = extractKeywords(answers.map((a) => a.text));
+    return kws.map((k) => ({ name: k.word, value: k.count }));
+  }, [answers]);
+
+  const total = sorted.reduce((s, x) => s + x.value, 0);
 
   const data = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const a of answers) {
-      const key = a.text.trim().toLowerCase();
-      if (!key) continue;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    const sorted = [...counts.entries()]
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
     const TOP = 6;
     if (sorted.length <= TOP) return sorted;
     const top = sorted.slice(0, TOP);
     const restSum = sorted.slice(TOP).reduce((s, x) => s + x.value, 0);
     return [...top, { name: "기타", value: restSum }];
-  }, [answers]);
+  }, [sorted]);
 
   if (promptId == null) {
     return (
