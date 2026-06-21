@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { IceCream, Mic, ScanLine, LayoutGrid, Sparkles } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
-import { ScoopCard } from "@/components/confesta/ScoopCard";
+import { TruckCard } from "@/components/confesta/TruckCard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -86,7 +86,7 @@ function Home() {
       <section className="px-4 sm:px-6 pb-20 max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           {ROLES.map((r) => (
-            <ScoopCard
+            <TruckCard
               key={r.to}
               to={r.to}
               flavor={r.flavor}
