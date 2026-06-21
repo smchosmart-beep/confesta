@@ -571,6 +571,9 @@ function AudienceView() {
                                     </button>
                                   )}
                                 </div>
+                                <div className="mt-2 pl-1">
+                                  <RoleBadge role={t.role} size="xs" />
+                                </div>
 
                               </li>
                             );
