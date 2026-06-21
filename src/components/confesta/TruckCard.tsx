@@ -71,7 +71,7 @@ export function TruckCard({ to, flavor, label, ko, desc, icon: Icon, device }: P
         {/* 텍스트 오버레이: 트럭 몸체 하단 단색 영역 */}
         <div
           className="absolute inset-x-0 flex flex-col items-center text-center px-6"
-          style={{ top: "62%" }}
+          style={{ top: "50%" }}
         >
           <div
             className="text-[10px] font-bold uppercase tracking-[0.15em]"
