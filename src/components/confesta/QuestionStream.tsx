@@ -87,6 +87,39 @@ export function QuestionStream({ sessionId }: Props) {
         </button>
       </div>
 
+      <div className="inline-flex flex-wrap gap-1 p-1 bg-muted rounded-full shadow-cream mb-4">
+        <button
+          type="button"
+          onClick={() => setRoleFilter("all")}
+          className={`bounce-press rounded-full px-3 py-1.5 text-xs font-semibold ${
+            roleFilter === "all"
+              ? "bg-primary text-primary-foreground shadow-pink"
+              : "text-foreground/70"
+          }`}
+        >
+          전체 역할
+        </button>
+        {AUDIENCE_ROLES.map((r) => {
+          const count = roleCounts.get(r.key) ?? 0;
+          const active = roleFilter === r.key;
+          return (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => setRoleFilter(r.key)}
+              className={`bounce-press rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center gap-1 ${
+                active ? `${r.bg} text-white shadow-pink` : "text-foreground/70"
+              }`}
+              aria-pressed={active}
+            >
+              <span aria-hidden>{r.emoji}</span>
+              {r.ko}
+              <span className="tabular-nums opacity-80">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {filtered.length === 0 ? (
         <div className="bg-card rounded-3xl p-10 text-center text-muted-foreground border border-border">
           조건에 맞는 질문이 없습니다.
@@ -112,6 +145,9 @@ export function QuestionStream({ sessionId }: Props) {
                 >
                   {t.text}
                 </p>
+                <div className="relative mt-2">
+                  <RoleBadge role={t.role} size="xs" />
+                </div>
                 <div className="relative mt-3 flex items-center justify-between text-xs">
                   <span className="inline-flex items-center gap-2 text-muted-foreground">
                     <Heart className="w-3.5 h-3.5 text-primary fill-current" />
