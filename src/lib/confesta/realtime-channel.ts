@@ -49,6 +49,7 @@ const registries: Record<Kind, Map<string, Entry>> = {
   toppings: new Map(),
   prompts: new Map(),
   gate: new Map(),
+  comments: new Map(),
 };
 
 const INITIAL_TIMEOUT_MS = 8000;
