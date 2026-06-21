@@ -4,7 +4,8 @@ import { ToppingScatter } from "./ToppingDecor";
 
 interface Props {
   role: string;
-  description: string;
+  description: React.ReactNode;
+  subtitle?: React.ReactNode;
   color: "pink" | "blue" | "mint" | "mango";
   right?: React.ReactNode;
 }
@@ -16,7 +17,7 @@ const ICON_GRAD: Record<Props["color"], string> = {
   mango: "bg-grad-mango",
 };
 
-export function RoleHeader({ role, description, color, right }: Props) {
+export function RoleHeader({ role, description, subtitle, color, right }: Props) {
   return (
     <header className="relative px-4 sm:px-6 pt-5 pb-4 overflow-hidden">
       <ToppingScatter density="low" seed={`hdr-${color}`} />
@@ -37,6 +38,9 @@ export function RoleHeader({ role, description, color, right }: Props) {
             {role}
           </h1>
           <p className="text-sm text-muted-foreground truncate">{description}</p>
+          {subtitle && (
+            <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+          )}
         </div>
         {right && <div className="shrink-0 relative">{right}</div>}
       </div>
