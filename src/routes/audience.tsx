@@ -546,7 +546,10 @@ function AudienceView() {
                                   <span className="flex-1 break-words">{t.text}</span>
                                   <button
                                     type="button"
-                                    onClick={() => toggleLike(t.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleLike(t.id);
+                                    }}
                                     aria-pressed={liked}
                                     aria-label={liked ? "좋아요 취소" : "좋아요"}
                                     className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
@@ -561,7 +564,10 @@ function AudienceView() {
                                   {t.mine && !t.pinned && !t.addressed && (
                                     <button
                                       type="button"
-                                      onClick={() => setPendingDeleteId(t.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPendingDeleteId(t.id);
+                                      }}
                                       aria-label="내 질문 삭제"
                                       className="bounce-press shrink-0 inline-flex items-center justify-center rounded-full w-7 h-7 text-muted-foreground/70 bg-white/70 border border-white hover:text-red-600 hover:bg-red-50 transition-colors"
                                     >
@@ -569,10 +575,13 @@ function AudienceView() {
                                     </button>
                                   )}
                                 </div>
-                                <div className="mt-2 pl-1">
+                                <div className="mt-2 pl-1 flex items-center gap-2">
                                   <RoleBadge role={t.role} size="xs" />
                                 </div>
-
+                                <QuestionCommentBlock
+                                  sessionId={activeSessionId}
+                                  toppingId={t.id}
+                                />
                               </li>
                             );
                           })}
