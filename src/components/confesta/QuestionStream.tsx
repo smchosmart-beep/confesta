@@ -5,6 +5,7 @@ import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
 import { AUDIENCE_ROLES, type AudienceRole } from "@/lib/confesta/audienceRole";
 import { RoleBadge } from "./RoleBadge";
 import { QuestionSpotlightModal } from "./QuestionSpotlightModal";
+import { PresenterCommentBlock } from "./PresenterCommentBlock";
 
 type Filter = "all" | "pinned" | "unaddressed" | "addressed";
 type Sort = "recent" | "likes";
