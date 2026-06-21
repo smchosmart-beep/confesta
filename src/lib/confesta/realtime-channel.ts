@@ -225,6 +225,8 @@ export const subscribePrompts = (sessionId: string, cb: () => void) =>
   subscribe("prompts", sessionId, cb);
 export const subscribeGate = (sessionId: string, cb: () => void) =>
   subscribe("gate", sessionId, cb);
+export const subscribeToppingComments = (sessionId: string, cb: () => void) =>
+  subscribe("comments", sessionId, cb);
 
 export function useRealtimeHealth(
   kind: Kind,
