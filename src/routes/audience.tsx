@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { AudienceBookmarkStrip } from "@/components/confesta/AudienceBookmarkStrip";
+import { AudienceRoleGate } from "@/components/confesta/AudienceRoleGate";
+import { RoleBadge } from "@/components/confesta/RoleBadge";
 import { DeviceFrame } from "@/components/confesta/DeviceFrame";
 import { PillTabs } from "@/components/confesta/PillTabs";
 import { OrderCard } from "@/components/confesta/OrderCard";
@@ -23,6 +25,7 @@ import { useAudience } from "@/hooks/use-audience";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import type { ToppingKind } from "@/lib/confesta/types";
+import { useAudienceRole } from "@/hooks/use-audience-role";
 import { playBeep } from "@/lib/confesta/beep";
 import {
   Select,
