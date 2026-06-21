@@ -1,41 +1,82 @@
-## 문제
+## 목표
 
-청중이 "파일 다운로드"를 누르면 저장된 파일명이 원본(예: `클래스1234 매뉴얼.pdf`)이 아니라 스토리지 객체 키(UUID.pdf)로 저장됨.
+청중이 `/audience` 첫 진입 시(직접 URL / `?qr=…` 자동 스캔 / 메인에서 청중 카드 클릭) **교사 · 전문직 · 학부모 · 기타** 중 하나를 먼저 선택해야 청중 메뉴로 들어간다. 선택한 역할은 토핑(질문/응답)에 함께 저장되어 발표자/운영자 화면에서 역할별 색상 배지·필터로 구분된다.
 
-원인: 현재 다운로드 링크는 Supabase Storage의 서명 URL을 그대로 사용함. 서명 URL 경로 자체가 `uuid.pdf`라서, 한글 파일명을 `createSignedUrl(..., { download })`로 넘겨도 일부 브라우저/환경에서 `Content-Disposition`의 `filename*=UTF-8''...` 인코딩이 누락되거나 무시되어 URL 경로의 UUID 파일명으로 저장됨.
+## 사용자 흐름
 
-## 해결 방향
+1. `/audience` 접근 → localStorage에 역할이 있으면 그대로 본문 진입. 없으면 **역할 선택 게이트**가 전면 표시.
+2. 4개 큰 버튼 중 하나 탭 → localStorage 저장 + 백그라운드로 서버 upsert → 게이트 해제 → 기존 청중 화면 진입(`?qr=…` 가 있으면 그때 자동 주문/수령 처리).
+3. 헤더에 현재 역할 배지 + "변경" 버튼.
+4. 이후 토핑 추가 시 현재 역할이 자동으로 함께 저장.
 
-청중 다운로드 링크를 우리 서버 라우트를 거치게 해서, 서버가 직접 한글 파일명을 RFC 5987 방식으로 인코딩한 `Content-Disposition` 헤더와 함께 파일 바디를 스트리밍한다.
+## 화면별 역할 표시
 
-## 변경 사항
+- 청중 본인의 토핑 카드, 발표자 Live 피드, AnswerPromptCard, QuestionStream, QuestionSpotlightModal에 **역할 색상 배지**(교사=mint, 전문직=blueberry, 학부모=strawberry, 기타=회색).
+- QuestionStream/Answer 화면 상단에 **역할 필터 칩**(전체/교사/전문직/학부모/기타) — 클라이언트 사이드 필터.
+- WordCloud는 색 입히지 않음(텍스트 집계라 역할 매핑 불명확).
+- 역할이 NULL인 기존(legacy) 토핑은 "기타"로 표기·필터링.
 
-### 1) 새 서버 라우트 `src/routes/api/public/bookmark-download.$id.ts`
-- `GET /api/public/bookmark-download/:id`
-- 핸들러 안에서 `supabaseAdmin`을 동적 import
-- `session_bookmarks` 행 조회 → `file_path`, `file_name`, `file_mime` 확보
-- 파일이 없으면 404, 링크-only 북마크면 400
-- `supabaseAdmin.storage.from("session-bookmarks").download(file_path)`로 Blob 받아 그대로 응답
-- 헤더:
-  - `Content-Type`: 저장된 `file_mime` 또는 `application/octet-stream`
-  - `Content-Disposition: attachment; filename="<ASCII fallback>"; filename*=UTF-8''<percent-encoded original>`
-  - `Cache-Control: private, max-age=0, no-store`
+## 데이터 모델
 
-### 2) `src/lib/confesta/bookmarks.functions.ts` — `listBookmarks`
-- 각 항목의 `fileUrl`을 서명 URL 대신 `"/api/public/bookmark-download/" + id`로 설정
-- `createSignedUrl` 호출 제거(불필요한 지연/요청 절감)
-- DTO 형태/필드 그대로 유지 → 청중 컴포넌트는 무변경
+마이그레이션 1회. NULL 허용 컬럼 추가만 → 테이블 재기록 없음.
 
-### 3) (변경 없음) `AudienceBookmarkStrip.tsx`, `BookmarkBar.tsx`
-- `fileUrl`을 그대로 `<a href>`에 쓰기만 하므로 추가 수정 불필요
+```sql
+CREATE TYPE public.audience_role AS ENUM ('teacher','specialist','parent','other');
 
-## 검증
+ALTER TABLE public.audience_devices ADD COLUMN role public.audience_role;
+ALTER TABLE public.toppings         ADD COLUMN role public.audience_role;
 
-- 한글 파일명(예: `클래스1234 매뉴얼.pdf`)으로 등록된 북마크를 청중 화면에서 다운로드 → 원본 한글 파일명으로 저장되는지 확인
-- 링크-only / 파일-only / 링크+파일 3종 모두 정상 렌더 및 동작 확인
-- 다른 세션 ID로 직접 URL 호출 시에도 행 조회는 id 기반이라 동작하지만, 응답 데이터는 파일 자체이므로 정보 노출 위험 없음(기존 서명 URL과 동일한 공개 수준)
+-- RPC 반환 컬럼이 늘기 때문에 CREATE OR REPLACE 불가 → DROP 후 재생성
+DROP FUNCTION public.list_toppings_with_my_like(text, uuid);
+CREATE FUNCTION public.list_toppings_with_my_like(_session_id text, _device_id uuid DEFAULT NULL)
+RETURNS TABLE(id uuid, session_id text, text text, kind text, prompt_id uuid,
+              pinned boolean, addressed boolean, likes integer, created_at timestamptz,
+              device_id uuid, role public.audience_role, liked_by_me boolean)
+LANGUAGE sql STABLE SET search_path TO 'public' AS $$
+  SELECT t.id, t.session_id, t.text, t.kind, t.prompt_id, t.pinned, t.addressed,
+         t.likes, t.created_at, t.device_id, t.role,
+         CASE WHEN _device_id IS NULL THEN false
+              ELSE EXISTS(SELECT 1 FROM public.topping_likes l
+                          WHERE l.topping_id = t.id AND l.device_id = _device_id) END
+  FROM public.toppings t WHERE t.session_id = _session_id
+  ORDER BY t.created_at DESC;
+$$;
+```
 
-## 영향 범위
+GRANT/RLS 변경 없음(기존 테이블에 컬럼 추가만).
 
-- 발표자 업로드/등록 로직, DB 스키마, RLS, 스토리지 정책 변경 없음
-- 청중 다운로드 경로만 서명 URL → 자체 프록시 라우트로 교체
+## 코드 변경
+
+### 신규
+- `src/lib/confesta/audienceRole.ts` — `AUDIENCE_ROLES` 배열, `roleLabel(key)`, `roleAccentClass(key)`. role NULL → "기타" fallback 헬퍼.
+- `src/hooks/use-audience-role.ts` — 3-상태 `"loading" | "none" | AudienceRole` 반환. localStorage(`confesta:audience-role`) 동기 읽기 + `setRole()` 호출 시 localStorage 기록 후 백그라운드 `setAudienceRole` 서버 fn. 같은 값 재선택 시 서버 호출 생략.
+- `src/components/confesta/AudienceRoleGate.tsx` — 4개 큰 선택 카드. role==="loading" 일 땐 렌더하지 않음(깜빡임 방지).
+- `src/lib/confesta/audienceRole.functions.ts` — `setAudienceRole({ deviceId, role })` serverFn: `audience_devices` upsert with role 컬럼.
+
+### 수정
+- `src/routes/audience.tsx`
+  - `AudienceView` 최상단에서 `useAudienceRole()` 결과를 사용. `"loading"` → 본문/게이트 둘 다 숨김. `"none"` → `<AudienceRoleGate/>` 만 렌더(헤더 포함 본문 hidden). **Hook 순서 유지를 위해 early-return 대신 조건부 렌더링.**
+  - `?qr=…` 처리 `useEffect` 가드에 `if (role === "loading" || role === "none") return;` 추가 → 게이트 통과 전 자동 주문/수령 트리거 방지.
+  - 헤더에 역할 배지 + "변경" 클릭 시 게이트 재오픈.
+- `src/lib/confesta/toppings.functions.ts`
+  - `ToppingDTO`에 `role: AudienceRole` 추가(NULL → `"other"` 매핑).
+  - `addTopping` inputValidator에 `role` 추가, insert 시 함께 저장.
+  - `listToppings` RPC 응답 매핑에 role 포함.
+  - `listMyToppingsForReceipt` 등 다른 select에도 `role` 컬럼 포함(타입 재생성 후 누락 시 컴파일 에러 방지).
+- `src/hooks/use-toppings.ts` — `addTopping` mutate에 현재 role 전달.
+- `src/components/confesta/ToppingInput.tsx` — `useAudienceRole()` 결과를 mutate 호출에 포함.
+- `src/components/confesta/QuestionStream.tsx`, `AnswerPromptCard.tsx`, `SampleAnswerPromptCard.tsx`, `QuestionSpotlightModal.tsx` — 역할 배지 추가. QuestionStream/Answer 컨테이너에 역할 필터 칩.
+- `src/lib/confesta/audience.functions.ts` — `touchDevice` upsert는 `role`을 페이로드에 포함하지 않으므로 그대로 두면 안전(주석으로 명시).
+
+## 부작용 가드 요약
+
+| 위험 | 대응 |
+|---|---|
+| RPC 반환 시그니처 변경 | `DROP FUNCTION` 후 `CREATE FUNCTION` (한 마이그레이션) |
+| 게이트 중 `?qr` 자동 처리 폭주 | role gating 이전엔 effect 가드로 무동작 |
+| 첫 렌더 게이트 깜빡임 | `useAudienceRole`의 `"loading"` 상태로 렌더 보류 |
+| `touchDevice` upsert가 role 덮어쓰기 | 페이로드에 role 미포함 → 영향 없음(주석 명시) |
+| legacy 토핑 표시 | NULL → "기타"로 표시·필터(분리 표기 안 함) |
+| 서버 부하 | role 변경 1회 upsert만 추가, 폴링/realtime 신규 없음 |
+| 다른 화면(발표자/Admin/Staff/북마크/영수증) | 토핑 외 흐름은 무관 — 영향 없음 |
+| TypeScript 타입 | 마이그레이션 승인 후 `types.ts` 자동 재생성 → DTO 매핑 동시 갱신 |

@@ -43,16 +43,19 @@ export type Database = {
           created_at: string
           device_id: string
           last_seen: string
+          role: Database["public"]["Enums"]["audience_role"] | null
         }
         Insert: {
           created_at?: string
           device_id: string
           last_seen?: string
+          role?: Database["public"]["Enums"]["audience_role"] | null
         }
         Update: {
           created_at?: string
           device_id?: string
           last_seen?: string
+          role?: Database["public"]["Enums"]["audience_role"] | null
         }
         Relationships: []
       }
@@ -315,6 +318,7 @@ export type Database = {
           likes: number
           pinned: boolean
           prompt_id: string | null
+          role: Database["public"]["Enums"]["audience_role"] | null
           session_id: string
           text: string
         }
@@ -327,6 +331,7 @@ export type Database = {
           likes?: number
           pinned?: boolean
           prompt_id?: string | null
+          role?: Database["public"]["Enums"]["audience_role"] | null
           session_id: string
           text: string
         }
@@ -339,6 +344,7 @@ export type Database = {
           likes?: number
           pinned?: boolean
           prompt_id?: string | null
+          role?: Database["public"]["Enums"]["audience_role"] | null
           session_id?: string
           text?: string
         }
@@ -361,6 +367,7 @@ export type Database = {
           likes: number
           pinned: boolean
           prompt_id: string
+          role: Database["public"]["Enums"]["audience_role"]
           session_id: string
           text: string
         }[]
@@ -374,7 +381,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      audience_role: "teacher" | "specialist" | "parent" | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -501,6 +508,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      audience_role: ["teacher", "specialist", "parent", "other"],
+    },
   },
 } as const
