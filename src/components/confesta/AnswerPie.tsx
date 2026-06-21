@@ -70,15 +70,15 @@ export function AnswerPie({ sessionId, promptId }: Props) {
     <div className="w-full h-full flex flex-col items-stretch">
       <div className="w-full flex-1 min-h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
+          <PieChart margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
               cx="50%"
               cy="50%"
-              outerRadius="78%"
-              innerRadius="44%"
+              outerRadius="65%"
+              innerRadius="38%"
               paddingAngle={2}
               stroke="var(--card)"
               strokeWidth={2}
