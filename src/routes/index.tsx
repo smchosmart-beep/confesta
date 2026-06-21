@@ -34,7 +34,7 @@ const ROLES = [
   },
   {
     to: "/presenter" as const,
-    label: "Presenter",
+    label: "Flav-er",
     ko: "발표자",
     desc: "동적 QR 브로드캐스트 · 실시간 질문 피드",
     icon: Mic,
