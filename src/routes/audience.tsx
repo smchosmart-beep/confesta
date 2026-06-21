@@ -268,7 +268,7 @@ function AudienceView() {
           setConeFeedback({ ok: false, msg: "오류가 발생했어요" });
         });
     }
-  }, [qrFromUrl, deviceId, navigate, placeOrder, pickup]);
+  }, [qrFromUrl, deviceId, roleState, navigate, placeOrder, pickup]);
 
   // 역할 미선택/로딩 시 게이트 표시. Hook 순서 유지를 위해 모든 hook 이후에 분기.
   if (roleState === "loading") {
