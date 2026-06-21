@@ -8,6 +8,7 @@ import {
   Legend,
 } from "recharts";
 import { useSessionToppings } from "@/hooks/use-toppings";
+import { extractKeywords } from "@/lib/confesta/keywords";
 
 const PALETTE = [
   "var(--scoop-strawberry)",
