@@ -1,11 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { AUDIENCE_ROLE_KEYS, type AudienceRole } from "./audienceRole";
 
 const SessionIdSchema = z.string().min(1).max(120);
 const DeviceIdSchema = z.string().uuid();
 const ToppingIdSchema = z.string().uuid();
 const PromptIdSchema = z.string().uuid();
 const KindSchema = z.enum(["question", "answer"]);
+const RoleSchema = z.enum(AUDIENCE_ROLE_KEYS as [string, ...string[]]);
 
 export type ToppingDTO = {
   id: string;
@@ -19,6 +21,8 @@ export type ToppingDTO = {
   likes: number;
   likedByMe: boolean;
   mine: boolean;
+  /** 작성자의 청중 역할. 레거시(NULL) 또는 미지정 시 "other". */
+  role: AudienceRole;
   createdAt: number;
 };
 
