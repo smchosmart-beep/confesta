@@ -3,10 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
 type TableSpec = {
-  table: "toppings" | "topping_likes" | "answer_prompts" | "topping_gates";
+  table:
+    | "toppings"
+    | "topping_likes"
+    | "answer_prompts"
+    | "topping_gates"
+    | "topping_comments";
 };
 
-type Kind = "toppings" | "prompts" | "gate";
+type Kind = "toppings" | "prompts" | "gate" | "comments";
 
 interface Entry {
   channel: RealtimeChannel | null;
@@ -24,6 +29,7 @@ const KIND_TABLES: Record<Kind, TableSpec[]> = {
   toppings: [{ table: "toppings" }],
   prompts: [{ table: "answer_prompts" }],
   gate: [{ table: "topping_gates" }],
+  comments: [{ table: "topping_comments" }],
 };
 
 // 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소)
