@@ -83,7 +83,37 @@ export function useSessionToppings(sessionId: string | null) {
   const toggleLike = useMutation({
     mutationFn: (toppingId: string) =>
       likeFn({ data: { deviceId: deviceId!, toppingId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    // 작성자 본인 포함 모든 청중이 누를 수 있음. 낙관 업데이트로 즉시 반영.
+    onMutate: async (toppingId: string) => {
+      await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
+      const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+        queryKey: ["toppings", sessionId],
+      });
+      for (const [key, prev] of snapshots) {
+        if (!prev) continue;
+        qc.setQueryData<{ toppings: ToppingDTO[] }>(key, {
+          ...prev,
+          toppings: prev.toppings.map((t) =>
+            t.id === toppingId
+              ? {
+                  ...t,
+                  likedByMe: !t.likedByMe,
+                  likes: Math.max(0, (t.likes ?? 0) + (t.likedByMe ? -1 : 1)),
+                }
+              : t,
+          ),
+        });
+      }
+      return { snapshots };
+    },
+    onError: (_e, _v, ctx) => {
+      if (!ctx) return;
+      for (const [key, prev] of ctx.snapshots) {
+        qc.setQueryData(key, prev);
+      }
+    },
+    onSettled: () =>
+      qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
   });
 
   const togglePin = useMutation({
