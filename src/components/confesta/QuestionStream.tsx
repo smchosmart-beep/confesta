@@ -198,6 +198,9 @@ export function QuestionStream({ sessionId }: Props) {
                     </button>
                   </div>
                 </div>
+                <div className="relative">
+                  <PresenterCommentBlock sessionId={sessionId} toppingId={t.id} />
+                </div>
               </div>
             );
           })}
