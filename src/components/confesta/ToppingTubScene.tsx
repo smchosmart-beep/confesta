@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { useSessionToppings } from "@/hooks/use-toppings";
-import { extractAnswerKeywords } from "@/lib/confesta/keywords";
+import { extractKeywords } from "@/lib/confesta/keywords";
 import { Cherry, ChocChip, StarSprinkle, Heart, Sprinkle } from "./ToppingDecor";
 
 interface Props {
@@ -56,7 +56,7 @@ export function ToppingTubScene({
   }, []);
 
   const keywords = useMemo(() => {
-    const all = extractAnswerKeywords(toppings.map((t) => t.text));
+    const all = extractKeywords(toppings.map((t) => t.text));
     return all.slice(0, compact ? 14 : 22);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toppings, compact, tick]);
