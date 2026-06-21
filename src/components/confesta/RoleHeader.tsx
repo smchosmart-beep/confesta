@@ -4,7 +4,8 @@ import { ToppingScatter } from "./ToppingDecor";
 
 interface Props {
   role: string;
-  description: string;
+  description: React.ReactNode;
+  subtitle?: React.ReactNode;
   color: "pink" | "blue" | "mint" | "mango";
   right?: React.ReactNode;
 }
