@@ -85,7 +85,7 @@ type Section = "orders" | "live" | "topping" | "receipt";
 
 function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
-  const { state: roleState, setRole, clearRole } = useAudienceRole();
+  const { state: roleState, setRole } = useAudienceRole();
   const [showRoleChange, setShowRoleChange] = useState(false);
 
   // Server-backed audience state (orders, scoops, receipt)
@@ -306,8 +306,6 @@ function AudienceView() {
           </button>
         }
       />
-      {/* clearRole 참조 보존 (현재 미사용 — 향후 로그아웃 시 호출) */}
-      <span hidden aria-hidden onClick={clearRole} />
 
       <DeviceFrame device="mobile">
         <div className="px-4 flex justify-center">
