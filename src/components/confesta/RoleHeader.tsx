@@ -27,7 +27,7 @@ export function RoleHeader({ role, description, subtitle, color, right }: Props)
       >
         <ArrowLeft className="w-4 h-4" /> 홈으로
       </Link>
-      <div className="relative mt-3 flex items-center gap-3">
+      <div className="relative mt-3 flex items-center gap-9">
         <span
           className={`${ICON_GRAD[color]} text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-pink ring-2 ring-white/60`}
         >
