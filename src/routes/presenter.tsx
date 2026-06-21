@@ -167,11 +167,8 @@ function PresenterPage() {
     <main className="min-h-screen pb-6">
       <RoleHeader
         role="발표자 (Presenter)"
-        description={
-          selected
-            ? `${selected.title} · ${selected.room}`
-            : "세션을 선택해 주세요"
-        }
+        description={selected ? selected.title : "세션을 선택해 주세요"}
+        subtitle={selected ? selected.room : undefined}
         color="blue"
         right={
           <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
