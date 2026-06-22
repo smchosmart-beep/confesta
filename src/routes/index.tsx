@@ -36,7 +36,7 @@ const ROLES = [
     to: "/presenter" as const,
     label: "Flav-er",
     ko: "발표자",
-    desc: "QR 오픈 · 실시간 질문 피드\n 연수자료",
+    desc: "QR 오픈 · 실시간 질문 피드\n 연수자료 전송",
     icon: Mic,
     flavor: "blueberry" as const,
     device: "desktop" as const,
