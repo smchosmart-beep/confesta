@@ -77,9 +77,9 @@ function Home() {
             Confesta
           </span>
         </h1>
-        <p className="relative mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-          수강신청부터 출석 인증, 토핑 질문, 굿즈 수령까지 —<br />
-          아이스크림 한 콘으로 즐기는 컨퍼런스 데모입니다.
+        <p className="relative mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto whitespace-pre-line">
+          세션 등록부터 출석 인증, 토핑 추가(질문/응답), 굿즈 수령까지{"\n"}
+          아이스크림 한 콘으로 즐기는 콘페스타 플랫폼
         </p>
       </section>
 
