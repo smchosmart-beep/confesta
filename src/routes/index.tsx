@@ -71,10 +71,10 @@ function Home() {
         </span>
         <h1 className="relative mt-5 flex flex-col items-center gap-2 font-extrabold tracking-tight">
           <span className="text-base sm:text-lg font-bold text-muted-foreground">
-            AI 디지털 컨퍼런스&페스티벌
+            2026 AI 디지털 러닝
           </span>
           <span className="text-5xl sm:text-6xl text-grad-sunset bg-grad-sunset-anim bg-clip-text">
-            2026 Confesta
+            Confesta
           </span>
         </h1>
         <p className="relative mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
