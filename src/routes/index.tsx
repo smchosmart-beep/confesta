@@ -45,7 +45,7 @@ const ROLES = [
     to: "/staff" as const,
     label: "Staff",
     ko: "운영 스태프",
-    desc: "모바일 영수증 스캐너 · 굿즈 수령 검증",
+    desc: "모바일 영수증 스캐너\n굿즈 수령 검증",
     icon: ScanLine,
     flavor: "mint" as const,
     device: "mobile" as const,
