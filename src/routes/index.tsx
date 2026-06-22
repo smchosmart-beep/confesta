@@ -27,7 +27,7 @@ const ROLES = [
     to: "/audience" as const,
     label: "Audience",
     ko: "청중",
-    desc: "수강신청 · 스쿱 적립 · 토핑 질문 · 디지털 영수증",
+    desc: "세션 등록 · 출석 체크 · 질문/응답\n영수증 발급 · 상품 수령",
     icon: IceCream,
     flavor: "strawberry" as const,
     device: "mobile" as const,
