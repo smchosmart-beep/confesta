@@ -95,7 +95,7 @@ export function TruckCard({ to, flavor, label, ko, desc, icon: Icon, device }: P
             </h2>
           </div>
           <p
-            className="text-[11px] sm:text-xs mt-1 max-w-[22ch] leading-snug font-semibold"
+            className="text-[11px] sm:text-xs mt-1 max-w-[22ch] leading-snug font-semibold whitespace-pre-line"
             style={{ color: FLAVOR_TEXT[flavor], ...TEXT_HALO }}
           >
             {desc}
