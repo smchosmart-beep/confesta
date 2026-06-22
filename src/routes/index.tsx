@@ -67,7 +67,7 @@ function Home() {
       <section className="relative px-6 pt-14 pb-10 max-w-6xl mx-auto text-center overflow-hidden">
         <ToppingScatter density="med" seed="home-hero" />
         <span className="relative inline-flex items-center gap-1.5 bg-grad-strawberry text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-pink">
-          <Sparkles className="w-3.5 h-3.5" /> Sweet Conference Platform
+          <Sparkles className="w-3.5 h-3.5" /> Sweet Confesta Platform
         </span>
         <h1 className="relative mt-5 flex flex-col items-center gap-2 font-extrabold tracking-tight">
           <span className="text-base sm:text-lg font-bold text-muted-foreground">
