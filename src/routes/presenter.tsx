@@ -166,7 +166,7 @@ function PresenterPage() {
   return (
     <main className="min-h-screen pb-6">
       <RoleHeader
-        role="발표자 (Presenter)"
+        role="발표자 (Flav-er)"
         color="blue"
         right={
           <div className="flex flex-col items-start gap-2 w-full">
