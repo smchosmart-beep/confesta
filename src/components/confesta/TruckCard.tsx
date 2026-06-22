@@ -105,7 +105,7 @@ export function TruckCard({ to, flavor, label, ko, desc, icon: Icon, device }: P
               className="mt-1.5 inline-flex items-center gap-1 bg-white/95 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-cream"
               style={{ color: FLAVOR_TEXT[flavor] }}
             >
-              {device === "mobile" ? "📱 모바일 전용" : "🖥 데스크톱 권장"}
+              {device === "mobile" ? "📱 모바일 전용" : "🖥 데스크톱 전용"}
             </span>
           )}
         </div>
