@@ -144,7 +144,7 @@ function PresenterPage() {
     return (
       <main className="min-h-screen pb-6">
         <RoleHeader
-          role="발표자 (Presenter)"
+          role="발표자 (Flav-er)"
           description={
             slotsQuery.isLoading
               ? "세션 목록 불러오는 중…"
