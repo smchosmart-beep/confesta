@@ -54,7 +54,7 @@ const ROLES = [
     to: "/admin" as const,
     label: "Admin",
     ko: "관리자",
-    desc: "벤토 그리드 운영 현황 · 실시간 깔때기 지표",
+    desc: "실시간 운영 현황 · 장소별 세션 등록\n주문/수령 수량 확인",
     icon: LayoutGrid,
     flavor: "mango" as const,
     device: "desktop" as const,
