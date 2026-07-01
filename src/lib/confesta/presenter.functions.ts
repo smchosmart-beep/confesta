@@ -76,11 +76,35 @@ export const setSlotPresenterPassword = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin
       .from("session_secrets")
       .upsert(
-        { session_id: sessionId, password_hash, set_at: new Date().toISOString() },
+        {
+          session_id: sessionId,
+          password_hash,
+          password_plain: parsed.data,
+          set_at: new Date().toISOString(),
+        } as never,
         { onConflict: "session_id" },
       );
     if (error) throw error;
     return { ok: true as const, cleared: false as const };
+  });
+
+/** Admin: reveal the current plaintext password (if stored). */
+export const revealSlotPresenterPassword = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => SlotKeySchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const sessionId = makeSlotKey(data.day, data.period as Period, data.room);
+    const { data: row, error } = await supabaseAdmin
+      .from("session_secrets")
+      .select("password_plain, password_hash")
+      .eq("session_id", sessionId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!row) return { ok: true as const, password: null, legacy: false };
+    const rec = row as { password_plain: string | null; password_hash: string | null };
+    if (rec.password_plain) return { ok: true as const, password: rec.password_plain, legacy: false };
+    return { ok: true as const, password: null, legacy: !!rec.password_hash };
   });
 
 /** Presenter: unlock a session by submitting its password; issues a 12h cookie. */
