@@ -28,10 +28,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+import { setSlotPresenterPassword, revealSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
-import { KeyRound, Check, X as XIcon } from "lucide-react";
+import { KeyRound, Check, X as XIcon, Eye, EyeOff } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -451,8 +452,11 @@ function SlotPresenterPasswordInput({
 }) {
   const qc = useQueryClient();
   const saveFn = useServerFn(setSlotPresenterPassword);
+  const revealFn = useServerFn(revealSlotPresenterPassword);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
+  const [revealed, setRevealed] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
 
   const save = useMutation({
     mutationFn: (password: string) =>
@@ -465,25 +469,76 @@ function SlotPresenterPasswordInput({
       toast.success(res.cleared ? "비밀번호 해제됨" : "비밀번호 저장됨");
       setEditing(false);
       setValue("");
+      setRevealed(null);
       qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
     },
     onError: () => toast.error("저장 중 오류"),
   });
+
+  // auto-hide revealed password after 8s
+  useEffect(() => {
+    if (!revealed) return;
+    const t = setTimeout(() => setRevealed(null), 8000);
+    return () => clearTimeout(t);
+  }, [revealed]);
+
+  const handleReveal = async () => {
+    if (revealed) {
+      setRevealed(null);
+      return;
+    }
+    setRevealing(true);
+    try {
+      const res = await revealFn({ data: { day, period, room } });
+      if (!res.ok) {
+        toast.error("조회 실패");
+      } else if (res.password) {
+        setRevealed(res.password);
+      } else if (res.legacy) {
+        toast.error("이전 방식으로 저장되어 원문 조회 불가 · 재설정 필요");
+      } else {
+        toast.error("설정된 비밀번호가 없어요");
+      }
+    } catch {
+      toast.error("조회 중 오류");
+    } finally {
+      setRevealing(false);
+    }
+  };
 
   const sizeCls = compact ? "text-[10px] py-1 px-2" : "text-[11px] py-1 px-2";
 
   if (!editing) {
     return (
       <div className="flex items-center justify-between gap-1.5 rounded-md border border-dashed border-foreground/15 bg-white/50 px-2 py-1">
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
-          <KeyRound className="w-3 h-3" />
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground min-w-0">
+          <KeyRound className="w-3 h-3 shrink-0" />
           {hasPassword ? (
-            <span className="text-emerald-700">● 설정됨</span>
+            revealed ? (
+              <span className="font-mono text-foreground truncate" title={revealed}>
+                {revealed}
+              </span>
+            ) : (
+              <span className="text-emerald-700">● 설정됨</span>
+            )
           ) : (
             <span className="text-amber-700">미설정</span>
           )}
         </span>
         <div className="flex items-center gap-1">
+          {hasPassword && (
+            <button
+              type="button"
+              onClick={handleReveal}
+              disabled={revealing}
+              className={`bounce-press rounded-md bg-white/80 border border-foreground/15 text-foreground/80 hover:text-foreground font-extrabold whitespace-nowrap inline-flex items-center gap-1 ${sizeCls} disabled:opacity-40`}
+              aria-label={revealed ? "숨기기" : "보기"}
+              title={revealed ? "숨기기" : "보기"}
+            >
+              {revealed ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+              {revealed ? "숨기기" : "보기"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setEditing(true)}
@@ -507,6 +562,7 @@ function SlotPresenterPasswordInput({
       </div>
     );
   }
+
 
   return (
     <form

@@ -197,16 +197,19 @@ export type Database = {
       session_secrets: {
         Row: {
           password_hash: string
+          password_plain: string | null
           session_id: string
           set_at: string
         }
         Insert: {
           password_hash: string
+          password_plain?: string | null
           session_id: string
           set_at?: string
         }
         Update: {
           password_hash?: string
+          password_plain?: string | null
           session_id?: string
           set_at?: string
         }

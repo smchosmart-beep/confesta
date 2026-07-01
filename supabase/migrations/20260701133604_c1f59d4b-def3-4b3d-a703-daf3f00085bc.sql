@@ -1,0 +1,1 @@
+ALTER TABLE public.session_secrets ADD COLUMN IF NOT EXISTS password_plain TEXT NULL;
