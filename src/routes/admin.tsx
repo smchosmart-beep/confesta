@@ -28,7 +28,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { setSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+import { setSlotPresenterPassword, revealSlotPresenterPassword } from "@/lib/confesta/presenter.functions";
+
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
 import { KeyRound, Check, X as XIcon } from "lucide-react";
