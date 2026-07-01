@@ -32,7 +32,7 @@ import { setSlotPresenterPassword, revealSlotPresenterPassword } from "@/lib/con
 
 import { subscribeOrders, subscribeSlots } from "@/lib/confesta/realtime-channel";
 import { toast } from "sonner";
-import { KeyRound, Check, X as XIcon } from "lucide-react";
+import { KeyRound, Check, X as XIcon, Eye, EyeOff } from "lucide-react";
 import {
   Select,
   SelectContent,
