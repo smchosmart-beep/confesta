@@ -10,7 +10,10 @@ import {
 } from "@/lib/confesta/comments.functions";
 import { useDeviceId } from "./use-device-id";
 import { useAudienceRole } from "./use-audience-role";
-import { subscribeToppingComments } from "@/lib/confesta/realtime-channel";
+import {
+  subscribeToppingComments,
+  useRealtimeHealth,
+} from "@/lib/confesta/realtime-channel";
 import type { AudienceRole } from "@/lib/confesta/audienceRole";
 
 export function useSessionToppingComments(sessionId: string | null) {
