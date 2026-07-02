@@ -197,16 +197,72 @@ export function useSessionToppings(sessionId: string | null) {
   });
 
 
+  // 낙관 업데이트 공통 헬퍼: 특정 boolean 필드를 즉시 토글하고,
+  // 서버 확정값으로 patch하거나 실패 시 스냅샷으로 롤백.
+  const optimisticToggleField = <K extends "pinned" | "addressed">(field: K) => ({
+    onMutate: async (toppingId: string) => {
+      await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
+      const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+        queryKey: ["toppings", sessionId],
+      });
+      for (const [key, prev] of snapshots) {
+        if (!prev) continue;
+        qc.setQueryData<{ toppings: ToppingDTO[] }>(key, {
+          ...prev,
+          toppings: prev.toppings.map((t) =>
+            t.id === toppingId ? { ...t, [field]: !t[field] } : t,
+          ),
+        });
+      }
+      return { snapshots };
+    },
+    onError: (
+      _e: unknown,
+      _v: string,
+      ctx: { snapshots: [readonly unknown[], { toppings: ToppingDTO[] } | undefined][] } | undefined,
+    ) => {
+      if (!ctx) return;
+      for (const [key, prev] of ctx.snapshots) qc.setQueryData(key, prev);
+    },
+    onSuccess: (
+      res: { ok: boolean; pinned?: boolean; addressed?: boolean; message?: string } | undefined,
+      toppingId: string,
+      ctx: { snapshots: [readonly unknown[], { toppings: ToppingDTO[] } | undefined][] } | undefined,
+    ) => {
+      // 서버 거부(권한/세션 불일치 등): 스냅샷 롤백
+      if (!res || res.ok !== true) {
+        if (ctx) {
+          for (const [key, prev] of ctx.snapshots) qc.setQueryData(key, prev);
+        }
+        return;
+      }
+      const confirmed = (res as Record<string, unknown>)[field] as boolean | undefined;
+      if (typeof confirmed !== "boolean") return;
+      const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+        queryKey: ["toppings", sessionId],
+      });
+      for (const [key, prev] of matches) {
+        if (!prev) continue;
+        qc.setQueryData<{ toppings: ToppingDTO[] }>(key, {
+          ...prev,
+          toppings: prev.toppings.map((t) =>
+            t.id === toppingId ? { ...t, [field]: confirmed } : t,
+          ),
+        });
+      }
+    },
+  });
+
   const togglePin = useMutation({
     mutationFn: (toppingId: string) =>
       pinFn({ data: { sessionId: sessionId!, toppingId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    ...optimisticToggleField("pinned"),
   });
 
   const toggleAddressed = useMutation({
     mutationFn: (toppingId: string) =>
       addrFn({ data: { sessionId: sessionId!, toppingId } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
+    ...optimisticToggleField("addressed"),
   });
 
   const deleteOwnMut = useMutation({
