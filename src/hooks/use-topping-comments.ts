@@ -10,7 +10,10 @@ import {
 } from "@/lib/confesta/comments.functions";
 import { useDeviceId } from "./use-device-id";
 import { useAudienceRole } from "./use-audience-role";
-import { subscribeToppingComments } from "@/lib/confesta/realtime-channel";
+import {
+  subscribeToppingComments,
+  useRealtimeHealth,
+} from "@/lib/confesta/realtime-channel";
 import type { AudienceRole } from "@/lib/confesta/audienceRole";
 
 export function useSessionToppingComments(sessionId: string | null) {
@@ -23,6 +26,7 @@ export function useSessionToppingComments(sessionId: string | null) {
   const deletePresenterCommentFn = useServerFn(deletePresenterFn);
 
   const queryKey = ["topping-comments", sessionId, deviceId] as const;
+  const healthy = useRealtimeHealth("comments", sessionId);
 
   const { data } = useQuery({
     queryKey,
@@ -31,7 +35,11 @@ export function useSessionToppingComments(sessionId: string | null) {
         data: { sessionId: sessionId!, deviceId: deviceId ?? undefined },
       }),
     enabled: !!sessionId,
-    staleTime: 10_000,
+    staleTime: 15_000,
+    refetchOnWindowFocus: !healthy,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false,
+    refetchInterval: healthy ? false : 60_000,
   });
 
   useEffect(() => {

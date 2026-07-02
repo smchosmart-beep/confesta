@@ -32,16 +32,21 @@ const KIND_TABLES: Record<Kind, TableSpec[]> = {
   comments: [{ table: "topping_comments" }],
 };
 
-// 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소)
-const NOTIFY_DEBOUNCE_MS = 200;
+// 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소).
+// 30명 동시 접속에서 thundering herd를 막기 위해 base 600ms + ±200ms jitter.
+const NOTIFY_DEBOUNCE_MS = 600;
+const NOTIFY_DEBOUNCE_JITTER_MS = 200;
 const notifyTimers = new WeakMap<Set<() => void>, ReturnType<typeof setTimeout>>();
 function scheduleNotify(set: Set<() => void>) {
   const existing = notifyTimers.get(set);
   if (existing) return;
+  const delay =
+    NOTIFY_DEBOUNCE_MS +
+    (Math.random() * 2 - 1) * NOTIFY_DEBOUNCE_JITTER_MS;
   const t = setTimeout(() => {
     notifyTimers.delete(set);
     notifyAll(set);
-  }, NOTIFY_DEBOUNCE_MS);
+  }, delay);
   notifyTimers.set(set, t);
 }
 
