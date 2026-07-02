@@ -37,10 +37,11 @@ export const listToppings = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data }): Promise<{ toppings: ToppingDTO[] }> => {
+    // v2: JOIN으로 prompt_text 흡수(N+1 제거), pinned/addressed는 무조건 포함, 나머지는 최신 100건.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin.rpc(
-      "list_toppings_with_my_like",
-      { _session_id: data.sessionId, _device_id: data.deviceId },
+      "list_toppings_with_my_like_v2",
+      { _session_id: data.sessionId, _device_id: data.deviceId, _limit: 100 },
     );
     if (error) throw error;
 
@@ -50,31 +51,16 @@ export const listToppings = createServerFn({ method: "POST" })
       text: string;
       kind: string;
       prompt_id: string | null;
+      prompt_text: string | null;
       pinned: boolean;
       addressed: boolean;
       likes: number;
       created_at: string;
       device_id: string | null;
       role: AudienceRole | null;
+      op_id: string | null;
       liked_by_me: boolean;
     }>);
-
-    const promptIds = Array.from(
-      new Set(
-        rowsTyped
-          .filter((r) => r.kind === "answer" && r.prompt_id)
-          .map((r) => r.prompt_id as string),
-      ),
-    );
-    const promptTextById = new Map<string, string>();
-    if (promptIds.length > 0) {
-      const { data: prompts, error: pErr } = await supabaseAdmin
-        .from("answer_prompts")
-        .select("id, text")
-        .in("id", promptIds);
-      if (pErr) throw pErr;
-      for (const p of prompts ?? []) promptTextById.set(p.id, p.text);
-    }
 
     return {
       toppings: rowsTyped.map((r) => ({
@@ -83,12 +69,62 @@ export const listToppings = createServerFn({ method: "POST" })
         text: r.text,
         kind: r.kind as "question" | "answer",
         promptId: r.prompt_id,
-        promptText: r.prompt_id ? promptTextById.get(r.prompt_id) ?? null : null,
+        promptText: r.prompt_text,
         pinned: r.pinned,
         addressed: r.addressed,
         likes: r.likes,
         likedByMe: r.liked_by_me,
         mine: !!data.deviceId && r.device_id === data.deviceId,
+        role: (r.role ?? "other") as AudienceRole,
+        createdAt: new Date(r.created_at).getTime(),
+      })),
+    };
+  });
+
+/** 관리자 전용: 세션 종료 후 100건 캡 없이 모든 토핑을 조회. */
+export const listAllToppingsAdmin = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ sessionId: SessionIdSchema }).parse(input),
+  )
+  .handler(async ({ data }): Promise<{ toppings: ToppingDTO[] }> => {
+    const { assertRole } = await import("./assertRole");
+    await assertRole("admin");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "list_all_toppings_admin",
+      { _session_id: data.sessionId },
+    );
+    if (error) throw error;
+
+    const rowsTyped = ((rows ?? []) as Array<{
+      id: string;
+      session_id: string;
+      text: string;
+      kind: string;
+      prompt_id: string | null;
+      prompt_text: string | null;
+      pinned: boolean;
+      addressed: boolean;
+      likes: number;
+      created_at: string;
+      device_id: string | null;
+      role: AudienceRole | null;
+      op_id: string | null;
+    }>);
+
+    return {
+      toppings: rowsTyped.map((r) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        text: r.text,
+        kind: r.kind as "question" | "answer",
+        promptId: r.prompt_id,
+        promptText: r.prompt_text,
+        pinned: r.pinned,
+        addressed: r.addressed,
+        likes: r.likes,
+        likedByMe: false,
+        mine: false,
         role: (r.role ?? "other") as AudienceRole,
         createdAt: new Date(r.created_at).getTime(),
       })),
@@ -251,15 +287,23 @@ export const toggleLikeTopping = createServerFn({ method: "POST" })
       .object({
         deviceId: DeviceIdSchema,
         toppingId: ToppingIdSchema,
+        opId: z.string().uuid().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin.rpc("toggle_topping_like", {
-      _topping_id: data.toppingId,
-      _device_id: data.deviceId,
-    });
+    // op_id가 있으면 3인자 오버로드로 realtime dedupe 지원, 없으면 기존 2인자 유지.
+    const { data: rows, error } = data.opId
+      ? await supabaseAdmin.rpc("toggle_topping_like", {
+          _topping_id: data.toppingId,
+          _device_id: data.deviceId,
+          _op_id: data.opId,
+        })
+      : await supabaseAdmin.rpc("toggle_topping_like", {
+          _topping_id: data.toppingId,
+          _device_id: data.deviceId,
+        });
     if (error) throw error;
     const row = (rows as Array<{ liked: boolean; likes: number }> | null)?.[0];
     return { ok: true as const, liked: !!row?.liked, likes: row?.likes ?? 0 };

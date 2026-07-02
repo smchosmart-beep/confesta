@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Dialog,
   DialogContent,
@@ -6,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useSessionToppings } from "@/hooks/use-toppings";
+import { listAllToppingsAdmin } from "@/lib/confesta/toppings.functions";
 import { AnswerPie } from "./AnswerPie";
 import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
 
@@ -18,7 +20,15 @@ interface Props {
 }
 
 export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
-  const { toppings } = useSessionToppings(open ? sessionId : null);
+  // 관리자 전용: 100건 하드캡 없이 세션의 모든 토핑을 조회.
+  const listFn = useServerFn(listAllToppingsAdmin);
+  const { data } = useQuery({
+    queryKey: ["admin-toppings", sessionId],
+    queryFn: () => listFn({ data: { sessionId } }),
+    enabled: open,
+    staleTime: 15_000,
+  });
+  const toppings: ToppingDTO[] = data?.toppings ?? [];
 
   const questions = useMemo(
     () =>
