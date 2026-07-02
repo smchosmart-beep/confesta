@@ -76,11 +76,11 @@ export function useSessionToppings(sessionId: string | null) {
       };
     },
     enabled: !!sessionId,
-    staleTime: 5_000,
-    refetchOnWindowFocus: true,
+    staleTime: 15_000,
+    refetchOnWindowFocus: !healthy,
     refetchOnReconnect: true,
     refetchIntervalInBackground: false,
-    refetchInterval: healthy ? false : 30_000,
+    refetchInterval: healthy ? false : 60_000,
   });
 
   useEffect(() => {
