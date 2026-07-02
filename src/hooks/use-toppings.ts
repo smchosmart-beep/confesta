@@ -128,7 +128,11 @@ export function useSessionToppings(sessionId: string | null) {
       }
       inflightLikes.add(k);
       try {
-        return await likeFn({ data: { deviceId: deviceId!, toppingId } });
+        const opId =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : undefined;
+        return await likeFn({ data: { deviceId: deviceId!, toppingId, opId } });
       } finally {
         inflightLikes.delete(k);
       }
