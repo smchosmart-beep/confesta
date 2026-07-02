@@ -49,6 +49,9 @@ function applyLikeGuards<T extends { id: string; likedByMe: boolean; likes: numb
 }
 // 같은 토핑에 대한 동시 클릭 차단(낙관/서버 race 방지).
 const inflightLikes = new Set<string>();
+// 짧은 시간 내 연타(모바일 이중 탭 등)로 인한 즉시 취소 방지 쿨다운.
+const LIKE_COOLDOWN_MS = 500;
+const lastLikeAt = new Map<string, number>();
 
 export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
