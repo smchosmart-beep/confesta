@@ -271,6 +271,7 @@ export type Database = {
           created_at: string
           device_id: string
           id: string
+          op_id: string | null
           role: Database["public"]["Enums"]["audience_role"]
           session_id: string
           text: string
@@ -280,6 +281,7 @@ export type Database = {
           created_at?: string
           device_id: string
           id?: string
+          op_id?: string | null
           role: Database["public"]["Enums"]["audience_role"]
           session_id: string
           text: string
@@ -289,6 +291,7 @@ export type Database = {
           created_at?: string
           device_id?: string
           id?: string
+          op_id?: string | null
           role?: Database["public"]["Enums"]["audience_role"]
           session_id?: string
           text?: string
@@ -357,6 +360,7 @@ export type Database = {
           id: string
           kind: string
           likes: number
+          op_id: string | null
           pinned: boolean
           prompt_id: string | null
           role: Database["public"]["Enums"]["audience_role"] | null
@@ -370,6 +374,7 @@ export type Database = {
           id?: string
           kind?: string
           likes?: number
+          op_id?: string | null
           pinned?: boolean
           prompt_id?: string | null
           role?: Database["public"]["Enums"]["audience_role"] | null
@@ -383,6 +388,7 @@ export type Database = {
           id?: string
           kind?: string
           likes?: number
+          op_id?: string | null
           pinned?: boolean
           prompt_id?: string | null
           role?: Database["public"]["Enums"]["audience_role"] | null
@@ -396,6 +402,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      list_all_toppings_admin: {
+        Args: { _session_id: string }
+        Returns: {
+          addressed: boolean
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          likes: number
+          op_id: string
+          pinned: boolean
+          prompt_id: string
+          prompt_text: string
+          role: Database["public"]["Enums"]["audience_role"]
+          session_id: string
+          text: string
+        }[]
+      }
       list_toppings_with_my_like: {
         Args: { _device_id?: string; _session_id: string }
         Returns: {
@@ -413,13 +437,40 @@ export type Database = {
           text: string
         }[]
       }
-      toggle_topping_like: {
-        Args: { _device_id: string; _topping_id: string }
+      list_toppings_with_my_like_v2: {
+        Args: { _device_id?: string; _limit?: number; _session_id: string }
         Returns: {
-          liked: boolean
+          addressed: boolean
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          liked_by_me: boolean
           likes: number
+          op_id: string
+          pinned: boolean
+          prompt_id: string
+          prompt_text: string
+          role: Database["public"]["Enums"]["audience_role"]
+          session_id: string
+          text: string
         }[]
       }
+      toggle_topping_like:
+        | {
+            Args: { _device_id: string; _topping_id: string }
+            Returns: {
+              liked: boolean
+              likes: number
+            }[]
+          }
+        | {
+            Args: { _device_id: string; _op_id: string; _topping_id: string }
+            Returns: {
+              liked: boolean
+              likes: number
+            }[]
+          }
     }
     Enums: {
       audience_role: "teacher" | "specialist" | "parent" | "other"
