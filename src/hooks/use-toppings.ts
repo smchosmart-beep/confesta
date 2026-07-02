@@ -126,9 +126,15 @@ export function useSessionToppings(sessionId: string | null) {
   const toggleLike = useMutation({
     mutationFn: async (toppingId: string) => {
       const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
+      const now = Date.now();
+      // 쿨다운 이내 재요청: 모바일 이중 탭/연타로 인한 즉시 취소 방지.
+      if (now - (lastLikeAt.get(k) ?? 0) < LIKE_COOLDOWN_MS) {
+        return { ok: false as const, skipped: true as const };
+      }
       if (inflightLikes.has(k)) {
         return { ok: false as const, skipped: true as const };
       }
+      lastLikeAt.set(k, now);
       inflightLikes.add(k);
       try {
         const opId =
@@ -142,6 +148,11 @@ export function useSessionToppings(sessionId: string | null) {
     },
     // 작성자 본인 포함 모든 청중이 누를 수 있음. 낙관 업데이트로 즉시 반영.
     onMutate: async (toppingId: string) => {
+      const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
+      // 쿨다운 중이면 낙관 업데이트도 건너뛰어 UI 이중 반전을 원천 차단.
+      if (Date.now() - (lastLikeAt.get(k) ?? 0) < LIKE_COOLDOWN_MS && (lastLikeAt.get(k) ?? 0) !== 0) {
+        return { snapshots: [] as [readonly unknown[], { toppings: ToppingDTO[] } | undefined][] };
+      }
       await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
       const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
         queryKey: ["toppings", sessionId],
