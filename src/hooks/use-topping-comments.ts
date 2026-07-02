@@ -26,6 +26,7 @@ export function useSessionToppingComments(sessionId: string | null) {
   const deletePresenterCommentFn = useServerFn(deletePresenterFn);
 
   const queryKey = ["topping-comments", sessionId, deviceId] as const;
+  const healthy = useRealtimeHealth("comments", sessionId);
 
   const { data } = useQuery({
     queryKey,
@@ -34,7 +35,11 @@ export function useSessionToppingComments(sessionId: string | null) {
         data: { sessionId: sessionId!, deviceId: deviceId ?? undefined },
       }),
     enabled: !!sessionId,
-    staleTime: 10_000,
+    staleTime: 15_000,
+    refetchOnWindowFocus: !healthy,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false,
+    refetchInterval: healthy ? false : 60_000,
   });
 
   useEffect(() => {
