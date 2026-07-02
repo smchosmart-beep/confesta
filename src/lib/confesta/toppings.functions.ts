@@ -287,15 +287,23 @@ export const toggleLikeTopping = createServerFn({ method: "POST" })
       .object({
         deviceId: DeviceIdSchema,
         toppingId: ToppingIdSchema,
+        opId: z.string().uuid().optional(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: rows, error } = await supabaseAdmin.rpc("toggle_topping_like", {
-      _topping_id: data.toppingId,
-      _device_id: data.deviceId,
-    });
+    // op_id가 있으면 3인자 오버로드로 realtime dedupe 지원, 없으면 기존 2인자 유지.
+    const { data: rows, error } = data.opId
+      ? await supabaseAdmin.rpc("toggle_topping_like", {
+          _topping_id: data.toppingId,
+          _device_id: data.deviceId,
+          _op_id: data.opId,
+        })
+      : await supabaseAdmin.rpc("toggle_topping_like", {
+          _topping_id: data.toppingId,
+          _device_id: data.deviceId,
+        });
     if (error) throw error;
     const row = (rows as Array<{ liked: boolean; likes: number }> | null)?.[0];
     return { ok: true as const, liked: !!row?.liked, likes: row?.likes ?? 0 };
