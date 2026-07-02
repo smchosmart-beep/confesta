@@ -547,6 +547,7 @@ function AudienceView() {
                                   <span className="flex-1 break-words">{t.text}</span>
                                   <button
                                     type="button"
+                                    onTouchEnd={(e) => e.preventDefault()}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleLike(t.id);
