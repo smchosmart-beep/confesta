@@ -87,8 +87,8 @@ export const listAllToppingsAdmin = createServerFn({ method: "POST" })
     z.object({ sessionId: SessionIdSchema }).parse(input),
   )
   .handler(async ({ data }): Promise<{ toppings: ToppingDTO[] }> => {
-    const { assertAdminPin } = await import("./assertRole");
-    await assertAdminPin();
+    const { assertRole } = await import("./assertRole");
+    await assertRole("admin");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin.rpc(
       "list_all_toppings_admin",
