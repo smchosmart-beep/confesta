@@ -271,21 +271,32 @@ function AudienceView() {
     }
   }, [qrFromUrl, deviceId, roleState, navigate, placeOrder, pickup]);
 
-  // QR로 새 탭 진입 시 뒤로가기 한 번에 탭이 닫히지 않도록 센티널 히스토리 삽입
-  const backGuardInstalled = useRef(false);
+  // QR로 새 탭 진입 시 뒤로가기 한 번에 탭이 닫히지 않도록 센티널 히스토리 삽입.
+  // qrFromUrl은 navigate({ search: {}, replace: true })로 곧 비워지므로,
+  // 최초 감지 시 ref로 잠그고 이후 URL 변화와 무관하게 리스너를 유지한다.
+  const qrGuardArmedRef = useRef(false);
+  if (qrFromUrl && !qrGuardArmedRef.current) {
+    qrGuardArmedRef.current = true;
+  }
+  const guardListenerInstalledRef = useRef(false);
   useEffect(() => {
-    if (!qrFromUrl) return;
-    if (backGuardInstalled.current) return;
+    if (!qrGuardArmedRef.current) return;
+    if (guardListenerInstalledRef.current) return;
     if (typeof window === "undefined") return;
-    backGuardInstalled.current = true;
+    guardListenerInstalledRef.current = true;
 
-    // navigate({ replace: true })가 먼저 실행된 뒤 센티널을 push
-    const t = setTimeout(() => {
+    // navigate({ replace: true })의 replaceState가 먼저 커밋되도록 microtask 뒤에 push
+    let pushed = false;
+    const install = () => {
+      if (pushed) return;
+      pushed = true;
       window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
-    }, 0);
+    };
+    const t = setTimeout(install, 0);
 
     let lastPromptAt = 0;
     const onPop = () => {
+      // /audience 이외 라우트에서는 아무것도 하지 않음(다른 페이지 뒤로가기 방해 금지)
       if (window.location.pathname !== "/audience") return;
       const now = Date.now();
       if (now - lastPromptAt < 2000) return; // 2초 내 두 번째 back은 정상 종료 허용
@@ -297,8 +308,9 @@ function AudienceView() {
     return () => {
       clearTimeout(t);
       window.removeEventListener("popstate", onPop);
+      // sentinel은 제거하지 않음 — history.back() 호출 시 탭이 종료될 수 있음
     };
-  }, [qrFromUrl]);
+  }, []);
 
   // 역할 미선택/로딩 시 게이트 표시. Hook 순서 유지를 위해 모든 hook 이후에 분기.
   if (roleState === "loading") {

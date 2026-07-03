@@ -1,75 +1,42 @@
-## 원래 계획 요약
-QR(`?qr=`)로 새 탭 진입한 경우 히스토리에 센티널 엔트리를 하나 쌓고, 첫 뒤로가기는 토스트로 안내한 뒤 두 번째 뒤로가기에서 탭이 닫히도록 함.
+## 검토 결과 요약
+계획대로 적용해도 서버비 증가, DB 접근, 다른 기능 회귀는 발생하지 않습니다. 다만 실제 구현 시 아래 세부 리스크를 반드시 반영해야 첫 뒤로가기 가드가 안정적으로 작동합니다.
 
-## 검토에서 발견한 리스크와 대응
+## 항목별 검토
 
-### 1. 서버 비용
-- 100% 브라우저 히스토리 API + `sonner` 토스트만 사용. **서버 함수 호출 0건, DB 요청 0건**. 청구 영향 없음.
+### 1. 서버비/DB
+- 브라우저 History API + sonner 토스트만 사용. `createServerFn`, Supabase 호출, realtime 채널 어느 것도 추가 호출 없음.
+- 기존 `placeOrder`/`pickup` 호출량 변화 없음(같은 QR 1회 처리는 `processedQrRef`로 이미 잠금).
+- 결론: **청구 영향 0**.
 
-### 2. TanStack Router와의 충돌 (실질적 리스크)
-현재 코드는 마운트 직후 `navigate({ to: "/audience", search: {}, replace: true })`로 URL을 정리함. 여기에 raw `history.pushState`를 잘못된 순서로 끼우면:
-- pushState → navigate(replace) 순서면 센티널이 replace로 덮여 사라짐 → 가드 무력화.
-- popstate가 발생하면 라우터도 이를 감지하여 route를 재평가. 같은 URL로 pushState하므로 loader 재실행이 발생할 수 있음(서버 함수는 컴포넌트 useQuery 기반이라 실제로는 무관하지만, 안전하게 처리 필요).
+### 2. TanStack Router와의 상호작용
+- `navigate({ to: '/audience', search: {}, replace: true })`는 내부적으로 `history.replaceState`를 호출. 그 **뒤에** sentinel `pushState`를 넣어야 sentinel이 덮이지 않음. 현재 코드의 `setTimeout(..., 0)` 순서는 유지 필요.
+- sentinel push 후 `popstate`가 발생해도 URL이 동일(`/audience`)하므로 라우터는 같은 route를 재매치할 뿐 loader 재실행/추가 fetch를 유발하지 않음. `useQuery` 기반 데이터는 캐시 재사용.
+- 리스너 안에서 `navigate`를 호출하지 않고 `history.pushState`만 사용하므로 라우터 상태와 무관하게 동작.
 
-**대응**: 순서를 **replace 먼저 → pushState 나중**으로 고정. popstate 리스너는 라우터를 우회하지 말고 그냥 다시 pushState만 수행(내비게이션 유발 X).
+### 3. 다른 라우트로 이동한 뒤의 부작용
+- 사용자가 `/audience` → `/admin`/`/presenter`/`/staff`로 이동한 후 뒤로가기하면 `/audience`로 복귀. 그 다음 뒤로가기에서 sentinel이 pop되면 가드가 발동해 “한 번 더 뒤로” 토스트가 뜸.
+- 이는 QR로 진입한 세션에서 원하는 UX(탭 종료 방지)와 일관되므로 문제 없음. 단, 리스너가 `pathname !== '/audience'`일 때는 반드시 no-op이어야 함(현재 코드 준수).
 
-### 3. 앱 내부 네비게이션 후에도 가드가 계속 살아있는 문제 (실질적 리스크)
-사용자가 QR 진입 후 앱 안에서 `/admin`, `/presenter` 같은 다른 라우트로 이동하면 히스토리가 `[센티널, /audience, /other]`가 됨. `/other`에서 뒤로가기 → `/audience` 복귀는 정상. 그 다음 뒤로가기 → 센티널 pop → 가드가 발동해 **다른 페이지에서 뒤로가기로 앱을 나가려는 사용자를 붙잡음**. 원치 않는 UX.
+### 4. StrictMode 이중 실행
+- `backGuardInstalled = useRef(false)` + `setTimeout` cleanup 조합으로 sentinel이 두 번 쌓이지 않음. 유지 필요.
 
-**대응**: 리스너를 `/audience` 마운트 스코프에 두고, `location.pathname !== "/audience"` 이면 리스너에서 즉시 return하여 아무것도 하지 않음. 또한 audience 컴포넌트 언마운트 시 리스너 해제 + 남은 센티널 상태는 그대로 두되 무해하게 만듦.
+### 5. 페이지 새로고침 / iOS Safari 스와이프
+- 새로고침 후에는 `?qr=`가 없으므로 가드 미설치. 남은 sentinel이 있어도 첫 back은 URL 변화 없는 pop, 두 번째 back에서 정상 종료. UX 동일.
+- iOS Safari의 edge swipe도 `popstate` 발생으로 동일 처리.
 
-### 4. 카메라 스캐너/모달이 열린 상태에서의 뒤로가기 (실질적 리스크)
-현재 앱에는 back으로 닫히는 모달이 없음(모두 상태 기반 close 버튼). 그래도 가드가 첫 back을 삼키므로 사용자가 "back = 모달 닫기"를 기대하면 어긋남 — **현재 구조상 문제 없음**을 확인. 새로 back-닫기 모달을 도입하면 그때 재검토 필요.
+### 6. 카메라 스캐너/모달과의 충돌
+- 앱 내 모든 모달(`AlertDialog`, `CameraScanner` 등)은 back 버튼 대신 상태 기반 닫기 버튼을 사용. sentinel pop이 모달을 닫는 사이드이펙트를 만들지 않음.
+- 향후 back-닫기 모달을 추가하면 그때 재점검 필요.
 
-### 5. React StrictMode / effect 이중 실행
-개발 모드에서 effect가 두 번 돌면 센티널이 2개 쌓여 첫 뒤로가기가 완전히 무반응. **대응**: `useRef<boolean>`로 install 여부 잠금.
+### 7. 좋아요 쿨다운, 영수증, 스쿱, 토핑, 관리자/발표자 기능
+- 파일 무수정. `useSessionToppings`의 realtime/캐시 흐름과 무관.
 
-### 6. 페이지 새로고침
-Chrome은 pushState 히스토리를 새로고침해도 유지함. 새로고침 후에는 `?qr=` 파라미터가 이미 제거된 상태라 가드는 다시 설치되지 않음 → 남은 센티널로 인해 첫 back이 URL 변화 없는 pop을 발생시키고 두 번째 back에 탭 종료. 사용자 관점 UX 동일(오히려 무해). 별도 처리 불필요.
+## 실제로 조정이 필요한 부분(현재 코드 대비)
+1. **가드 effect의 의존성**: 현재 `useEffect(..., [qrFromUrl])`로 묶여 있어 `navigate({ search: {}, replace: true })`로 `qrFromUrl`이 `undefined`가 되는 순간 cleanup이 돌아 `popstate` 리스너가 사라짐 → **첫 back 가드가 무력화되는 것이 지금 사용자가 겪는 증상의 원인**.
+   - 대응: 최초 QR 감지 시점에 `hasQrGuardRef.current = true`로 잠그고, effect는 `[]`(마운트 1회)로 두거나, `qrFromUrl || hasQrGuardRef.current`를 조건으로 사용해 URL 정리 후에도 리스너가 유지되도록 변경.
+2. **sentinel 삽입 시점**: `setTimeout(..., 0)` 대신 `queueMicrotask`로 `navigate`의 `replaceState` 직후에 확실히 뒤서게 하거나, `navigate` 완료를 `await` 후 push해 순서 보장.
+3. **cleanup 시 sentinel 제거 금지**: 컴포넌트 언마운트 시 `history.back()`/`go(-1)` 등을 호출하지 않음(탭 종료 유발). 리스너만 해제.
 
-### 7. iOS Safari 스와이프 뒤로가기
-popstate로 동일하게 처리됨. 별도 코드 불필요.
-
-### 8. Route.useSearch 타입 정합성
-현재도 `qr` 검색 파라미터가 정의되어 사용 중. 스키마 변경 없음.
-
-### 9. 다른 기능 영향 범위
-- 좋아요 쿨다운, 영수증, 스쿱, 관리자/발표자 화면: **파일 무수정, 무영향**.
-- `/audience` 자체의 QR 처리 로직: 순서만 조정, 로직 동일.
-
-## 최종 구현안 (변경 파일: `src/routes/audience.tsx` 단독)
-
-```
-// audience 컴포넌트 내부, 기존 QR 처리 effect에 이어서
-const guardInstalled = useRef(false);
-
-useEffect(() => {
-  if (!qrFromUrl) return;                     // QR 진입일 때만
-  if (guardInstalled.current) return;         // StrictMode 이중실행 방지
-  guardInstalled.current = true;
-
-  // navigate({replace:true})가 먼저 실행되도록 microtask 이후 push
-  const install = () => {
-    window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
-  };
-  const t = setTimeout(install, 0);
-
-  let lastPromptAt = 0;
-  const onPop = () => {
-    // audience 페이지가 아니면 관여하지 않음
-    if (window.location.pathname !== "/audience") return;
-    const now = Date.now();
-    if (now - lastPromptAt < 2000) return;    // 2초 내 재-back은 정상 종료 허용
-    lastPromptAt = now;
-    window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
-    toast("한 번 더 뒤로가기를 누르면 앱이 종료돼요");
-  };
-  window.addEventListener("popstate", onPop);
-  return () => {
-    clearTimeout(t);
-    window.removeEventListener("popstate", onPop);
-  };
-}, [qrFromUrl]);
-```
-
-`toast`는 이미 사용 중인 `sonner`를 재사용. 서버 코드/DB/스키마 무변경. 예상 UX: 실수로 back 눌러도 탭 유지, 필요시 두 번 눌러 정상 종료.
+## 변경 범위
+- `src/routes/audience.tsx` 단독. 서버 코드/스키마/다른 화면 무변경.
+- 예상 UX: QR로 열린 새 탭에서 첫 뒤로가기는 안내 토스트 + 탭 유지, 2초 내 두 번째 뒤로가기에서만 정상 종료.
