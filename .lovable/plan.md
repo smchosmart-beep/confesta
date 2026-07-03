@@ -1,42 +1,64 @@
-## 검토 결과 요약
-계획대로 적용해도 서버비 증가, DB 접근, 다른 기능 회귀는 발생하지 않습니다. 다만 실제 구현 시 아래 세부 리스크를 반드시 반영해야 첫 뒤로가기 가드가 안정적으로 작동합니다.
+## 결론
+적용해도 서버비 0, DB 무변경, 다른 기능 무영향. 다만 "확인 시 종료" 동작에는 브라우저 제약이 있어 UX 문구를 그에 맞게 조정해야 함.
 
-## 항목별 검토
+## 서버비/DB
+- 추가되는 것은 React state 하나 + Radix AlertDialog 렌더뿐. `createServerFn`/Supabase/realtime 호출 없음.
+- 기존 `placeOrder`/`pickup` 흐름 무변경. **청구 영향 0**.
 
-### 1. 서버비/DB
-- 브라우저 History API + sonner 토스트만 사용. `createServerFn`, Supabase 호출, realtime 채널 어느 것도 추가 호출 없음.
-- 기존 `placeOrder`/`pickup` 호출량 변화 없음(같은 QR 1회 처리는 `processedQrRef`로 이미 잠금).
-- 결론: **청구 영향 0**.
+## 다른 기능 회귀 검토
+- 가드는 `/audience`에서만, `?qr=` 있을 때만 활성. `/admin`/`/presenter`/`/staff`/`/` 무영향.
+- 기존 모달(`CameraScanner`, `SlotToppingsModal`, `QuestionSpotlightModal` 등)은 모두 state 기반 open/close. AlertDialog는 서로 다른 Radix 인스턴스라 z-index/포커스 트랩 충돌 없음(동시에 열릴 시나리오도 없음 — popstate는 사용자가 back 버튼을 눌러야만 발생).
+- realtime 채널/캐시(`use-toppings`, `use-audience` 등) 무변경.
+- StrictMode 이중 마운트: `guardListenerInstalledRef`로 sentinel 중복 방지(기존 유지).
 
-### 2. TanStack Router와의 상호작용
-- `navigate({ to: '/audience', search: {}, replace: true })`는 내부적으로 `history.replaceState`를 호출. 그 **뒤에** sentinel `pushState`를 넣어야 sentinel이 덮이지 않음. 현재 코드의 `setTimeout(..., 0)` 순서는 유지 필요.
-- sentinel push 후 `popstate`가 발생해도 URL이 동일(`/audience`)하므로 라우터는 같은 route를 재매치할 뿐 loader 재실행/추가 fetch를 유발하지 않음. `useQuery` 기반 데이터는 캐시 재사용.
-- 리스너 안에서 `navigate`를 호출하지 않고 `history.pushState`만 사용하므로 라우터 상태와 무관하게 동작.
+## 실제 동작상의 리스크와 대응
 
-### 3. 다른 라우트로 이동한 뒤의 부작용
-- 사용자가 `/audience` → `/admin`/`/presenter`/`/staff`로 이동한 후 뒤로가기하면 `/audience`로 복귀. 그 다음 뒤로가기에서 sentinel이 pop되면 가드가 발동해 “한 번 더 뒤로” 토스트가 뜸.
-- 이는 QR로 진입한 세션에서 원하는 UX(탭 종료 방지)와 일관되므로 문제 없음. 단, 리스너가 `pathname !== '/audience'`일 때는 반드시 no-op이어야 함(현재 코드 준수).
+### 1. `window.close()`는 대부분의 브라우저에서 동작하지 않음
+- 스펙상 `window.close()`는 **스크립트로 열린 창**(`window.open`)만 닫을 수 있음. QR 스캐너 앱이 브라우저를 launch한 탭은 "스크립트가 연 창"이 아니므로 `window.close()`는 조용히 무시됨.
+- `history.go(-2)`는 sentinel 2개를 한 번에 pop해서 원래의 진입 이전(빈 히스토리)으로 가 결국 탭 종료와 유사한 결과를 만들 수 있으나, sentinel 개수가 상황에 따라 1개일 수도 있어 -2가 항상 옳지 않음.
 
-### 4. StrictMode 이중 실행
-- `backGuardInstalled = useRef(false)` + `setTimeout` cleanup 조합으로 sentinel이 두 번 쌓이지 않음. 유지 필요.
+### 2. "확인=진짜 종료"는 보장 불가
+- 브라우저 UX상 사용자가 명시적으로 탭을 닫는 것 외에 앱이 확실히 탭을 닫는 방법은 없음.
+- 따라서 "확인" 버튼의 실제 의미는 **"가드를 해제하고 다음 뒤로가기를 통과시킴"**으로 재정의해야 함.
 
-### 5. 페이지 새로고침 / iOS Safari 스와이프
-- 새로고침 후에는 `?qr=`가 없으므로 가드 미설치. 남은 sentinel이 있어도 첫 back은 URL 변화 없는 pop, 두 번째 back에서 정상 종료. UX 동일.
-- iOS Safari의 edge swipe도 `popstate` 발생으로 동일 처리.
+### 대응 (계획 수정)
+- "확인" 클릭 시:
+  1. `guardReleasedRef.current = true`로 표식.
+  2. AlertDialog 닫음.
+  3. `window.history.back()` 호출.
+  4. `popstate` 핸들러는 `guardReleasedRef.current === true`면 아무 것도 하지 않고 return → 브라우저가 실제 뒤로가기 수행 → 히스토리가 비면 탭 종료.
+- "계속 보기" 클릭 시: `pushSentinel()` 한 번 더 실행 후 다이얼로그만 닫음(이미 popstate 핸들러에서 push했으므로 사실상 no-op이지만 안전 보강).
 
-### 6. 카메라 스캐너/모달과의 충돌
-- 앱 내 모든 모달(`AlertDialog`, `CameraScanner` 등)은 back 버튼 대신 상태 기반 닫기 버튼을 사용. sentinel pop이 모달을 닫는 사이드이펙트를 만들지 않음.
-- 향후 back-닫기 모달을 추가하면 그때 재점검 필요.
-
-### 7. 좋아요 쿨다운, 영수증, 스쿱, 토핑, 관리자/발표자 기능
-- 파일 무수정. `useSessionToppings`의 realtime/캐시 흐름과 무관.
-
-## 실제로 조정이 필요한 부분(현재 코드 대비)
-1. **가드 effect의 의존성**: 현재 `useEffect(..., [qrFromUrl])`로 묶여 있어 `navigate({ search: {}, replace: true })`로 `qrFromUrl`이 `undefined`가 되는 순간 cleanup이 돌아 `popstate` 리스너가 사라짐 → **첫 back 가드가 무력화되는 것이 지금 사용자가 겪는 증상의 원인**.
-   - 대응: 최초 QR 감지 시점에 `hasQrGuardRef.current = true`로 잠그고, effect는 `[]`(마운트 1회)로 두거나, `qrFromUrl || hasQrGuardRef.current`를 조건으로 사용해 URL 정리 후에도 리스너가 유지되도록 변경.
-2. **sentinel 삽입 시점**: `setTimeout(..., 0)` 대신 `queueMicrotask`로 `navigate`의 `replaceState` 직후에 확실히 뒤서게 하거나, `navigate` 완료를 `await` 후 push해 순서 보장.
-3. **cleanup 시 sentinel 제거 금지**: 컴포넌트 언마운트 시 `history.back()`/`go(-1)` 등을 호출하지 않음(탭 종료 유발). 리스너만 해제.
+## iOS Safari / 인앱 브라우저 한계 (사용자 고지)
+- iOS Safari 엣지 스와이프: `popstate` 없이 이전 탭으로 이동할 수 있음 — 앱 레벨 제어 불가.
+- 카카오톡/인스타 등 인앱 브라우저 내 자체 "닫기" 버튼: 가드 우회. QR 앱이 자체 브라우저로 열면 back 대신 X 버튼이 별도 존재.
+- 이 두 케이스는 어떤 방식으로도 막을 수 없음(브라우저 레벨).
 
 ## 변경 범위
-- `src/routes/audience.tsx` 단독. 서버 코드/스키마/다른 화면 무변경.
-- 예상 UX: QR로 열린 새 탭에서 첫 뒤로가기는 안내 토스트 + 탭 유지, 2초 내 두 번째 뒤로가기에서만 정상 종료.
+- `src/routes/audience.tsx` 단독.
+- `import { toast } from "sonner"` 제거(가드 안내용도 삭제 시), `import { AlertDialog, AlertDialogContent, ... } from "@/components/ui/alert-dialog"` 추가.
+- `useState<boolean>` `showExitDialog` + `useRef<boolean>` `guardReleasedRef` 추가.
+- 파일 하단에 `<AlertDialog>` 렌더.
+
+## 기술 세부
+```tsx
+const [showExitDialog, setShowExitDialog] = useState(false);
+const guardReleasedRef = useRef(false);
+
+const onPop = () => {
+  if (guardReleasedRef.current) return;         // 사용자가 종료 확인함 → 통과
+  if (window.location.pathname !== "/audience") return;
+  pushSentinel();                                // 히스토리 유지
+  setShowExitDialog(true);
+};
+
+// 확인 버튼
+onClick={() => {
+  guardReleasedRef.current = true;
+  setShowExitDialog(false);
+  window.history.back();   // sentinel pop → 통과 → 히스토리 소진 시 탭 종료
+}}
+```
+
+## 최종 판단
+계획의 방향(모달 확인)은 UX 상 토스트보다 명확해 타당함. 단, "확인=반드시 탭 종료"는 브라우저 제약으로 보장 불가하므로 위 세부처럼 "가드 해제 후 back 통과" 방식으로 구현하고, 버튼 라벨을 "종료" 대신 **"뒤로 가기"**로 두는 편이 실제 동작과 일치.
