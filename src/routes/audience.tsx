@@ -275,6 +275,8 @@ function AudienceView() {
   // 마운트 시점에 window.location.search를 직접 읽어 판정한다
   // (qrFromUrl 반응값은 navigate(replace)로 곧바로 비워져 타이밍 이슈 발생).
   const guardListenerInstalledRef = useRef(false);
+  const guardReleasedRef = useRef(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (guardListenerInstalledRef.current) return;
@@ -289,28 +291,22 @@ function AudienceView() {
         window.location.href,
       );
     };
-    // 즉시 한 번 push — 이후 QR 처리 effect의 navigate({replace:true})가
-    // 현재 항목을 덮어써도 뒤에 남는 항목이 하나 더 있어 뒤로가기 여유가 생긴다.
     pushSentinel();
-    // navigate(replace)가 이 뒤에 실행될 수 있으므로 microtask 뒤에도 한 번 더 확보.
     const t = setTimeout(pushSentinel, 0);
 
-    let lastPromptAt = 0;
     const onPop = () => {
+      if (guardReleasedRef.current) return; // 사용자가 종료 확인 → 통과
       if (window.location.pathname !== "/audience") return;
-      const now = Date.now();
-      if (now - lastPromptAt < 2000) return; // 2초 내 두 번째 back은 종료 허용
-      lastPromptAt = now;
       pushSentinel();
-      toast("한 번 더 뒤로가기를 누르면 앱이 종료돼요");
+      setShowExitDialog(true);
     };
     window.addEventListener("popstate", onPop);
     return () => {
       clearTimeout(t);
       window.removeEventListener("popstate", onPop);
-      // sentinel은 제거하지 않음 — history.back() 호출은 탭 종료를 유발할 수 있음
     };
   }, []);
+
 
   // 역할 미선택/로딩 시 게이트 표시. Hook 순서 유지를 위해 모든 hook 이후에 분기.
   if (roleState === "loading") {
