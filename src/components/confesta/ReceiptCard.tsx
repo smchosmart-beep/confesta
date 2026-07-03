@@ -275,15 +275,6 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
           </div>
         </div>
 
-        <div className="relative bg-white p-3 rounded-2xl border border-foreground/10 flex justify-center">
-          <QRCode value="confesta:receipt:sample:preview" size={140} level="M" />
-        </div>
-
-        <div className="relative mt-4 flex justify-center">
-          <span className="px-4 py-1.5 rounded-full bg-grad-blueberry text-white text-xs font-bold shadow-blue">
-            [READY FOR REDEMPTION]
-          </span>
-        </div>
 
         <PersonaBadge persona={derivePersona(scoops)} />
       </div>
