@@ -271,6 +271,35 @@ function AudienceView() {
     }
   }, [qrFromUrl, deviceId, roleState, navigate, placeOrder, pickup]);
 
+  // QR로 새 탭 진입 시 뒤로가기 한 번에 탭이 닫히지 않도록 센티널 히스토리 삽입
+  const backGuardInstalled = useRef(false);
+  useEffect(() => {
+    if (!qrFromUrl) return;
+    if (backGuardInstalled.current) return;
+    if (typeof window === "undefined") return;
+    backGuardInstalled.current = true;
+
+    // navigate({ replace: true })가 먼저 실행된 뒤 센티널을 push
+    const t = setTimeout(() => {
+      window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
+    }, 0);
+
+    let lastPromptAt = 0;
+    const onPop = () => {
+      if (window.location.pathname !== "/audience") return;
+      const now = Date.now();
+      if (now - lastPromptAt < 2000) return; // 2초 내 두 번째 back은 정상 종료 허용
+      lastPromptAt = now;
+      window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
+      toast("한 번 더 뒤로가기를 누르면 앱이 종료돼요");
+    };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("popstate", onPop);
+    };
+  }, [qrFromUrl]);
+
   // 역할 미선택/로딩 시 게이트 표시. Hook 순서 유지를 위해 모든 hook 이후에 분기.
   if (roleState === "loading") {
     return <main className="min-h-screen" aria-hidden />;
