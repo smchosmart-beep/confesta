@@ -272,43 +272,43 @@ function AudienceView() {
   }, [qrFromUrl, deviceId, roleState, navigate, placeOrder, pickup]);
 
   // QR로 새 탭 진입 시 뒤로가기 한 번에 탭이 닫히지 않도록 센티널 히스토리 삽입.
-  // qrFromUrl은 navigate({ search: {}, replace: true })로 곧 비워지므로,
-  // 최초 감지 시 ref로 잠그고 이후 URL 변화와 무관하게 리스너를 유지한다.
-  const qrGuardArmedRef = useRef(false);
-  if (qrFromUrl && !qrGuardArmedRef.current) {
-    qrGuardArmedRef.current = true;
-  }
+  // 마운트 시점에 window.location.search를 직접 읽어 판정한다
+  // (qrFromUrl 반응값은 navigate(replace)로 곧바로 비워져 타이밍 이슈 발생).
   const guardListenerInstalledRef = useRef(false);
   useEffect(() => {
-    if (!qrGuardArmedRef.current) return;
-    if (guardListenerInstalledRef.current) return;
     if (typeof window === "undefined") return;
+    if (guardListenerInstalledRef.current) return;
+    const hasQrOnMount = /(^|[?&])qr=/.test(window.location.search);
+    if (!hasQrOnMount) return;
     guardListenerInstalledRef.current = true;
 
-    // navigate({ replace: true })의 replaceState가 먼저 커밋되도록 microtask 뒤에 push
-    let pushed = false;
-    const install = () => {
-      if (pushed) return;
-      pushed = true;
-      window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
+    const pushSentinel = () => {
+      window.history.pushState(
+        { confestaBackGuard: true },
+        "",
+        window.location.href,
+      );
     };
-    const t = setTimeout(install, 0);
+    // 즉시 한 번 push — 이후 QR 처리 effect의 navigate({replace:true})가
+    // 현재 항목을 덮어써도 뒤에 남는 항목이 하나 더 있어 뒤로가기 여유가 생긴다.
+    pushSentinel();
+    // navigate(replace)가 이 뒤에 실행될 수 있으므로 microtask 뒤에도 한 번 더 확보.
+    const t = setTimeout(pushSentinel, 0);
 
     let lastPromptAt = 0;
     const onPop = () => {
-      // /audience 이외 라우트에서는 아무것도 하지 않음(다른 페이지 뒤로가기 방해 금지)
       if (window.location.pathname !== "/audience") return;
       const now = Date.now();
-      if (now - lastPromptAt < 2000) return; // 2초 내 두 번째 back은 정상 종료 허용
+      if (now - lastPromptAt < 2000) return; // 2초 내 두 번째 back은 종료 허용
       lastPromptAt = now;
-      window.history.pushState({ confestaBackGuard: true }, "", window.location.href);
+      pushSentinel();
       toast("한 번 더 뒤로가기를 누르면 앱이 종료돼요");
     };
     window.addEventListener("popstate", onPop);
     return () => {
       clearTimeout(t);
       window.removeEventListener("popstate", onPop);
-      // sentinel은 제거하지 않음 — history.back() 호출 시 탭이 종료될 수 있음
+      // sentinel은 제거하지 않음 — history.back() 호출은 탭 종료를 유발할 수 있음
     };
   }, []);
 
