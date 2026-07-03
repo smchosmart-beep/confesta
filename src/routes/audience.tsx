@@ -713,6 +713,31 @@ function AudienceView() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>페이지를 종료할까요?</AlertDialogTitle>
+            <AlertDialogDescription>
+              종료하면 QR을 다시 스캔해야 다시 입장할 수 있어요.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>계속 보기</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                guardReleasedRef.current = true;
+                setShowExitDialog(false);
+                window.history.back();
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              뒤로 가기
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </main>
   );
 }
