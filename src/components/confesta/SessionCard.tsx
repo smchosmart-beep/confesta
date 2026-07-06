@@ -35,7 +35,7 @@ export function SessionCard({ session }: Props) {
 
       <h3 className="relative text-lg font-bold leading-snug">{session.title}</h3>
       <div className="relative text-sm text-muted-foreground">
-        {session.presenter} · {session.room}
+        {session.presenter} · {displayRoom(session.room)}
       </div>
     </div>
   );
