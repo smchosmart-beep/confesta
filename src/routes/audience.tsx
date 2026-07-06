@@ -18,7 +18,7 @@ import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { QuestionCommentBlock } from "@/components/confesta/QuestionCommentBlock";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import { MAX_SCOOPS_CONST, makeSlotKey, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
+import { displayRoom, MAX_SCOOPS_CONST, makeSlotKey, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
 import { listIssuedSlots } from "@/lib/confesta/slots.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -154,7 +154,8 @@ function AudienceView() {
       const key = makeSlotKey(s.day, s.period, s.room);
       const title = (s.title ?? "").trim();
       const periodLabel = PERIOD_SHORT[s.period];
-      m.set(key, `${title || s.room} · Day ${s.day} · ${periodLabel}`);
+      const roomLabel = displayRoom(s.room);
+      m.set(key, `${title || roomLabel} · Day ${s.day} · ${periodLabel}`);
     }
     return m;
   }, [issuedSlotsData]);
@@ -164,12 +165,13 @@ function AudienceView() {
     const slot = parseSlotKey(id);
     if (slot) {
       const periodLabel = PERIOD_SHORT[slot.period];
-      return `${slot.room} · Day ${slot.day} · ${periodLabel}`;
+      return `${displayRoom(slot.room)} · Day ${slot.day} · ${periodLabel}`;
     }
     const legacy = SESSIONS.find((x) => x.id === id);
     if (legacy) return legacy.title;
     return null;
   };
+
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 

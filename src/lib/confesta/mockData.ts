@@ -32,7 +32,7 @@ export interface Venue {
 }
 
 export const VENUES: Venue[] = [
-  { id: "402", name: "402", subspaces: ["A", "B"], area: "v402" },
+  { id: "402", name: "402", subspaces: ["A"], area: "v402" },
   { id: "hall", name: "LEWEST Hall", subspaces: ["A", "B", "C"], area: "hall" },
   { id: "403", name: "403", subspaces: ["A", "B", "C"], area: "v403" },
   { id: "401", name: "401", subspaces: ["A", "B", "C", "D"], area: "v401" },

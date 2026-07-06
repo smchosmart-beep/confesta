@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Camera, Check, IceCream, Info, Trash2 } from "lucide-react";
 import type { Order } from "@/lib/confesta/types";
 import { SESSIONS, getCategory, CATEGORIES } from "@/lib/confesta/mockData";
-import { parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
+import { displayRoom, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
 import { useAudience } from "@/hooks/use-audience";
 import { CameraScanner } from "./CameraScanner";
 import { ToppingScatter } from "./ToppingDecor";
@@ -34,7 +34,7 @@ function resolveSessionDisplay(order: Order) {
   if (legacy) {
     return {
       title: legacy.title,
-      chips: [legacy.presenter, legacy.room, legacy.timeSlot],
+      chips: [legacy.presenter, displayRoom(legacy.room), legacy.timeSlot],
       flavor: getCategory(legacy.category).flavor,
       catLabel: getCategory(legacy.category).label,
     };
@@ -44,15 +44,17 @@ function resolveSessionDisplay(order: Order) {
     const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
     const cat = CATEGORIES[hash % CATEGORIES.length];
     const adminTitle = (order.sessionTitle ?? "").trim();
+    const roomLabel = displayRoom(slot.room);
     return {
-      title: adminTitle.length > 0 ? adminTitle : slot.room,
-      chips: [`Day ${slot.day}`, PERIOD_SHORT[slot.period], slot.room],
+      title: adminTitle.length > 0 ? adminTitle : roomLabel,
+      chips: [`Day ${slot.day}`, PERIOD_SHORT[slot.period], roomLabel],
       flavor: cat.flavor,
       catLabel: cat.label,
     };
   }
   return null;
 }
+
 
 export function OrderCard({ order }: Props) {
   const display = resolveSessionDisplay(order);

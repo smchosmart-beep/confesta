@@ -25,7 +25,7 @@ import {
   checkPresenterSlot,
   clearPresenterSlot,
 } from "@/lib/confesta/presenter.functions";
-import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
+import { displayRoom, makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import { QrCode, X, LogOut, IceCream2, PieChart as PieChartIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPie } from "@/components/confesta/AnswerPie";
@@ -318,7 +318,7 @@ function SlotPickerBar({
           <SelectContent className={selectContentCls}>
             {slotsInScope.map((s) => (
               <SelectItem key={s.room} value={s.room} className={selectItemCls}>
-                {s.room}
+                {displayRoom(s.room)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -632,7 +632,7 @@ function UnlockedSlotView({
         open={orderOpen}
         onClose={() => setOrderOpen(false)}
         title={slot.title}
-        subtitle={`Day ${slot.day} · ${PERIOD_SHORT[slot.period]} · ${slot.room}`}
+        subtitle={`Day ${slot.day} · ${PERIOD_SHORT[slot.period]} · ${displayRoom(slot.room)}`}
         payload={orderPayload ?? ""}
       />
     </>

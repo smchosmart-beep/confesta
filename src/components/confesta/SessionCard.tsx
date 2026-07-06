@@ -1,5 +1,6 @@
 import type { Session } from "@/lib/confesta/types";
 import { getCategory } from "@/lib/confesta/mockData";
+import { displayRoom } from "@/lib/confesta/shared";
 import { ToppingScatter } from "./ToppingDecor";
 
 const FLAVOR_GRAD: Record<string, string> = {
@@ -34,7 +35,7 @@ export function SessionCard({ session }: Props) {
 
       <h3 className="relative text-lg font-bold leading-snug">{session.title}</h3>
       <div className="relative text-sm text-muted-foreground">
-        {session.presenter} · {session.room}
+        {session.presenter} · {displayRoom(session.room)}
       </div>
     </div>
   );

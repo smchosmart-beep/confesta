@@ -10,7 +10,7 @@ import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SlotToppingsModal } from "@/components/confesta/SlotToppingsModal";
 import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
-import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
+import { displayRoom, makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import {
   listSlots,
   upsertSlotTitle,
@@ -361,12 +361,13 @@ function subGridStyle(venueId: string): React.CSSProperties {
         gridTemplateAreas: `"d" "c" "b" "a"`,
       };
     case "402":
-      // 위→아래: B, A
+      // 402: A/B 병합 — 단일 타일(A slot 재사용), 기존 A+B 합산 높이 유지
       return {
         gridTemplateColumns: "1fr",
-        gridAutoRows: tileRow,
-        gridTemplateAreas: `"b" "a"`,
+        gridTemplateRows: "minmax(432px, auto)",
+        gridTemplateAreas: `"a"`,
       };
+
     case "403":
     case "404":
       // 위→아래: C, B, A
@@ -677,7 +678,7 @@ function SlotQRControls({
         open={open && !!payload}
         onClose={() => setOpen(false)}
         title={labelForModal}
-        subtitle={`Day ${day} · ${PERIOD_SHORT[period]} · ${room}`}
+        subtitle={`Day ${day} · ${PERIOD_SHORT[period]} · ${displayRoom(room)}`}
         payload={payload ?? ""}
         onRotate={() => {
           if (confirm("기존 QR을 무효화하고 새로 발급합니다. 계속할까요?")) {
@@ -924,6 +925,8 @@ function VenueCard({
             : "text-[10px]";
           const slot = slotsByRoom.get(sub.label);
           const displayTitle = slot?.title || sub.sessionTitle || "";
+          const roomLabel = displayRoom(sub.label);
+          const showCode = venue.subs.length > 1;
           return (
           <div
             key={sub.label}
@@ -933,7 +936,7 @@ function VenueCard({
           >
             <div className={`flex items-center justify-between gap-1 ${isHall ? 'mb-2' : 'mb-1'}`}>
               <span className="text-lg font-extrabold leading-none">
-                {sub.code}
+                {showCode ? sub.code : ""}
               </span>
               <div className="flex items-center gap-1">
                 <SlotQRControls
@@ -941,14 +944,14 @@ function VenueCard({
                   period={period}
                   room={sub.label}
                   slot={slot}
-                  labelForModal={displayTitle || sub.label}
+                  labelForModal={displayTitle || roomLabel}
                   compact
                 />
                 <SlotResetButton
                   day={day}
                   period={period}
                   room={sub.label}
-                  label={displayTitle || sub.label}
+                  label={displayTitle || roomLabel}
                   compact
                 />
               </div>
@@ -1008,8 +1011,9 @@ function VenueCard({
                   day={day}
                   period={period}
                   room={sub.label}
-                  title={displayTitle || sub.label}
+                  title={displayTitle || roomLabel}
                 />
+
 
               </div>
             </div>
@@ -1123,6 +1127,8 @@ function MobileVenueCard({
               : 0;
             const slot = slotsByRoom.get(sub.label);
             const displayTitle = slot?.title || sub.sessionTitle || "";
+            const roomLabel = displayRoom(sub.label);
+            const showCode = venue.subs.length > 1;
             return (
               <div
                 key={sub.label}
@@ -1131,7 +1137,7 @@ function MobileVenueCard({
                 {/* 코드 + 도넛 */}
                 <div className="flex flex-col items-center shrink-0 w-14">
                   <span className="text-sm font-extrabold leading-none mb-1">
-                    {sub.code}
+                    {showCode ? sub.code : ""}
                   </span>
                   <div
                     className="relative rounded-full grid place-items-center"
@@ -1178,14 +1184,14 @@ function MobileVenueCard({
                       period={period}
                       room={sub.label}
                       slot={slot}
-                      labelForModal={displayTitle || sub.label}
+                      labelForModal={displayTitle || roomLabel}
                       compact
                     />
                     <SlotResetButton
                       day={day}
                       period={period}
                       room={sub.label}
-                      label={displayTitle || sub.label}
+                      label={displayTitle || roomLabel}
                       compact
                     />
                   </div>

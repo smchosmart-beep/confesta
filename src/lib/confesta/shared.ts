@@ -26,6 +26,15 @@ export function isPeriod(v: string): v is Period {
 export function makeSlotKey(day: number, period: Period, room: string) {
   return `${day}|${period}|${room}`;
 }
+
+/**
+ * UI 표시용 room 라벨. 내부값(서버 인자/DB/QR 페이로드/쿠키 키)은 그대로 유지하고
+ * 렌더링되는 텍스트에서만 "402-A"를 "402"로 통일한다.
+ */
+export function displayRoom(room: string): string {
+  return room === "402-A" ? "402" : room;
+}
+
 export function parseSlotKey(
   key: string,
 ): { day: number; period: Period; room: string } | null {
