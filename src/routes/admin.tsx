@@ -1011,8 +1011,9 @@ function VenueCard({
                   day={day}
                   period={period}
                   room={sub.label}
-                  title={displayTitle || sub.label}
+                  title={displayTitle || roomLabel}
                 />
+
 
               </div>
             </div>
