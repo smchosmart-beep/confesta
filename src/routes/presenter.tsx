@@ -632,7 +632,7 @@ function UnlockedSlotView({
         open={orderOpen}
         onClose={() => setOrderOpen(false)}
         title={slot.title}
-        subtitle={`Day ${slot.day} · ${PERIOD_SHORT[slot.period]} · ${slot.room}`}
+        subtitle={`Day ${slot.day} · ${PERIOD_SHORT[slot.period]} · ${displayRoom(slot.room)}`}
         payload={orderPayload ?? ""}
       />
     </>
