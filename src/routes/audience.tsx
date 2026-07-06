@@ -18,7 +18,7 @@ import { AnswerPromptCard } from "@/components/confesta/AnswerPromptCard";
 import { QuestionCommentBlock } from "@/components/confesta/QuestionCommentBlock";
 import { SampleAnswerPromptCard } from "@/components/confesta/SampleAnswerPromptCard";
 import { SESSIONS } from "@/lib/confesta/mockData";
-import { MAX_SCOOPS_CONST, makeSlotKey, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
+import { displayRoom, MAX_SCOOPS_CONST, makeSlotKey, parseSessionQR, parseSlotKey, PERIOD_SHORT } from "@/lib/confesta/shared";
 import { listIssuedSlots } from "@/lib/confesta/slots.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
