@@ -925,6 +925,8 @@ function VenueCard({
             : "text-[10px]";
           const slot = slotsByRoom.get(sub.label);
           const displayTitle = slot?.title || sub.sessionTitle || "";
+          const roomLabel = displayRoom(sub.label);
+          const showCode = venue.subs.length > 1;
           return (
           <div
             key={sub.label}
@@ -934,7 +936,7 @@ function VenueCard({
           >
             <div className={`flex items-center justify-between gap-1 ${isHall ? 'mb-2' : 'mb-1'}`}>
               <span className="text-lg font-extrabold leading-none">
-                {sub.code}
+                {showCode ? sub.code : ""}
               </span>
               <div className="flex items-center gap-1">
                 <SlotQRControls
@@ -942,14 +944,14 @@ function VenueCard({
                   period={period}
                   room={sub.label}
                   slot={slot}
-                  labelForModal={displayTitle || sub.label}
+                  labelForModal={displayTitle || roomLabel}
                   compact
                 />
                 <SlotResetButton
                   day={day}
                   period={period}
                   room={sub.label}
-                  label={displayTitle || sub.label}
+                  label={displayTitle || roomLabel}
                   compact
                 />
               </div>
