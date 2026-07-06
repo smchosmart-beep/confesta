@@ -25,7 +25,7 @@ import {
   checkPresenterSlot,
   clearPresenterSlot,
 } from "@/lib/confesta/presenter.functions";
-import { makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
+import { displayRoom, makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import { QrCode, X, LogOut, IceCream2, PieChart as PieChartIcon } from "lucide-react";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AnswerPie } from "@/components/confesta/AnswerPie";
