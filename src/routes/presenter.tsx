@@ -332,21 +332,30 @@ function SlotPickerBar({
         <Select
           value={room ?? ""}
           onValueChange={onChangeRoom}
-          disabled={slotsInScope.length === 0}
+          disabled={!room}
         >
           <SelectTrigger className={`${selectTriggerCls} h-9 w-full text-xs`}>
             <SelectValue
-              placeholder={loading ? "불러오는 중…" : "발급된 세션 없음"}
+              placeholder={
+                loading
+                  ? "불러오는 중…"
+                  : !room
+                    ? "장소를 먼저 선택"
+                    : "세션 정보 없음"
+              }
             />
           </SelectTrigger>
           <SelectContent className={selectContentCls}>
-            {slotsInScope.map((s) => (
-              <SelectItem key={s.room} value={s.room} className={selectItemCls}>
-                {s.title}
-              </SelectItem>
-            ))}
+            {slotsInScope
+              .filter((s) => s.room === room)
+              .map((s) => (
+                <SelectItem key={s.room} value={s.room} className={selectItemCls}>
+                  {s.title}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
+
       </div>
     </div>
   );
