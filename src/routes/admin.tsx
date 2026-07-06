@@ -361,12 +361,13 @@ function subGridStyle(venueId: string): React.CSSProperties {
         gridTemplateAreas: `"d" "c" "b" "a"`,
       };
     case "402":
-      // 위→아래: B, A
+      // 402: A/B 병합 — 단일 타일(A slot 재사용), 기존 A+B 합산 높이 유지
       return {
         gridTemplateColumns: "1fr",
-        gridAutoRows: tileRow,
-        gridTemplateAreas: `"b" "a"`,
+        gridTemplateRows: "minmax(432px, auto)",
+        gridTemplateAreas: `"a"`,
       };
+
     case "403":
     case "404":
       // 위→아래: C, B, A
