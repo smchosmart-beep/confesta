@@ -3,7 +3,7 @@ import { Lock, Unlock, ArrowLeft, KeyRound } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { unlockPresenterSlot } from "@/lib/confesta/presenter.functions";
-import { PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
+import { displayRoom, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 
 interface Props {
   day: number;
