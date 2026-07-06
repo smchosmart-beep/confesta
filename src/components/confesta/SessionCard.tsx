@@ -1,5 +1,6 @@
 import type { Session } from "@/lib/confesta/types";
 import { getCategory } from "@/lib/confesta/mockData";
+import { displayRoom } from "@/lib/confesta/shared";
 import { ToppingScatter } from "./ToppingDecor";
 
 const FLAVOR_GRAD: Record<string, string> = {
