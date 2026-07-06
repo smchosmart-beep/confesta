@@ -27,24 +27,26 @@ export function RoleHeader({ role, description, subtitle, color, right }: Props)
       >
         <ArrowLeft className="w-4 h-4" /> 홈으로
       </Link>
-      <div className="relative mt-3 flex items-center gap-9">
-        <span
-          className={`${ICON_GRAD[color]} text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-pink ring-2 ring-white/60`}
-        >
-          <IceCream className="w-6 h-6 drop-shadow" />
-        </span>
-        <div className={`min-w-0 ${right ? "" : "flex-1"}`}>
-          <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
-            {role}
-          </h1>
-          {description && (
-            <p className="text-sm text-muted-foreground truncate">{description}</p>
-          )}
-          {subtitle && (
-            <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
-          )}
+      <div className="relative mt-3 flex flex-col md:flex-row md:items-center gap-4 md:gap-9">
+        <div className="flex items-center gap-4 md:gap-9 min-w-0">
+          <span
+            className={`${ICON_GRAD[color]} text-white w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-pink ring-2 ring-white/60`}
+          >
+            <IceCream className="w-6 h-6 drop-shadow" />
+          </span>
+          <div className={`min-w-0 ${right ? "" : "flex-1"}`}>
+            <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
+              {role}
+            </h1>
+            {description && (
+              <p className="text-sm text-muted-foreground truncate">{description}</p>
+            )}
+            {subtitle && (
+              <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+            )}
+          </div>
         </div>
-        {right && <div className="flex-1 min-w-0 relative">{right}</div>}
+        {right && <div className="relative w-full md:flex-1 md:min-w-0">{right}</div>}
       </div>
     </header>
   );
