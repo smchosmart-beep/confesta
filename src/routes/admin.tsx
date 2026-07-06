@@ -1127,6 +1127,8 @@ function MobileVenueCard({
               : 0;
             const slot = slotsByRoom.get(sub.label);
             const displayTitle = slot?.title || sub.sessionTitle || "";
+            const roomLabel = displayRoom(sub.label);
+            const showCode = venue.subs.length > 1;
             return (
               <div
                 key={sub.label}
@@ -1135,7 +1137,7 @@ function MobileVenueCard({
                 {/* 코드 + 도넛 */}
                 <div className="flex flex-col items-center shrink-0 w-14">
                   <span className="text-sm font-extrabold leading-none mb-1">
-                    {sub.code}
+                    {showCode ? sub.code : ""}
                   </span>
                   <div
                     className="relative rounded-full grid place-items-center"
