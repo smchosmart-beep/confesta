@@ -318,7 +318,7 @@ function SlotPickerBar({
           <SelectContent className={selectContentCls}>
             {slotsInScope.map((s) => (
               <SelectItem key={s.room} value={s.room} className={selectItemCls}>
-                {s.room}
+                {displayRoom(s.room)}
               </SelectItem>
             ))}
           </SelectContent>
