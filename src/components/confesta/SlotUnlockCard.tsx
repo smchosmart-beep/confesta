@@ -84,7 +84,7 @@ export function SlotUnlockCard({
                 {title}
               </h2>
               <p className="text-xs text-muted-foreground mt-0.5">
-                Day {day} · {PERIOD_SHORT[period]} · {room}
+                Day {day} · {PERIOD_SHORT[period]} · {displayRoom(room)}
               </p>
             </div>
           </div>
