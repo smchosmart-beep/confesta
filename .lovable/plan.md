@@ -1,52 +1,42 @@
-## 목표
+## 진단 결과
 
-발표자 화면 새로고침 시 재잠김의 실제 원인을 published 로그로 확인한 뒤, 원인에 맞춘 최소 수정을 진행합니다.
+published 서버 로그로 확인한 실제 원인:
 
-## 1단계 — 진단 로그 추가 (임시)
+```
+09:36:56 check   sid=b4c246b4  no-cookie      ← 발표자가 이 슬롯 선택
+09:37:01 unlock  sid=b4c246b4                  ← 비번 입력해 해제
+09:37:01 check   sid=b4c246b4  ok ageMs=74    ← 해제 직후 정상
+09:37:04 check   sid=0561ee65  no-cookie      ← 새로고침 → 다른 슬롯 화면
+```
 
-**파일: `src/lib/confesta/presenterSlot.server.ts`**
-- `verifySlotCookieValue`가 실패 사유를 반환하도록 확장하거나, 내부에서 사유를 담아 반환하는 헬퍼(`inspectSlotCookieValue`)를 추가합니다.
-- 반환 사유 종류:
-  - `no-cookie` — 쿠키 자체가 없음
-  - `bad-format` — 세그먼트 분리 실패
-  - `sid-mismatch` — 쿠키 payload의 sessionId가 요청과 다름
-  - `bad-signature` — HMAC 검증 실패(시크릿 불일치 유력)
-  - `bad-age` — 만료 or 음수 age (서버 시계 문제 유력)
-  - `ok` — 정상
+**쿠키 로직은 전혀 문제없음.** `b4c246b4` 슬롯의 unlock 쿠키(12시간)는 계속 살아 있음. 문제는 새로고침 후 `PresenterPage`가 다른 슬롯(`0561ee65`)을 선택 상태로 표시해서, 그 슬롯의 쿠키(없음)를 확인하고 잠금 카드를 보여주는 것.
 
-**파일: `src/lib/confesta/presenter.functions.ts`**
-- `checkPresenterSlot` 핸들러에서 위 사유를 받아 `console.log`로 남깁니다. PII 없이 다음만 로깅:
-  - `sessionId` 해시(앞 8자)
-  - 쿠키 이름 해시(앞 8자)
-  - 쿠키 존재 여부
-  - 실패 사유
-  - `issuedAt`과 `Date.now()` 차이(ms, 있을 때만)
-- `unlockPresenterSlot` 성공 시에도 발급 로그(같은 해시 값, 발급 시각)를 남겨 발급/검증을 대조할 수 있게 합니다.
-- 반환값은 기존과 동일(`{ ok: boolean }`) 유지 → 프런트/타 로직 무영향.
+원인:
+- 슬롯 선택 상태는 URL search param(`?day&period&room`)에만 있고, 미리보기/재진입 등으로 파라미터가 없이 `/presenter`에 들어오면 `useEffect` 자동선택이 목록의 **첫 슬롯**을 골라버림.
+- 발표자가 실제 사용 중인 슬롯이 첫 슬롯과 다르면 새로고침이 사실상 "선택 리셋"이 됨.
 
-## 2단계 — 재현 및 로그 수집
+## 수정 방안 (최소)
 
-배포된 앱(`confesta.lovable.app`)에서:
-1. 발표자 화면에서 세션 잠금 해제
-2. 새로고침
-3. published 서버 로그에서 `[presenter-slot]` 태그로 검색
+**`src/routes/presenter.tsx` 한 파일만 수정.** 서버비/DB/쿠키 로직은 그대로.
 
-기대 결과에 따른 분기:
-- `bad-signature`가 나오면 → `CONFESTA_SESSION_SECRET` 주입/변경이 원인. 시크릿 안정성 확인 후 대응.
-- `no-cookie`가 나오면 → 쿠키가 전송되지 않음. 이때 `sameSite`/`partitioned` 옵션 완화가 정답.
-- `bad-age`가 나오면 → 시계/타임스탬프 이슈. 검증 로직 보강.
-- `sid-mismatch`가 나오면 → `makeSlotKey` 인코딩/URL 파라미터 정규화 문제.
+1. 브라우저 `localStorage`에 마지막 선택 슬롯 저장:
+   - 키: `confesta:presenter:last-slot` → `{ day, period, room }` JSON
+   - `setSel`이 실행되어 URL이 바뀔 때마다 저장 (또는 `selected`가 변할 때 저장).
 
-## 3단계 — 원인별 최소 수정
+2. 자동선택 `useEffect`의 우선순위 조정:
+   1. URL 파라미터가 유효한 슬롯을 가리키면 그대로 사용 (기존 동작).
+   2. URL이 비어 있으면 `localStorage`의 마지막 슬롯이 현재 발급 목록에 있으면 그것을 선택.
+   3. 둘 다 없으면 기존처럼 목록 첫 슬롯으로 폴백.
 
-로그로 원인이 확정된 후 그에 맞춘 한 곳만 수정합니다. 이 단계에서 별도 계획을 다시 제시합니다.
+3. 진단 로그 정리: `presenter.functions.ts` / `presenterSlot.server.ts`에 추가한 `console.log`, `shortHash` 관련 진단 코드는 원인이 확정됐으므로 제거 (Cloudflare Worker 로그 비용/노이즈 최소화).
 
-## 4단계 — 진단 로그 제거
+## 부작용 검토
 
-원인 확정·수정 검증 후 임시 로그를 제거합니다.
+- localStorage는 device-local이라 여러 발표자가 같은 브라우저를 공유하지 않는 한 문제없음.
+- 서버 호출/쿠키/DB 스키마 변경 없음 → 서버비 영향 0.
+- 관리자/청중/스태프 화면에는 영향 없음 (파일 격리).
+- SSR 안전: `typeof window` 체크로 감쌈.
 
-## 영향 검토
+## 확인 방법
 
-- **서버비:** 무시할 수 있는 수준(요청당 로그 몇 줄).
-- **보안:** 로그에 비밀번호/원본 쿠키/원본 sessionId를 남기지 않음. 해시 접두 8자만 사용.
-- **다른 기능:** 반환 형태 변화 없음 → 프런트, BookmarkBar, 서버 함수 인증(`assertPresenterSlot`) 모두 그대로 동작.
+빌드 후 미리보기에서 슬롯 A 선택 → 잠금해제 → 브라우저 새로고침 → 여전히 슬롯 A가 잠금해제된 상태로 표시되는지 확인.

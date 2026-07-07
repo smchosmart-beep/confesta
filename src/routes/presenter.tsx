@@ -136,8 +136,10 @@ function PresenterPage() {
     [slots, day, period],
   );
 
-  // Auto-select first available slot whenever the set changes; if URL already
-  // holds a valid combination, this is a no-op.
+  // Auto-select whenever the set changes; if URL already holds a valid combination,
+  // this is a no-op. If URL is empty, prefer the last-used slot saved in localStorage
+  // so a refresh restores the presenter's current session (their unlock cookie is
+  // per-session, so landing on a different slot looks like a re-lock).
   useEffect(() => {
     if (slots.length === 0) {
       if (day != null || period != null || room != null) {
@@ -145,21 +147,79 @@ function PresenterPage() {
       }
       return;
     }
-    const validDay = day != null && daysAvailable.includes(day) ? day : daysAvailable[0];
+
+    // Read last-used slot from localStorage as a fallback for empty URL params.
+    let stored: { day: number; period: Period; room: string } | null = null;
+    if (typeof window !== "undefined" && day == null && period == null && room == null) {
+      try {
+        const raw = window.localStorage.getItem(LAST_SLOT_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as {
+            day?: number;
+            period?: string;
+            room?: string;
+          };
+          if (
+            typeof parsed.day === "number" &&
+            typeof parsed.period === "string" &&
+            (PERIODS as readonly string[]).includes(parsed.period) &&
+            typeof parsed.room === "string" &&
+            slots.some(
+              (s) =>
+                s.day === parsed.day &&
+                s.period === parsed.period &&
+                s.room === parsed.room,
+            )
+          ) {
+            stored = {
+              day: parsed.day,
+              period: parsed.period as Period,
+              room: parsed.room,
+            };
+          }
+        }
+      } catch {
+        // ignore malformed JSON / storage errors
+      }
+    }
+
+    const seedDay = day ?? stored?.day ?? null;
+    const seedPeriod = period ?? stored?.period ?? null;
+    const seedRoom = room ?? stored?.room ?? null;
+
+    const validDay =
+      seedDay != null && daysAvailable.includes(seedDay) ? seedDay : daysAvailable[0];
     const periods = Array.from(
       new Set(slots.filter((s) => s.day === validDay).map((s) => s.period)),
     ) as Period[];
     const validPeriod =
-      period != null && periods.includes(period) ? period : periods[0];
+      seedPeriod != null && periods.includes(seedPeriod) ? seedPeriod : periods[0];
     const rooms = slots
       .filter((s) => s.day === validDay && s.period === validPeriod)
       .map((s) => s.room);
-    const validRoom = room != null && rooms.includes(room) ? room : rooms[0];
+    const validRoom =
+      seedRoom != null && rooms.includes(seedRoom) ? seedRoom : rooms[0];
     if (validDay !== day || validPeriod !== period || validRoom !== room) {
       setSel({ day: validDay, period: validPeriod, room: validRoom });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots]);
+
+  // Persist current selection so a refresh (which may drop URL params) restores it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (day != null && period != null && room != null) {
+      try {
+        window.localStorage.setItem(
+          LAST_SLOT_KEY,
+          JSON.stringify({ day, period, room }),
+        );
+      } catch {
+        // ignore quota / privacy-mode errors
+      }
+    }
+  }, [day, period, room]);
+
 
   const selected =
     day != null && period != null && room != null
