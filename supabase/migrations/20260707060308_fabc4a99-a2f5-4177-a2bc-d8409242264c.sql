@@ -1,0 +1,1 @@
+ALTER TABLE public.topping_comments REPLICA IDENTITY FULL;

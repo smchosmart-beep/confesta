@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -10,13 +10,67 @@ import {
   deleteOwnTopping as deleteOwnFn,
   type ToppingDTO,
 } from "@/lib/confesta/toppings.functions";
+import type { AnswerPromptDTO } from "@/lib/confesta/prompts.functions";
 import type { AudienceRole } from "@/lib/confesta/audienceRole";
 import { useDeviceId } from "./use-device-id";
 import { useAudienceRole } from "./use-audience-role";
 import {
   subscribeToppings,
   useRealtimeHealth,
+  type RealtimePayload,
 } from "@/lib/confesta/realtime-channel";
+
+type ToppingRow = {
+  id: string;
+  session_id: string;
+  text: string;
+  kind: string;
+  prompt_id: string | null;
+  pinned: boolean;
+  addressed: boolean;
+  likes: number;
+  created_at: string;
+  device_id: string | null;
+  role: AudienceRole | null;
+};
+
+function rowToDTO(
+  r: ToppingRow,
+  deviceId: string | null,
+  promptText: string | null,
+  prev?: ToppingDTO,
+): ToppingDTO {
+  return {
+    id: r.id,
+    sessionId: r.session_id,
+    text: r.text,
+    kind: r.kind === "answer" ? "answer" : "question",
+    promptId: r.prompt_id,
+    promptText,
+    pinned: !!r.pinned,
+    addressed: !!r.addressed,
+    likes: r.likes ?? 0,
+    likedByMe: prev?.likedByMe ?? false,
+    mine: !!deviceId && r.device_id === deviceId,
+    role: (r.role ?? "other") as AudienceRole,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
+
+// v2 서버 필터를 유지하기 위한 클라 측 소프트 캡. 200건 초과 시 우선순위
+// (kind='answer' || pinned || addressed) 항목은 모두 유지하고, 나머지 신규 목록
+// 앞에서부터 채워 상한선을 유지한다. 정합성은 focus/reconnect resync로 수렴.
+function trimList(items: ToppingDTO[], cap = 200): ToppingDTO[] {
+  if (items.length <= cap) return items;
+  const priorityIds = new Set<string>();
+  const nonPri: string[] = [];
+  for (const t of items) {
+    if (t.kind === "answer" || t.pinned || t.addressed) priorityIds.add(t.id);
+    else nonPri.push(t.id);
+  }
+  const keepNonPri = new Set(nonPri.slice(0, Math.max(0, cap - priorityIds.size)));
+  return items.filter((t) => priorityIds.has(t.id) || keepNonPri.has(t.id));
+}
 
 // 모듈 수준 좋아요 보호 구간: RPC commit 직후 refetch가 stale 값으로
 // 덮어쓰는 race를 차단. key = `${sessionId}:${deviceId}:${toppingId}`.
@@ -88,10 +142,96 @@ export function useSessionToppings(sessionId: string | null) {
 
   useEffect(() => {
     if (!sessionId) return;
-    return subscribeToppings(sessionId, () =>
-      qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
-    );
+    return subscribeToppings(sessionId, (payload: RealtimePayload) => {
+      try {
+        const type = payload.eventType;
+        const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+          queryKey: ["toppings", sessionId],
+        });
+
+        if (type === "DELETE") {
+          const oldId = (payload.old as { id?: string } | null)?.id;
+          if (!oldId) return;
+          for (const [key, prev] of matches) {
+            if (!prev) continue;
+            const next = prev.toppings.filter((t) => t.id !== oldId);
+            if (next.length !== prev.toppings.length) {
+              qc.setQueryData(key, { ...prev, toppings: next });
+            }
+          }
+          return;
+        }
+
+        const row = payload.new as ToppingRow | null;
+        if (!row?.id) return;
+
+        // prompt_text는 join 결과라 payload에 없음 → prompts 캐시에서 조회
+        const promptsCache = qc.getQueryData<{ prompts: AnswerPromptDTO[] }>([
+          "prompts",
+          sessionId,
+        ]);
+        const lookupPromptText = (pid: string | null): string | null =>
+          pid ? promptsCache?.prompts.find((p) => p.id === pid)?.text ?? null : null;
+
+        for (const [key, prev] of matches) {
+          if (!prev) continue;
+          const keyDeviceId = (key[2] as string | null) ?? null;
+          const idx = prev.toppings.findIndex((t) => t.id === row.id);
+          let nextList: ToppingDTO[];
+
+          if (idx >= 0) {
+            // UPDATE (또는 INSERT dedupe): 기존 promptText·likedByMe 보존
+            const existing = prev.toppings[idx];
+            const dto = rowToDTO(
+              row,
+              keyDeviceId,
+              lookupPromptText(row.prompt_id) ?? existing.promptText,
+              existing,
+            );
+            // prompt_id가 바뀌었는데 새 프롬프트가 캐시에 없으면 promptText 안전망 재조회
+            if (
+              row.prompt_id &&
+              row.prompt_id !== existing.promptId &&
+              dto.promptText === null
+            ) {
+              qc.invalidateQueries({ queryKey: ["prompts", sessionId] });
+            }
+            nextList = prev.toppings.slice();
+            nextList[idx] = dto;
+          } else {
+            if (type === "UPDATE") {
+              // 서버 필터에 걸려 있던 항목이 UPDATE로 조건 진입 → 정확 복제 어려움
+              qc.invalidateQueries({ queryKey: key });
+              continue;
+            }
+            // INSERT: created_at DESC 리스트의 맨 앞에 삽입
+            const dto = rowToDTO(row, keyDeviceId, lookupPromptText(row.prompt_id));
+            nextList = trimList([dto, ...prev.toppings]);
+          }
+
+          const guarded = applyLikeGuards(sessionId, keyDeviceId, nextList);
+          qc.setQueryData(key, { ...prev, toppings: guarded });
+        }
+      } catch {
+        qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+      }
+    });
   }, [sessionId, qc]);
+
+  // 채널 재연결 시 놓친 이벤트 동기화 (false→true 전이만)
+  const wasUnhealthyRef = useRef(false);
+  useEffect(() => {
+    if (!sessionId) return;
+    if (!healthy) {
+      wasUnhealthyRef.current = true;
+      return;
+    }
+    if (wasUnhealthyRef.current) {
+      wasUnhealthyRef.current = false;
+      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+    }
+  }, [healthy, sessionId, qc]);
+
 
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];

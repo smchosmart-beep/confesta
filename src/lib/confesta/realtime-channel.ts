@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import type { RealtimeChannel } from "@supabase/supabase-js";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
 
 type Kind = "toppings" | "prompts" | "gate" | "comments";
 
@@ -14,10 +17,14 @@ const KIND_TABLE: Record<Kind, string> = {
   comments: "topping_comments",
 };
 
+export type RealtimeRow = Record<string, unknown>;
+export type RealtimePayload = RealtimePostgresChangesPayload<RealtimeRow>;
+type Cb = (payload: RealtimePayload) => void;
+
 interface SessionEntry {
   channel: RealtimeChannel | null;
   refCount: number; // 4개 kind 리스너 총합
-  listenersByKind: Record<Kind, Set<() => void>>;
+  listenersByKind: Record<Kind, Set<Cb>>;
   healthListeners: Set<() => void>;
   healthy: boolean;
   attempt: number;
@@ -25,29 +32,9 @@ interface SessionEntry {
   initialTimer: ReturnType<typeof setTimeout> | null;
 }
 
-// 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소).
-// 2000명 동시 접속에서 이벤트당 순간 QPS를 시간축에 분산하기 위해
-// base 2000ms + ±1000ms jitter (실효 1000~3000ms 균등 분포).
-// 청중 본인의 mutation은 onSuccess 로컬 invalidate로 즉시 반영되므로 지연 없음.
-// 타 청중 화면은 최대 3초 내 반영 (발표 흐름상 무해).
-const NOTIFY_DEBOUNCE_MS = 2000;
-const NOTIFY_DEBOUNCE_JITTER_MS = 1000;
-const notifyTimers = new WeakMap<Set<() => void>, ReturnType<typeof setTimeout>>();
-function scheduleNotify(set: Set<() => void>) {
-  if (set.size === 0) return;
-  const existing = notifyTimers.get(set);
-  if (existing) return;
-  const delay =
-    NOTIFY_DEBOUNCE_MS +
-    (Math.random() * 2 - 1) * NOTIFY_DEBOUNCE_JITTER_MS;
-  const t = setTimeout(() => {
-    notifyTimers.delete(set);
-    notifyAll(set);
-  }, delay);
-  notifyTimers.set(set, t);
-}
-
-// 세션당 채널 1개. kind별 리스너 Set은 분리해 디바운스가 서로 섞이지 않게 함.
+// 세션당 채널 1개. kind별 리스너 Set은 분리.
+// A안: invalidate→refetch 대신 payload 직접 캐시 패치. 디바운스 제거 —
+//  setQueryData는 in-memory + React 18 auto-batching으로 저렴.
 const sessionRegistry = new Map<string, SessionEntry>();
 
 const INITIAL_TIMEOUT_MS = 8000;
@@ -58,7 +45,7 @@ function jitter(ms: number, ratio = 0.2): number {
   return ms + (Math.random() * 2 - 1) * delta;
 }
 
-function notifyAll(set: Set<() => void>) {
+function notifyHealth(set: Set<() => void>) {
   for (const fn of set) {
     try {
       fn();
@@ -71,7 +58,7 @@ function notifyAll(set: Set<() => void>) {
 function setHealthy(entry: SessionEntry, healthy: boolean) {
   if (entry.healthy === healthy) return;
   entry.healthy = healthy;
-  notifyAll(entry.healthListeners);
+  notifyHealth(entry.healthListeners);
 }
 
 function clearTimers(entry: SessionEntry) {
@@ -106,7 +93,16 @@ function buildChannel(sessionId: string, entry: SessionEntry) {
         table: KIND_TABLE[kind],
         filter: `session_id=eq.${sessionId}`,
       } as never,
-      () => scheduleNotify(entry.listenersByKind[kind]),
+      (payload: RealtimePayload) => {
+        const set = entry.listenersByKind[kind];
+        for (const fn of set) {
+          try {
+            fn(payload);
+          } catch {
+            /* ignore */
+          }
+        }
+      },
     );
   }
 
@@ -188,7 +184,7 @@ function ensureEntry(sessionId: string): SessionEntry {
 function subscribe(
   kind: Kind,
   sessionId: string,
-  onChange: () => void,
+  onChange: Cb,
 ): () => void {
   const entry = ensureEntry(sessionId);
   entry.refCount += 1;
@@ -220,13 +216,13 @@ function getHealthy(sessionId: string): boolean {
   return sessionRegistry.get(sessionId)?.healthy ?? false;
 }
 
-export const subscribeToppings = (sessionId: string, cb: () => void) =>
+export const subscribeToppings = (sessionId: string, cb: Cb) =>
   subscribe("toppings", sessionId, cb);
-export const subscribePrompts = (sessionId: string, cb: () => void) =>
+export const subscribePrompts = (sessionId: string, cb: Cb) =>
   subscribe("prompts", sessionId, cb);
-export const subscribeGate = (sessionId: string, cb: () => void) =>
+export const subscribeGate = (sessionId: string, cb: Cb) =>
   subscribe("gate", sessionId, cb);
-export const subscribeToppingComments = (sessionId: string, cb: () => void) =>
+export const subscribeToppingComments = (sessionId: string, cb: Cb) =>
   subscribe("comments", sessionId, cb);
 
 export function useRealtimeHealth(
@@ -246,9 +242,8 @@ export function useRealtimeHealth(
 
 // ── Global (publication-wide) subscriptions ──────────────────────────────
 // Used for tables where we don't filter by session_id (orders aggregates,
-// session_slots edits, my-toppings by device_id). Each subscriber gets a
-// dedicated channel — these are admin/presenter-only and low-volume, so we
-// skip the ref-counted registry to keep the code simple.
+// session_slots edits). Each subscriber gets a dedicated channel — these are
+// admin/presenter-only and low-volume, so we skip the ref-counted registry.
 
 type GlobalTable = "orders" | "session_slots";
 
@@ -279,5 +274,3 @@ export const subscribeOrders = (cb: () => void) =>
   subscribeGlobalTable("orders", cb);
 export const subscribeSlots = (cb: () => void) =>
   subscribeGlobalTable("session_slots", cb);
-// subscribeMyToppings 제거: 청중당 글로벌 채널 비용을 없애기 위해 mutation onSuccess
-// invalidate (use-toppings.ts의 addTopping/deleteOwnMut)로 대체함.
