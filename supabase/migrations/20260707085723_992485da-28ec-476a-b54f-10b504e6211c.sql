@@ -1,0 +1,1 @@
+ALTER PUBLICATION supabase_realtime SET TABLE public.toppings;
