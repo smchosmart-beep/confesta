@@ -1,4 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { z } from "zod";
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -50,6 +52,13 @@ import {
 } from "@/components/ui/resizable";
 
 export const Route = createFileRoute("/presenter")({
+  validateSearch: zodValidator(
+    z.object({
+      day: z.coerce.number().int().optional().catch(undefined),
+      period: z.enum(PERIODS).optional().catch(undefined),
+      room: z.string().optional().catch(undefined),
+    }),
+  ),
   head: () => ({
     meta: [
       { title: "발표자 뷰 — Confesta" },
@@ -90,9 +99,26 @@ function PresenterPage() {
     };
   }, [qcRT]);
 
-  const [day, setDay] = useState<number | null>(null);
-  const [period, setPeriod] = useState<Period | null>(null);
-  const [room, setRoom] = useState<string | null>(null);
+  const search = Route.useSearch();
+  const day = search.day ?? null;
+  const period = search.period ?? null;
+  const room = search.room ?? null;
+  const navigate = useNavigate({ from: Route.fullPath });
+  const setSel = (patch: {
+    day?: number | null;
+    period?: Period | null;
+    room?: string | null;
+  }) => {
+    navigate({
+      search: (prev: Record<string, unknown>) => ({
+        ...prev,
+        ...(patch.day !== undefined ? { day: patch.day ?? undefined } : {}),
+        ...(patch.period !== undefined ? { period: patch.period ?? undefined } : {}),
+        ...(patch.room !== undefined ? { room: patch.room ?? undefined } : {}),
+      }),
+      replace: true,
+    });
+  };
 
   const daysAvailable = useMemo(
     () => Array.from(new Set(slots.map((s) => s.day))).sort((a, b) => a - b),
@@ -110,12 +136,13 @@ function PresenterPage() {
     [slots, day, period],
   );
 
-  // Auto-select first available slot whenever the set changes
+  // Auto-select first available slot whenever the set changes; if URL already
+  // holds a valid combination, this is a no-op.
   useEffect(() => {
     if (slots.length === 0) {
-      setDay(null);
-      setPeriod(null);
-      setRoom(null);
+      if (day != null || period != null || room != null) {
+        setSel({ day: null, period: null, room: null });
+      }
       return;
     }
     const validDay = day != null && daysAvailable.includes(day) ? day : daysAvailable[0];
@@ -128,9 +155,9 @@ function PresenterPage() {
       .filter((s) => s.day === validDay && s.period === validPeriod)
       .map((s) => s.room);
     const validRoom = room != null && rooms.includes(room) ? room : rooms[0];
-    if (validDay !== day) setDay(validDay);
-    if (validPeriod !== period) setPeriod(validPeriod);
-    if (validRoom !== room) setRoom(validRoom);
+    if (validDay !== day || validPeriod !== period || validRoom !== room) {
+      setSel({ day: validDay, period: validPeriod, room: validRoom });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slots]);
 
@@ -185,26 +212,23 @@ function PresenterPage() {
               periodsAvailable={periodsAvailable}
               slotsInScope={slotsInScope}
               onChangeDay={(d) => {
-                setDay(d);
                 const periods = Array.from(
                   new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
                 ) as Period[];
                 const nextPeriod =
                   period != null && periods.includes(period) ? period : periods[0] ?? null;
-                setPeriod(nextPeriod);
                 const rooms = slots
                   .filter((s) => s.day === d && s.period === nextPeriod)
                   .map((s) => s.room);
-                setRoom(rooms[0] ?? null);
+                setSel({ day: d, period: nextPeriod, room: rooms[0] ?? null });
               }}
               onChangePeriod={(p) => {
-                setPeriod(p);
                 const rooms = slots
                   .filter((s) => s.day === day && s.period === p)
                   .map((s) => s.room);
-                setRoom(rooms[0] ?? null);
+                setSel({ period: p, room: rooms[0] ?? null });
               }}
-              onChangeRoom={setRoom}
+              onChangeRoom={(r) => setSel({ room: r })}
               loading={slotsQuery.isLoading}
             />
           </div>
