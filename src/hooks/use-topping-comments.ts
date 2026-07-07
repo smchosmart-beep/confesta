@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -13,8 +13,31 @@ import { useAudienceRole } from "./use-audience-role";
 import {
   subscribeToppingComments,
   useRealtimeHealth,
+  type RealtimePayload,
 } from "@/lib/confesta/realtime-channel";
 import type { AudienceRole } from "@/lib/confesta/audienceRole";
+
+type CommentRow = {
+  id: string;
+  topping_id: string;
+  session_id: string;
+  text: string;
+  role: AudienceRole | null;
+  device_id: string | null;
+  created_at: string;
+};
+
+function rowToDTO(r: CommentRow, deviceId: string | null): CommentDTO {
+  return {
+    id: r.id,
+    toppingId: r.topping_id,
+    sessionId: r.session_id,
+    text: r.text,
+    role: (r.role ?? "other") as AudienceRole,
+    mine: !!deviceId && r.device_id === deviceId,
+    createdAt: new Date(r.created_at).getTime(),
+  };
+}
 
 export function useSessionToppingComments(sessionId: string | null) {
   const deviceId = useDeviceId();
@@ -44,10 +67,62 @@ export function useSessionToppingComments(sessionId: string | null) {
 
   useEffect(() => {
     if (!sessionId) return;
-    return subscribeToppingComments(sessionId, () =>
-      qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] }),
-    );
+    return subscribeToppingComments(sessionId, (payload: RealtimePayload) => {
+      try {
+        const type = payload.eventType;
+        const matches = qc.getQueriesData<{ comments: CommentDTO[] }>({
+          queryKey: ["topping-comments", sessionId],
+        });
+
+        if (type === "DELETE") {
+          const oldId = (payload.old as { id?: string } | null)?.id;
+          if (!oldId) return;
+          for (const [key, prev] of matches) {
+            if (!prev) continue;
+            const next = prev.comments.filter((c) => c.id !== oldId);
+            if (next.length !== prev.comments.length) {
+              qc.setQueryData(key, { comments: next });
+            }
+          }
+          return;
+        }
+
+        const row = payload.new as CommentRow | null;
+        if (!row?.id) return;
+
+        for (const [key, prev] of matches) {
+          if (!prev) continue;
+          const keyDeviceId = (key[2] as string | null) ?? null;
+          const dto = rowToDTO(row, keyDeviceId);
+          const idx = prev.comments.findIndex((c) => c.id === row.id);
+          let next: CommentDTO[];
+          if (idx >= 0) {
+            next = prev.comments.slice();
+            next[idx] = dto;
+          } else {
+            // 서버 정렬: created_at ASC → 뒤에 append
+            next = [...prev.comments, dto];
+          }
+          qc.setQueryData(key, { comments: next });
+        }
+      } catch {
+        qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] });
+      }
+    });
   }, [sessionId, qc]);
+
+  const wasUnhealthyRef = useRef(false);
+  useEffect(() => {
+    if (!sessionId) return;
+    if (!healthy) {
+      wasUnhealthyRef.current = true;
+      return;
+    }
+    if (wasUnhealthyRef.current) {
+      wasUnhealthyRef.current = false;
+      qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] });
+    }
+  }, [healthy, sessionId, qc]);
 
   const comments: CommentDTO[] = data?.comments ?? [];
 
