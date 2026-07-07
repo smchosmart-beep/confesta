@@ -52,6 +52,13 @@ import {
 } from "@/components/ui/resizable";
 
 export const Route = createFileRoute("/presenter")({
+  validateSearch: zodValidator(
+    z.object({
+      day: fallback(z.coerce.number().int(), undefined).optional(),
+      period: fallback(z.enum(PERIODS), undefined).optional(),
+      room: fallback(z.string(), undefined).optional(),
+    }),
+  ),
   head: () => ({
     meta: [
       { title: "발표자 뷰 — Confesta" },
