@@ -1,81 +1,147 @@
-# A안 리스크 재검토 (실제 코드/스키마 대조)
+# E안 (최종) — 세션 초기 로드 batch (bootstrapSession)
 
-계획을 `use-toppings.ts` 실체와 마이그레이션의 `REPLICA IDENTITY` 설정에 맞춰 재검증. 결과: **A안은 전반적으로 안전**하나 **3가지 보완 필수**, **1건 사전 이슈**(A안이 유발한 것은 아님) 발견.
+## 목표
+세션 진입 시 각 클라이언트가 3~4회씩 발사하던 서버함수 호출을 **1회 batch RPC**로 통합. 2000명 동시 진입 스파이크 **-66~75%**.
 
-## 사전 조사 결과
+## 확정 사실 (코드 실측)
 
-- REPLICA IDENTITY FULL: `toppings`, `answer_prompts`, `topping_gates` ✔ → DELETE payload에 전체 행 포함, 필터·패치 안전.
-- REPLICA IDENTITY DEFAULT: `topping_comments` ✗ → DELETE 시 PK만 전송. 아래 이슈 1 참조.
-- 좋아요 경합 방지 인프라(`likeGuards` / `inflightLikes` / `lastLikeAt`)와 낙관 업데이트가 이미 정교하게 구현됨 → 패치 로직이 이 가드와 반드시 정합해야 함.
+- audience.tsx 세션 진입 시 발사: `listToppings` + `listAnswerPrompts` + `listToppingComments` (댓글 블록이 토핑마다 마운트되지만 캐시키가 세션 단위라 1회로 dedup).
+- presenter.tsx는 위 3건 + `getToppingGate` = 4건.
+- 캐시 키 (정확한 값):
+  - `["toppings", sessionId, deviceId]`
+  - `["prompts", sessionId]`
+  - `["gate", sessionId]`
+  - `["topping-comments", sessionId, deviceId]`
+- toppings/comments 서버함수는 `deviceId`로 `likedByMe`·`mine`을 계산.
 
-## 기능 오작동 리스크
+## 접근
 
-### ① 좋아요 UPDATE 이벤트가 낙관/가드값을 덮어씀 (반드시 대응)
-현재 `applyLikeGuards`는 `queryFn`(refetch) 안에서만 적용됨. A안에서 realtime UPDATE payload를 곧장 `setQueryData`로 반영하면 TTL 내 서버 최신 카운트가 사용자의 낙관값을 되돌릴 수 있음.
+### 1. 신규 서버함수 `bootstrapSession`
+- 파일: `src/lib/confesta/session-bootstrap.functions.ts`
+- 입력: `{ sessionId: string, deviceId: string }`
+- 내부: `Promise.allSettled`로 기존 4개 조회를 병렬 실행. 실패는 필드별로 격리해 `errors[k]`에 기록.
+- 반환:
+  ```ts
+  {
+    toppings?: { toppings: ToppingDTO[] }
+    prompts?: { prompts: AnswerPromptDTO[] }
+    gate?: ToppingGateDTO
+    comments?: { comments: CommentDTO[] }
+    errors: { toppings?: string; prompts?: string; gate?: string; comments?: string }
+  }
+  ```
+- 재사용 대상: `listToppings`, `listAnswerPrompts`, `getToppingGate`, `listToppingComments` 의 **내부 구현(서버 헬퍼 함수)** 을 직접 호출. `$`-prefixed RPC 스텁을 서버 내부에서 다시 호출하지 않도록 각 파일에서 순수 헬퍼를 export 하거나, 서버함수 handler에서 supabase 클라이언트로 동일한 쿼리를 직접 수행.
+- 인증: anon(기존 4개 함수와 동일).
+- 새 DB 쿼리·정책·grant 없음.
 
-**대응**: 패치 진입점에서 `applyLikeGuards`를 다시 통과. 즉 `toppings` UPDATE 패치는 raw payload로 replace → 결과 배열을 `applyLikeGuards(sessionId, deviceId, next)`로 감싼 뒤 setQueryData. `likedByMe`는 payload에 없으므로 이전 row 값 유지가 기본, 가드가 있으면 가드값 우선.
+### 2. 신규 훅 `useSessionBootstrap`
+- 파일: `src/hooks/use-session-bootstrap.ts`
+- 형태:
+  ```ts
+  const qc = useQueryClient();
+  const deviceId = useDeviceId();
+  const bootFn = useServerFn(bootstrapSession);
+  useQuery({
+    queryKey: ["session-bootstrap", sessionId, deviceId] as const,
+    queryFn: async () => {
+      const r = await bootFn({ data: { sessionId: sessionId!, deviceId: deviceId! } });
+      // 원자적 시딩: queryFn 내부에서 setQueryData (v5는 onSuccess 미지원)
+      if (r.toppings) {
+        qc.setQueryData(["toppings", sessionId, deviceId], {
+          ...r.toppings,
+          toppings: applyLikeGuards(sessionId!, deviceId, r.toppings.toppings),
+        });
+      }
+      if (r.prompts) qc.setQueryData(["prompts", sessionId], r.prompts);
+      if (r.gate) qc.setQueryData(["gate", sessionId], r.gate);
+      if (r.comments) qc.setQueryData(["topping-comments", sessionId, deviceId], r.comments);
+      return r;
+    },
+    enabled: !!sessionId && !!deviceId,   // 보완 ①
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  ```
+- `applyLikeGuards`는 use-toppings.ts에서 export 형태로 노출(현재 모듈 내 private) → **최소 변경**: 함수를 export만 추가.
 
-### ② 자기 자신의 INSERT 이벤트 중복 처리
-`addTopping.onSuccess`가 이미 invalidate. realtime payload도 도착 → 리스트에 중복 append 위험.
-**대응**: 패치 시 `id` 존재 검사(dedupe) 필수. 4개 훅 공통.
+### 3. 호출 지점 (라우트 2곳)
+- `src/routes/audience.tsx`: `activeSessionId` 계산 직후 `useSessionBootstrap(activeSessionId)` 1줄.
+- `src/routes/presenter.tsx`: `AnswerPromptTabs` 진입부 또는 `SessionPresenter`에서 `useSessionBootstrap(sessionId)` 1줄.
 
-### ③ v2 서버 필터 완전 복제 불가
-`list_toppings_with_my_like_v2`는 `kind='answer' OR pinned OR addressed OR rn<=100` 로 트리밍. 새 question INSERT 시 이미 100건 넘으면 리스트에 넣지 않는 게 서버 결과와 일치하지만 클라 랭킹 재계산은 정확하지 않음.
-**실용적 타협**: 언제나 INSERT는 append(dedupe 후). 리스트가 200건을 초과할 때만 클라에서 오래된 non-pinned/non-addressed/non-answer 항목을 잘라 안전 상한 유지. 서버-클라 정합성은 다음 focus/health 회복 invalidate에서 자연 수렴.
+기존 4개 훅과 컴포넌트는 **손대지 않음**.
 
-### ④ `prompt_text` join 결손
-INSERT payload에 없음. `qc.getQueryData(["prompts", sessionId])`로 조회, 미스 시 `null`(UI 관용). UPDATE 시 `prompt_id`가 바뀌면 이전 prompt_text가 stale → 이때만 안전망 `invalidateQueries`(드문 케이스).
+## 3건 보완 (계획에 반영)
 
-### ⑤ REPLICA IDENTITY DEFAULT인 `topping_comments`의 DELETE 이벤트 유실 (사전 이슈)
-Realtime `filter: session_id=eq.X` 는 DELETE에서 `old` 레코드로 평가됨. REPLICA IDENTITY DEFAULT면 `old`에 PK만 담겨 session_id 필터가 매칭되지 않아 **필터된 채널에 DELETE가 전달되지 않음**. 이는 현재도 동일한 사전 이슈(현재 코드도 invalidate가 트리거되지 않음).
-**대응(A안과 별개, 함께 처리 권장)**: 마이그레이션 1줄 추가 — `ALTER TABLE public.topping_comments REPLICA IDENTITY FULL;`. 이후 DELETE payload 정상 도착 → 패치 정상.
+### ① deviceId 준비 이전에 실행되지 않도록 게이팅
+`enabled: !!sessionId && !!deviceId`. 없으면 캐시 키 불일치로 시딩이 무효.
 
-### ⑥ 재연결 이벤트 유실
-채널이 CLOSED→SUBSCRIBED 회복 사이 이벤트는 누락. 훅에서 `useRealtimeHealth` 값 관찰 → false→true 전이 시 해당 쿼리 1회 invalidate. 2000명 동시 회복 시에도 이미 backoff jitter(1~30s)로 분산 → refetch 폭주 아님.
+### ② likeGuards를 시딩 경로에 적용
+toppings 시딩 전에 `applyLikeGuards(sessionId, deviceId, toppings)` 통과. 사용자의 직전 좋아요 값이 서버 카운트로 되돌려지지 않도록.
 
-### ⑦ 디바운스 제거로 렌더 폭주
-setQueryData는 in-memory. React 18 자동 배칭 + 각 훅의 `useMemo`(commentsByTopping 등) 재계산은 O(N). 세션당 초당 이벤트 수백까지 여유. 문제되면 훅 레벨에서 rAF micro-batch 도입 가능.
+### ③ TanStack Query v5 대응 (onSuccess 미사용)
+`queryFn` 내부에서 fetch 직후 `setQueryData` 호출. `onSuccess` 콜백 사용 금지.
 
-## 서버비 영향 (순감소)
+### (부수 정정) 캐시 키
+`["topping-comments", sessionId, deviceId]` — 초기 초안의 `["comments", ...]` 오류 수정.
 
-| 항목 | 변화 | 근거 |
-|---|---|---|
-| Realtime 유래 서버함수 호출 | **-99%** | invalidate→refetch 경로 제거 |
-| DB read QPS (list_* v2 등) | **-95%+** | 이벤트 수와 무관, 초기 로드/포커스/재연결 resync만 |
-| Realtime WebSocket / 이벤트 페이로드 | 무변화 | 발생량 동일 |
-| Egress | 소폭 감소 | 클라 refetch 응답 트래픽 소멸 |
-| Cloud 인스턴스 CPU | 감소 | PostgREST · DB 파싱/계획 부담 감소 |
+## 서버비/성능 영향
 
-**과다 부과 요인 없음**. 단, DELETE fix 위해 topping_comments를 REPLICA IDENTITY FULL로 바꾸면 그 테이블의 UPDATE/DELETE 이벤트 payload 크기가 증가 → 트래픽 미미 상승. 실무상 무시 가능.
+| 항목 | 변화 |
+|---|---|
+| 세션 진입 서버함수 호출 수 | audience 3→1 (-66%), presenter 4→1 (-75%) |
+| DB 총 쿼리 수 | 동일 (bootstrap 내부 병렬) |
+| PostgREST/함수 라우팅 오버헤드 | 감소 |
+| Realtime | 무변화 |
+| Cloud CPU | 감소 |
+| 대역폭 | 소폭 감소 (HTTP 헤더 절감) |
+
+과다 부과 요인 없음.
 
 ## 다른 기능 영향
 
-| 대상 | 판정 | 비고 |
+| 대상 | 판정 | 근거 |
 |---|---|---|
-| 좋아요 낙관/가드/쿨다운 | 안전 | `applyLikeGuards`를 패치 경로에도 재사용 |
-| pin/addressed 낙관 토글 | 안전 | mutation onSuccess 서버 확정값이 우선, realtime UPDATE 뒤이어 도착해도 동일 값 |
-| addTopping onSuccess invalidate | 유지 | 본인 1건이라 서버 부담 무시 가능. dedupe 있으면 중복 append 없음 |
-| deleteOwn onSuccess invalidate | 유지 | 동일 |
-| 관리자(`list_all_toppings_admin`) | 무영향 | realtime 미사용 |
-| BackgroundToppings/WordCloud 등 파생 뷰 | 무영향 | 동일 쿼리 구독 |
-| `subscribeGlobalTable` (orders/session_slots) | 무영향 | 손대지 않음 |
-| SSR fallback | 무영향 | `useSyncExternalStore` 서버 스냅샷 true 유지 |
-| 채널 통합(직전 변경) | 정합 | 패치 경로가 kind별 리스너 Set에 붙음 |
+| A안(realtime payload 패치) | 정합 | 캐시 shape 100% 동일, 세팅 시점만 앞당김 |
+| 좋아요 낙관/가드/쿨다운 | 안전 | 보완 ② |
+| pin/addressed 낙관 토글 | 안전 | mutation 확정값이 우선 |
+| addTopping/deleteOwn 이후 invalidate | 무영향 | bootstrap 키와 별개 |
+| useAudience / useMyToppings | 무영향 | 별도 스코프 |
+| BackgroundToppings·WordCloud·StageMarquee·AnswerPie | 무영향 | 시딩된 캐시 즉시 소비 |
+| 채널 통합·comments REPLICA IDENTITY FULL | 정합 | 무관 |
+| 관리자 뷰 | 무영향 | bootstrap 미대상 |
 
 ## 특수 케이스
 
-- **다중 탭**: 각 탭이 자체 QueryClient. 탭A의 mutation onSuccess로 A만 즉시 반영, 탭B는 realtime payload로 반영. 정상.
-- **역할 전환/세션 전환**: 쿼리키 변경 → 신규 쿼리 첫 fetch로 초기화. 패치는 신규 키에만 적용. 정상.
-- **payload 타입 mismatch**: 방어적 try/catch → 실패 시 invalidate fallback. 안전망.
-- **liked_by_me 계산의 초기값**: INSERT payload에는 없음. 본인 device_id 일치 시 `false`로 시작(작성 직후 좋아요 없음), 이후 좋아요 mutation이 갱신. 정합.
+- **부분 실패**: `errors[k]`가 있는 키는 시딩 스킵 → 해당 훅이 자체 fetch로 자동 폴백. 전체 백지화 없음.
+- **staleTime 3초의 gate**: 진입 스파이크 흡수 후 3초 뒤 stale → 훅이 자체 fetch 1회. 부하 관점 문제없음.
+- **세션 전환**: 새 sessionId로 bootstrap 재실행. 15초 내 동일 세션 재진입은 캐시 히트.
+- **오프라인 진입**: bootstrap 실패 → 하위 훅이 각자 폴백 fetch 시도.
+- **다중 탭**: 각 탭 자체 QueryClient → 각 탭 1회씩. 정상.
+
+## 변경 파일
+
+1. **신규** `src/lib/confesta/session-bootstrap.functions.ts`
+2. **신규** `src/hooks/use-session-bootstrap.ts`
+3. **수정** `src/hooks/use-toppings.ts` — `applyLikeGuards` export 추가만 (로직 무변경)
+4. **수정** `src/routes/audience.tsx` — 훅 호출 1줄
+5. **수정** `src/routes/presenter.tsx` — 훅 호출 1줄
+
+DB 마이그레이션 없음.
+
+## 검증
+
+1. Network: 세션 진입 시 `_serverFn/*` 3~4건 → **1건(bootstrap)** 확인.
+2. 좋아요·핀·해결·삭제·질문 작성·프롬프트 open/close 정상 반영.
+3. Realtime 이벤트로 리스트/게이트/프롬프트/댓글 갱신 (기존 A안 경로).
+4. 15초 내 세션 재진입: bootstrap 재호출 없이 캐시 히트.
+5. `applyLikeGuards` 활성 시 좋아요 값 유지.
+6. 강제 부분 실패(테스트): 해당 훅만 자체 fetch로 복구, 다른 캐시는 그대로 사용.
 
 ## 롤백
-훅 4개 + realtime-channel.ts 이전 커밋 복구. topping_comments FULL 마이그레이션은 별도 revert 마이그레이션(단순 `REPLICA IDENTITY DEFAULT`).
 
-## 결론
-- **기능 오작동**: 위 ①②③④⑥ 대응을 구현에 반영하면 없음.
-- **서버비 과다 부과**: 없음(순감소).
-- **다른 기능 악영향**: 없음.
-- **사전 이슈 병행 처리 권장**: `topping_comments REPLICA IDENTITY FULL` 마이그레이션 1줄 추가(A안과 별개로도 가치 있음).
+5개 파일 revert (신규 2 삭제 + use-toppings export 제거 + 라우트 2 원복). 기존 훅 무변경 → 자연 복구.
 
-이 보완 3건 + 마이그레이션 1줄을 A안 계획에 포함해 진행 승인 부탁드립니다.
+## 이후 이어질 최적화
+
+E안 완료 후 F안(재연결 리싱크 랜덤 지연) → G안(댓글 opt-in 구독).
