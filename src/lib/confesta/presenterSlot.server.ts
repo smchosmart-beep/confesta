@@ -41,29 +41,58 @@ export function verifySlotCookieValue(
   sessionId: string,
   value: string | undefined | null,
 ): boolean {
-  if (!value) return false;
+  return inspectSlotCookieValue(sessionId, value).ok;
+}
+
+export type SlotCookieInspection =
+  | { ok: true; ageMs: number }
+  | {
+      ok: false;
+      reason:
+        | "no-cookie"
+        | "bad-format"
+        | "sid-mismatch"
+        | "bad-signature"
+        | "bad-age";
+      ageMs?: number;
+    };
+
+export function inspectSlotCookieValue(
+  sessionId: string,
+  value: string | undefined | null,
+): SlotCookieInspection {
+  if (!value) return { ok: false, reason: "no-cookie" };
   const idx = value.lastIndexOf(".");
-  if (idx < 0) return false;
+  if (idx < 0) return { ok: false, reason: "bad-format" };
   const payload = value.slice(0, idx);
   const sig = value.slice(idx + 1);
-  // payload = "<sessionId>.<issuedAt>"
   const dot = payload.lastIndexOf(".");
-  if (dot < 0) return false;
+  if (dot < 0) return { ok: false, reason: "bad-format" };
   const sid = payload.slice(0, dot);
   const issuedAt = payload.slice(dot + 1);
-  if (sid !== sessionId) return false;
+  if (sid !== sessionId) return { ok: false, reason: "sid-mismatch" };
   let expected: string;
   try {
     expected = hmac(`slot:${payload}`);
   } catch {
-    return false;
+    return { ok: false, reason: "bad-signature" };
   }
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return { ok: false, reason: "bad-signature" };
+  }
   const ageMs = Date.now() - Number(issuedAt);
-  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > COOKIE_TTL_SECONDS * 1000) return false;
-  return true;
+  if (!Number.isFinite(ageMs) || ageMs < 0 || ageMs > COOKIE_TTL_SECONDS * 1000) {
+    return { ok: false, reason: "bad-age", ageMs };
+  }
+  return { ok: true, ageMs };
+}
+
+/** 로그용 짧은 해시(원본 노출 방지). */
+export function shortHash(input: string): string {
+  return crypto.createHash("sha1").update(input).digest("hex").slice(0, 8);
 }
 
 export const SLOT_COOKIE_MAX_AGE = COOKIE_TTL_SECONDS;
+

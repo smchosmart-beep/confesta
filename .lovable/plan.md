@@ -1,28 +1,52 @@
-## 원인
+## 목표
 
-`src/routes/presenter.tsx` 202줄에서 `BookmarkBar`가 `RoleHeader` 우측에 `selected`만 있으면 렌더링됨 — PIN 잠금 해제 여부(`SelectedSlotBody`의 `checkQuery.data?.ok`)와 무관.
+발표자 화면 새로고침 시 재잠김의 실제 원인을 published 로그로 확인한 뒤, 원인에 맞춘 최소 수정을 진행합니다.
 
-서버 함수(`requestBookmarkUpload` / `createBookmark` / `deleteBookmark` / `deleteBookmarkUpload`)는 모두 `assertPresenterSlot` 쿠키 검증이 있어서 **실제 쓰기는 401로 차단**되지만, UI에는 "자료 추가" 버튼과 기존 자료 칩(+ 삭제 X 버튼)이 그대로 노출되어 마치 인증 없이 되는 것처럼 보임. 또한 `listBookmarks`는 게이트가 없어 미인증 상태에서도 목록 fetch가 발생.
+## 1단계 — 진단 로그 추가 (임시)
 
-## 수정
+**파일: `src/lib/confesta/presenterSlot.server.ts`**
+- `verifySlotCookieValue`가 실패 사유를 반환하도록 확장하거나, 내부에서 사유를 담아 반환하는 헬퍼(`inspectSlotCookieValue`)를 추가합니다.
+- 반환 사유 종류:
+  - `no-cookie` — 쿠키 자체가 없음
+  - `bad-format` — 세그먼트 분리 실패
+  - `sid-mismatch` — 쿠키 payload의 sessionId가 요청과 다름
+  - `bad-signature` — HMAC 검증 실패(시크릿 불일치 유력)
+  - `bad-age` — 만료 or 음수 age (서버 시계 문제 유력)
+  - `ok` — 정상
 
-`BookmarkBar`를 PIN 잠금 해제된 슬롯에서만 표시.
+**파일: `src/lib/confesta/presenter.functions.ts`**
+- `checkPresenterSlot` 핸들러에서 위 사유를 받아 `console.log`로 남깁니다. PII 없이 다음만 로깅:
+  - `sessionId` 해시(앞 8자)
+  - 쿠키 이름 해시(앞 8자)
+  - 쿠키 존재 여부
+  - 실패 사유
+  - `issuedAt`과 `Date.now()` 차이(ms, 있을 때만)
+- `unlockPresenterSlot` 성공 시에도 발급 로그(같은 해시 값, 발급 시각)를 남겨 발급/검증을 대조할 수 있게 합니다.
+- 반환값은 기존과 동일(`{ ok: boolean }`) 유지 → 프런트/타 로직 무영향.
 
-**변경 파일: `src/components/confesta/BookmarkBar.tsx` 한 개**
+## 2단계 — 재현 및 로그 수집
 
-- 컴포넌트 초입에서 `useQuery({ queryKey: ["presenter-slot-auth", sessionId], enabled: false })`로 **캐시만 구독**(별도 fetch 트리거 없음, `SelectedSlotBody`가 이미 같은 key로 채움).
-- `data?.ok !== true`면 `return null` — 목록 fetch도, 자료 추가 버튼도, 칩도 렌더링하지 않음.
-- `sessionId`가 null이면 기존대로 null(변경 없음).
+배포된 앱(`confesta.lovable.app`)에서:
+1. 발표자 화면에서 세션 잠금 해제
+2. 새로고침
+3. published 서버 로그에서 `[presenter-slot]` 태그로 검색
 
-## 부작용 검토
+기대 결과에 따른 분기:
+- `bad-signature`가 나오면 → `CONFESTA_SESSION_SECRET` 주입/변경이 원인. 시크릿 안정성 확인 후 대응.
+- `no-cookie`가 나오면 → 쿠키가 전송되지 않음. 이때 `sameSite`/`partitioned` 옵션 완화가 정답.
+- `bad-age`가 나오면 → 시계/타임스탬프 이슈. 검증 로직 보강.
+- `sid-mismatch`가 나오면 → `makeSlotKey` 인코딩/URL 파라미터 정규화 문제.
 
-- **청중 화면(`AudienceBookmarkStrip`)**: 별도 컴포넌트라 영향 없음. 청중은 세션 게이트 통과 후 그대로 자료 열람 가능.
-- **서버비**: 오히려 감소. 미인증 상태의 `listBookmarks` 호출이 사라짐. 인증 후에는 기존과 동일(60초 in-memory 캐시 + staleTime 5분).
-- **중복 요청 없음**: `presenter-slot-auth` 쿼리는 `SelectedSlotBody`가 이미 소유. `enabled:false`로 캐시만 읽으므로 dedupe.
-- **잠금 재잠금(`onLock`)**: `checkQuery` 무효화되면 `ok=false` → BookmarkBar 자동으로 사라짐. 열려있던 다이얼로그가 있어도 부모 unmount로 정리됨.
-- **다른 라우트/기능**: `BookmarkBar`는 `presenter.tsx`에서만 사용(grep 확인). 무관.
-- **보안 관점**: 서버는 이미 안전하므로 이번 변경은 UX 정합성 개선. listBookmarks 정보 노출 소량 완화 부가 효과.
+## 3단계 — 원인별 최소 수정
 
-## 대안(비채택)
+로그로 원인이 확정된 후 그에 맞춘 한 곳만 수정합니다. 이 단계에서 별도 계획을 다시 제시합니다.
 
-`presenter.tsx`에서 인증 상태를 상위로 끌어올려 조건부로 `<BookmarkBar/>` 렌더 — 구조 변경이 크고, `SelectedSlotBody` 내부 상태 승격이 필요. 컴포넌트 자체 게이트가 최소 변경.
+## 4단계 — 진단 로그 제거
+
+원인 확정·수정 검증 후 임시 로그를 제거합니다.
+
+## 영향 검토
+
+- **서버비:** 무시할 수 있는 수준(요청당 로그 몇 줄).
+- **보안:** 로그에 비밀번호/원본 쿠키/원본 sessionId를 남기지 않음. 해시 접두 8자만 사용.
+- **다른 기능:** 반환 형태 변화 없음 → 프런트, BookmarkBar, 서버 함수 인증(`assertPresenterSlot`) 모두 그대로 동작.
