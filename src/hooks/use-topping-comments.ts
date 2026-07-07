@@ -261,11 +261,14 @@ export function useToppingCommentThread(
     },
     onSuccess: (_result, _input, ctx) => {
       // 임시 항목 제거. 실제 row는 Realtime INSERT로 도착하여 upsert됨.
-      if (!ctx?.tempId) return;
-      qc.setQueryData<ThreadData>(threadKey, (prev) => {
-        if (!prev) return prev;
-        return { comments: prev.comments.filter((c) => c.id !== ctx.tempId) };
-      });
+      if (ctx?.tempId) {
+        qc.setQueryData<ThreadData>(threadKey, (prev) => {
+          if (!prev) return prev;
+          return { comments: prev.comments.filter((c) => c.id !== ctx.tempId) };
+        });
+      }
+      // Realtime 지연 대비 안전망: 열린 thread를 서버 실값으로 재수렴.
+      qc.invalidateQueries({ queryKey: ["comment-thread", toppingId] });
       // counts는 낙관 +1을 유지. 최종 정합은 onSettled의 invalidate가 담당.
     },
     onSettled: () => {
