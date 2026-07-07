@@ -118,15 +118,24 @@ export const unlockPresenterSlot = createServerFn({ method: "POST" })
     if (!stored) {
       return { ok: false as const, reason: "unset" as const };
     }
-    const { passwordsMatch, makeSlotCookieValue, slotCookieName, SLOT_COOKIE_MAX_AGE } =
-      await import("./presenterSlot.server");
+    const {
+      passwordsMatch,
+      makeSlotCookieValue,
+      slotCookieName,
+      SLOT_COOKIE_MAX_AGE,
+      shortHash,
+    } = await import("./presenterSlot.server");
     if (!passwordsMatch(stored, data.password)) {
       return { ok: false as const, reason: "mismatch" as const };
     }
-    setCookie(slotCookieName(sessionId), makeSlotCookieValue(sessionId), {
+    const cookieName = slotCookieName(sessionId);
+    setCookie(cookieName, makeSlotCookieValue(sessionId), {
       ...slotCookieOpts,
       maxAge: SLOT_COOKIE_MAX_AGE,
     } as Parameters<typeof setCookie>[2]);
+    console.log(
+      `[presenter-slot] unlock sid=${shortHash(sessionId)} ck=${shortHash(cookieName)} issuedAt=${Date.now()}`,
+    );
     return { ok: true as const };
   });
 
@@ -135,9 +144,20 @@ export const checkPresenterSlot = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => SlotKeySchema.parse(input))
   .handler(async ({ data }) => {
     const sessionId = makeSlotKey(data.day, data.period as Period, data.room);
-    const { slotCookieName, verifySlotCookieValue } = await import("./presenterSlot.server");
-    const v = getCookie(slotCookieName(sessionId));
-    return { ok: verifySlotCookieValue(sessionId, v) };
+    const { slotCookieName, inspectSlotCookieValue, shortHash } = await import(
+      "./presenterSlot.server"
+    );
+    const cookieName = slotCookieName(sessionId);
+    const v = getCookie(cookieName);
+    const insp = inspectSlotCookieValue(sessionId, v);
+    console.log(
+      `[presenter-slot] check sid=${shortHash(sessionId)} ck=${shortHash(cookieName)} hasCookie=${!!v} ${
+        insp.ok
+          ? `ok ageMs=${insp.ageMs}`
+          : `fail reason=${insp.reason}${insp.ageMs !== undefined ? ` ageMs=${insp.ageMs}` : ""}`
+      }`,
+    );
+    return { ok: insp.ok };
   });
 
 /** Presenter: clear the unlock cookie for this slot. */
@@ -152,3 +172,4 @@ export const clearPresenterSlot = createServerFn({ method: "POST" })
     );
     return { ok: true as const };
   });
+
