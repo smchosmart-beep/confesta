@@ -1,42 +1,52 @@
-## 진단 결과
+# 댓글 수가 순간 86으로 튀는 문제 (하이브리드 안)
 
-published 서버 로그로 확인한 실제 원인:
+## 현상
+- "댓글 0" 상태에서 댓글 하나 등록 시 순간 "댓글 86"으로 표기, 잠시 후 정상 복귀
+- 여러 토핑이 동시에 86으로 표기됨 → counts 캐시 오염 정황
+- DB 실측: 어떤 (session, topping) 조합도 카운트 최대 2. 즉 86은 서버 값이 아닌 클라이언트 캐시의 유령 값.
 
-```
-09:36:56 check   sid=b4c246b4  no-cookie      ← 발표자가 이 슬롯 선택
-09:37:01 unlock  sid=b4c246b4                  ← 비번 입력해 해제
-09:37:01 check   sid=b4c246b4  ok ageMs=74    ← 해제 직후 정상
-09:37:04 check   sid=0561ee65  no-cookie      ← 새로고침 → 다른 슬롯 화면
-```
+## 원인 (추정)
+`src/hooks/use-topping-comments.ts`의 counts 캐시 조작이 3단으로 얽혀 있음:
+1. 뮤테이션 `onMutate`에서 낙관적 `+1`
+2. 뮤테이션 `onSuccess`에서 `−1`로 되돌림
+3. Realtime INSERT에서 다시 `+1`
 
-**쿠키 로직은 전혀 문제없음.** `b4c246b4` 슬롯의 unlock 쿠키(12시간)는 계속 살아 있음. 문제는 새로고침 후 `PresenterPage`가 다른 슬롯(`0561ee65`)을 선택 상태로 표시해서, 그 슬롯의 쿠키(없음)를 확인하고 잠금 카드를 보여주는 것.
+세 단계 순서가 어긋나거나 Realtime이 재전송/지연되면 카운트가 오염될 여지가 있음. 정확한 유입 경로는 실행 시점의 이벤트 순서에 따라 다르므로, **최종적으로 서버 진실과 반드시 일치**하도록 안전망을 추가하는 방향으로 수정한다.
 
-원인:
-- 슬롯 선택 상태는 URL search param(`?day&period&room`)에만 있고, 미리보기/재진입 등으로 파라미터가 없이 `/presenter`에 들어오면 `useEffect` 자동선택이 목록의 **첫 슬롯**을 골라버림.
-- 발표자가 실제 사용 중인 슬롯이 첫 슬롯과 다르면 새로고침이 사실상 "선택 리셋"이 됨.
+## 수정 계획 (하이브리드)
 
-## 수정 방안 (최소)
+파일: `src/hooks/use-topping-comments.ts` 한 개만 수정.
 
-**`src/routes/presenter.tsx` 한 파일만 수정.** 서버비/DB/쿠키 로직은 그대로.
+### A. 뮤테이션 로직
+- **낙관적 카운트 조정은 유지** (UX상 배지 숫자가 즉시 반영되어야 함)
+  - `addComment`: `onMutate`의 counts `+1` 유지
+  - `deleteOwnComment` / `deletePresenterComment`: `onMutate`의 counts `−1` 유지
+  - 스레드(`comment-thread`) 낙관 삽입/삭제 로직도 그대로 유지
+- **onSuccess의 counts 되돌림(`−1`) 로직 제거**
+  - 기존에는 Realtime INSERT가 다시 `+1` 할 것을 상쇄하기 위해 뺐지만, 아래 D에서 무조건 invalidate하므로 상쇄가 불필요해짐
+- **onError는 기존대로 `prevCounts` 스냅샷으로 롤백** (즉시 UI 정합 유지)
+- **onSettled에서 무조건 `qc.invalidateQueries({ queryKey: ["comment-counts", sessionId] })`**
+  - 성공/실패/Realtime 순서와 무관하게 최종적으로 서버 실값으로 재수렴
+  - 카운트 RPC는 단일 GROUP BY로 저비용이라 뮤테이션 1회당 1회 재조회 부담 없음
 
-1. 브라우저 `localStorage`에 마지막 선택 슬롯 저장:
-   - 키: `confesta:presenter:last-slot` → `{ day, period, room }` JSON
-   - `setSel`이 실행되어 URL이 바뀔 때마다 저장 (또는 `selected`가 변할 때 저장).
+### B. Realtime INSERT/DELETE 처리
+- **그대로 유지**. 다른 사용자가 단 댓글은 지금처럼 실시간 반영됨.
+- 내가 방금 단 댓글이 Realtime으로 도착해 `+1`이 중복 적용되어도, onSettled invalidate가 서버 진실로 덮어쓰므로 결과적으로 안전.
 
-2. 자동선택 `useEffect`의 우선순위 조정:
-   1. URL 파라미터가 유효한 슬롯을 가리키면 그대로 사용 (기존 동작).
-   2. URL이 비어 있으면 `localStorage`의 마지막 슬롯이 현재 발급 목록에 있으면 그것을 선택.
-   3. 둘 다 없으면 기존처럼 목록 첫 슬롯으로 폴백.
+### C. 진단용 임시 로그
+- counts를 갱신하는 세 경로(뮤테이션 onMutate, Realtime, bootstrap seed) 각각에서 **이전값 → 새값 차이가 2 이상**이면 `console.warn`으로 다음을 남김:
+  - `source`, `toppingId`, `prev`, `next`, `event`(INSERT/DELETE 등)
+- 재현 시 로그로 86의 유입 지점을 확정한 뒤 로그 제거 (후속 조치).
 
-3. 진단 로그 정리: `presenter.functions.ts` / `presenterSlot.server.ts`에 추가한 `console.log`, `shortHash` 관련 진단 코드는 원인이 확정됐으므로 제거 (Cloudflare Worker 로그 비용/노이즈 최소화).
+### D. 세션-bootstrap 관련
+- `src/hooks/use-session-bootstrap.ts`의 seed 로직은 `getQueryData(key) == null`일 때만 동작하므로 그대로 두어도 hybrid 흐름과 충돌 없음. 변경 없음.
 
-## 부작용 검토
+## 기대 효과
+- **UX**: 낙관 업데이트 유지 → 배지 숫자가 여전히 즉시 반영됨.
+- **정합성**: 뮤테이션 후 반드시 재조회 → 낙관값이 잘못돼도 수백 ms 내 서버 진실로 복구, "86" 같은 유령 값이 화면에 남지 않음.
+- **다른 기능 영향 없음**: 변경 대상 쿼리 키는 `comment-counts`만. toppings/prompts/gate/thread/likes/bookmarks 등에는 영향 없음.
+- **서버 비용**: 뮤테이션당 카운트 RPC 1회 추가(경량). Realtime 트래픽·다른 RPC에는 변화 없음.
 
-- localStorage는 device-local이라 여러 발표자가 같은 브라우저를 공유하지 않는 한 문제없음.
-- 서버 호출/쿠키/DB 스키마 변경 없음 → 서버비 영향 0.
-- 관리자/청중/스태프 화면에는 영향 없음 (파일 격리).
-- SSR 안전: `typeof window` 체크로 감쌈.
-
-## 확인 방법
-
-빌드 후 미리보기에서 슬롯 A 선택 → 잠금해제 → 브라우저 새로고침 → 여전히 슬롯 A가 잠금해제된 상태로 표시되는지 확인.
+## 변경 범위
+- `src/hooks/use-topping-comments.ts` 1개 파일만 수정
+- 서버 함수/DB 스키마/Realtime 채널 구조 변경 없음
