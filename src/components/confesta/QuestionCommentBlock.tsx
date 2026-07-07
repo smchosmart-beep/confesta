@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { MessageCircle, Send, Trash2 } from "lucide-react";
 import { RoleBadge } from "./RoleBadge";
-import { useSessionToppingComments } from "@/hooks/use-topping-comments";
+import {
+  useToppingCommentCounts,
+  useToppingCommentThread,
+} from "@/hooks/use-topping-comments";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,10 +25,11 @@ interface Props {
 const MAX_LEN = 200;
 
 export function QuestionCommentBlock({ sessionId, toppingId }: Props) {
-  const { commentsByTopping, canWrite, addComment, deleteOwnComment } =
-    useSessionToppingComments(sessionId);
-  const list = commentsByTopping.get(toppingId) ?? [];
+  const { getCount } = useToppingCommentCounts(sessionId);
   const [open, setOpen] = useState(false);
+  const { comments, isFetching, canWrite, addComment, deleteOwnComment } =
+    useToppingCommentThread(sessionId, toppingId, open);
+  const count = getCount(toppingId);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -35,7 +39,7 @@ export function QuestionCommentBlock({ sessionId, toppingId }: Props) {
     if (!t || !canWrite) return;
     setSubmitting(true);
     try {
-      await addComment(toppingId, t.slice(0, MAX_LEN));
+      await addComment(t.slice(0, MAX_LEN));
       setText("");
     } catch (e) {
       toast.error("댓글을 보내지 못했어요");
@@ -54,14 +58,18 @@ export function QuestionCommentBlock({ sessionId, toppingId }: Props) {
         aria-expanded={open}
       >
         <MessageCircle className="w-3.5 h-3.5" />
-        <span>{list.length > 0 ? `댓글 ${list.length}` : "댓글 달기"}</span>
+        <span>{count > 0 ? `댓글 ${count}` : "댓글 달기"}</span>
       </button>
 
       {open && (
         <div className="mt-3 flex flex-col gap-2">
-          {list.length > 0 && (
+          {comments.length === 0 && isFetching ? (
+            <div className="text-xs text-muted-foreground py-2">
+              댓글 불러오는 중…
+            </div>
+          ) : comments.length > 0 ? (
             <ul className="flex flex-col gap-2">
-              {list.map((c) => (
+              {comments.map((c) => (
                 <li
                   key={c.id}
                   className="rounded-xl bg-white/85 border border-white px-3 py-2 text-[13px] text-foreground"
@@ -87,7 +95,7 @@ export function QuestionCommentBlock({ sessionId, toppingId }: Props) {
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
 
           <div className="rounded-xl bg-white/85 border border-white px-3 py-2 flex flex-col gap-1.5">
             <textarea
