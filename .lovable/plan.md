@@ -1,114 +1,81 @@
-# A안 — Realtime 채널 통합 (세션당 1채널) + 리스크 검토
+# A안 리스크 재검토 (실제 코드/스키마 대조)
 
-## 배경 (요약)
-현재 `src/lib/confesta/realtime-channel.ts`는 kind별 독립 채널을 유지 → 청중 1명당 4개 WebSocket 채널. 2000명 × 4 = **8000 채널**. 4개 kind를 세션 단위 1채널로 통합하면 채널 수 75%↓.
+계획을 `use-toppings.ts` 실체와 마이그레이션의 `REPLICA IDENTITY` 설정에 맞춰 재검증. 결과: **A안은 전반적으로 안전**하나 **3가지 보완 필수**, **1건 사전 이슈**(A안이 유발한 것은 아님) 발견.
 
-## 변경 범위 (단일 파일)
-`src/lib/confesta/realtime-channel.ts` 내부 리팩터. **공용 export 시그니처·동작 완전 불변**:
-- `subscribeToppings/Prompts/Gate/ToppingComments(sessionId, cb)`
-- `useRealtimeHealth(kind, sessionId)` — kind 인자 유지(시그니처 호환), 내부적으로는 세션 단위 health 반환
-- `subscribeGlobalTable`(orders/session_slots) 무변경
+## 사전 조사 결과
 
-호출부(9개 파일: use-toppings, use-answer-prompts, use-topping-gate, use-topping-comments 등) **수정 없음**.
+- REPLICA IDENTITY FULL: `toppings`, `answer_prompts`, `topping_gates` ✔ → DELETE payload에 전체 행 포함, 필터·패치 안전.
+- REPLICA IDENTITY DEFAULT: `topping_comments` ✗ → DELETE 시 PK만 전송. 아래 이슈 1 참조.
+- 좋아요 경합 방지 인프라(`likeGuards` / `inflightLikes` / `lastLikeAt`)와 낙관 업데이트가 이미 정교하게 구현됨 → 패치 로직이 이 가드와 반드시 정합해야 함.
 
-## 새 내부 구조
+## 기능 오작동 리스크
 
-```ts
-type Kind = "toppings" | "prompts" | "gate" | "comments";
-const KIND_TABLE: Record<Kind, TableName> = {
-  toppings: "toppings",
-  prompts:  "answer_prompts",
-  gate:     "topping_gates",
-  comments: "topping_comments",
-};
+### ① 좋아요 UPDATE 이벤트가 낙관/가드값을 덮어씀 (반드시 대응)
+현재 `applyLikeGuards`는 `queryFn`(refetch) 안에서만 적용됨. A안에서 realtime UPDATE payload를 곧장 `setQueryData`로 반영하면 TTL 내 서버 최신 카운트가 사용자의 낙관값을 되돌릴 수 있음.
 
-interface SessionEntry {
-  channel: RealtimeChannel | null;
-  listenersByKind: Record<Kind, Set<() => void>>;
-  healthListeners: Set<() => void>;
-  refCount: number;             // 4개 kind 총합
-  healthy: boolean;
-  attempt: number;
-  backoffTimer, initialTimer;
-}
-const sessionRegistry = new Map<string, SessionEntry>();
-```
+**대응**: 패치 진입점에서 `applyLikeGuards`를 다시 통과. 즉 `toppings` UPDATE 패치는 raw payload로 replace → 결과 배열을 `applyLikeGuards(sessionId, deviceId, next)`로 감싼 뒤 setQueryData. `likedByMe`는 payload에 없으므로 이전 row 값 유지가 기본, 가드가 있으면 가드값 우선.
 
-### buildChannel — 4개 테이블 한 채널
-```ts
-const ch = supabase.channel(`session:${sessionId}:singleton`);
-for (const kind of KINDS) {
-  ch.on("postgres_changes", {
-    event: "*", schema: "public",
-    table: KIND_TABLE[kind],
-    filter: `session_id=eq.${sessionId}`,
-  }, () => scheduleNotify(entry.listenersByKind[kind]));
-}
-```
+### ② 자기 자신의 INSERT 이벤트 중복 처리
+`addTopping.onSuccess`가 이미 invalidate. realtime payload도 도착 → 리스트에 중복 append 위험.
+**대응**: 패치 시 `id` 존재 검사(dedupe) 필수. 4개 훅 공통.
 
-### subscribe — kind별 리스너 Set만 분리, refCount는 세션 단위 합산
-마지막 kind의 마지막 리스너 해제 시(=refCount 0) 채널 teardown.
+### ③ v2 서버 필터 완전 복제 불가
+`list_toppings_with_my_like_v2`는 `kind='answer' OR pinned OR addressed OR rn<=100` 로 트리밍. 새 question INSERT 시 이미 100건 넘으면 리스트에 넣지 않는 게 서버 결과와 일치하지만 클라 랭킹 재계산은 정확하지 않음.
+**실용적 타협**: 언제나 INSERT는 append(dedupe 후). 리스트가 200건을 초과할 때만 클라에서 오래된 non-pinned/non-addressed/non-answer 항목을 잘라 안전 상한 유지. 서버-클라 정합성은 다음 focus/health 회복 invalidate에서 자연 수렴.
 
-### scheduleNotify — 그대로
-kind별 Set이 서로 다른 WeakMap 키가 되어 디바운스가 섞이지 않음.
+### ④ `prompt_text` join 결손
+INSERT payload에 없음. `qc.getQueryData(["prompts", sessionId])`로 조회, 미스 시 `null`(UI 관용). UPDATE 시 `prompt_id`가 바뀌면 이전 prompt_text가 stale → 이때만 안전망 `invalidateQueries`(드문 케이스).
 
-### useRealtimeHealth(kind, sessionId)
-kind는 시그니처 호환용, 실제로는 세션 entry의 healthy 반환.
+### ⑤ REPLICA IDENTITY DEFAULT인 `topping_comments`의 DELETE 이벤트 유실 (사전 이슈)
+Realtime `filter: session_id=eq.X` 는 DELETE에서 `old` 레코드로 평가됨. REPLICA IDENTITY DEFAULT면 `old`에 PK만 담겨 session_id 필터가 매칭되지 않아 **필터된 채널에 DELETE가 전달되지 않음**. 이는 현재도 동일한 사전 이슈(현재 코드도 invalidate가 트리거되지 않음).
+**대응(A안과 별개, 함께 처리 권장)**: 마이그레이션 1줄 추가 — `ALTER TABLE public.topping_comments REPLICA IDENTITY FULL;`. 이후 DELETE payload 정상 도착 → 패치 정상.
 
-## 리스크 검토
+### ⑥ 재연결 이벤트 유실
+채널이 CLOSED→SUBSCRIBED 회복 사이 이벤트는 누락. 훅에서 `useRealtimeHealth` 값 관찰 → false→true 전이 시 해당 쿼리 1회 invalidate. 2000명 동시 회복 시에도 이미 backoff jitter(1~30s)로 분산 → refetch 폭주 아님.
 
-### 1. 기능 오작동
-| 항목 | 판정 | 근거 |
+### ⑦ 디바운스 제거로 렌더 폭주
+setQueryData는 in-memory. React 18 자동 배칭 + 각 훅의 `useMemo`(commentsByTopping 등) 재계산은 O(N). 세션당 초당 이벤트 수백까지 여유. 문제되면 훅 레벨에서 rAF micro-batch 도입 가능.
+
+## 서버비 영향 (순감소)
+
+| 항목 | 변화 | 근거 |
 |---|---|---|
-| 테이블별 이벤트 라우팅 | 안전 | `ch.on(..., {table})`를 4번 등록. Supabase Realtime은 각 리스너를 table 필터로 개별 dispatch. 기존 4채널 구조도 채널 내부에선 같은 방식 |
-| kind별 디바운스 독립성 | 유지 | `notifyTimers = WeakMap<Set, timer>`. kind별 Set이 서로 다른 인스턴스 → 디바운스 큐가 섞이지 않음 |
-| refCount 생명주기 | 정상 | 4 kind 총합. 마지막 unsubscribe에서만 teardown. 부분 kind 해제 시 채널 유지 |
-| 초기 subscribe 순서 | 정상 | 첫 kind 구독에서 채널 생성, 이후 kind는 기존 채널의 listener Set에만 추가 (재구독 X) |
-| 재접속(backoff) | 정상 | 세션 단위로 통일. `scheduleReconnect(sessionId)`가 세션 entry만 재빌드 |
-| health 통합 | 무해 | 세션당 채널 1개이므로 세션 health = 채널 health. `useRealtimeHealth(kind, sid)` 호출부는 kind 값과 무관하게 세션 상태만 보면 됨 |
-| SSR fallback | 무변화 | `useSyncExternalStore`의 서버 스냅샷 `true` 유지 |
+| Realtime 유래 서버함수 호출 | **-99%** | invalidate→refetch 경로 제거 |
+| DB read QPS (list_* v2 등) | **-95%+** | 이벤트 수와 무관, 초기 로드/포커스/재연결 resync만 |
+| Realtime WebSocket / 이벤트 페이로드 | 무변화 | 발생량 동일 |
+| Egress | 소폭 감소 | 클라 refetch 응답 트래픽 소멸 |
+| Cloud 인스턴스 CPU | 감소 | PostgREST · DB 파싱/계획 부담 감소 |
 
-### 2. 서버비 영향 — 순감소
-| 항목 | 변화 | 이유 |
+**과다 부과 요인 없음**. 단, DELETE fix 위해 topping_comments를 REPLICA IDENTITY FULL로 바꾸면 그 테이블의 UPDATE/DELETE 이벤트 payload 크기가 증가 → 트래픽 미미 상승. 실무상 무시 가능.
+
+## 다른 기능 영향
+
+| 대상 | 판정 | 비고 |
 |---|---|---|
-| Realtime WebSocket 채널 수 | **75%↓ (8000→2000)** | 세션당 1채널 |
-| Realtime 서버 CPU/메모리 | 감소 | 채널 관리·filter 매칭 부담 축소 |
-| DB 이벤트 발생 | 무변화 | postgres_changes는 DB WAL 기반, 채널 통합과 무관 |
-| Egress(payload 총량) | 무변화 | 이벤트 개수·크기 동일 |
-| 재접속 폭풍(장애 복구 시) | 1/4로 완화 | 재접속 시도 수 자체가 세션당 1 |
+| 좋아요 낙관/가드/쿨다운 | 안전 | `applyLikeGuards`를 패치 경로에도 재사용 |
+| pin/addressed 낙관 토글 | 안전 | mutation onSuccess 서버 확정값이 우선, realtime UPDATE 뒤이어 도착해도 동일 값 |
+| addTopping onSuccess invalidate | 유지 | 본인 1건이라 서버 부담 무시 가능. dedupe 있으면 중복 append 없음 |
+| deleteOwn onSuccess invalidate | 유지 | 동일 |
+| 관리자(`list_all_toppings_admin`) | 무영향 | realtime 미사용 |
+| BackgroundToppings/WordCloud 등 파생 뷰 | 무영향 | 동일 쿼리 구독 |
+| `subscribeGlobalTable` (orders/session_slots) | 무영향 | 손대지 않음 |
+| SSR fallback | 무영향 | `useSyncExternalStore` 서버 스냅샷 true 유지 |
+| 채널 통합(직전 변경) | 정합 | 패치 경로가 kind별 리스너 Set에 붙음 |
 
-**주의**: 세션당 채널이 4배 많은 이벤트를 받게 되지만, 원래 이 이벤트들은 별도 채널로 어차피 브라우저에 도달하고 있었음. 총 트래픽은 동일하며 오히려 WebSocket 프레임 헤더 오버헤드가 통합만큼 감소.
+## 특수 케이스
 
-### 3. 다른 기능 영향
-| 대상 | 판정 |
-|---|---|
-| 9개 호출부(use-toppings 등) | 무영향 — export 시그니처·동작 동일 |
-| `subscribeGlobalTable` (orders/session_slots, 관리자·발표자용) | 무영향 — 손대지 않음 |
-| 좋아요 팬아웃 억제 (`topping_likes` publication 제외) | 무영향 — 별개 최적화 |
-| 재조회 디바운스 상향 (1~3초) | 무영향 — `scheduleNotify` 로직 그대로 |
-| 서버 dedup / 제출 pending 잠금 | 무영향 — 서버 함수/컴포넌트 무관 |
-| 관리자 화면(`list_all_toppings_admin`) | 무영향 — realtime 미사용 |
+- **다중 탭**: 각 탭이 자체 QueryClient. 탭A의 mutation onSuccess로 A만 즉시 반영, 탭B는 realtime payload로 반영. 정상.
+- **역할 전환/세션 전환**: 쿼리키 변경 → 신규 쿼리 첫 fetch로 초기화. 패치는 신규 키에만 적용. 정상.
+- **payload 타입 mismatch**: 방어적 try/catch → 실패 시 invalidate fallback. 안전망.
+- **liked_by_me 계산의 초기값**: INSERT payload에는 없음. 본인 device_id 일치 시 `false`로 시작(작성 직후 좋아요 없음), 이후 좋아요 mutation이 갱신. 정합.
 
-### 4. 특수 케이스
-- **동일 세션 다중 탭**: 탭당 별도 entry(브라우저 인스턴스 분리) → 정상.
-- **세션 전환**: 이전 세션 refCount 0 → teardown, 새 세션 신규 entry → 정상.
-- **health 리스너만 남고 데이터 리스너 다 해제**: 기존 코드와 동일하게 data listener가 lifetime 지배(health 리스너는 tear-down 유발 안 함).
-- **버그 시나리오**: `listenersByKind` 초기화를 `ensureEntry` 시 반드시 4개 빈 Set으로 채워야 함. 누락 시 `undefined.add` 런타임 오류 — 초기화 코드에 명시.
-
-### 5. 롤백
-파일 1개만 이전 커밋으로 되돌리면 즉시 복구. 다른 파일·스키마 변경 없음.
-
-## 배포 후 검증
-1. DevTools → Network → WS: 세션 진입 후 WebSocket 채널이 세션당 **1개**만 열리는지 확인 (`session:{sid}:singleton`).
-2. 발표자 pin/complete → 청중 화면 반영 (최대 3초 내)
-3. 답변 프롬프트 open/close → 청중 알림
-4. gate 열림/닫힘 → 입력창 활성/비활성 전환
-5. 답변 카드 열림 시 댓글 실시간 반영
-6. 네트워크 오프라인→온라인 토글 시 재접속 및 `useRealtimeHealth` 상태 복구
+## 롤백
+훅 4개 + realtime-channel.ts 이전 커밋 복구. topping_comments FULL 마이그레이션은 별도 revert 마이그레이션(단순 `REPLICA IDENTITY DEFAULT`).
 
 ## 결론
-- **기능 오작동**: 없음 (라우팅·디바운스·생명주기 검증 완료)
-- **서버비**: 순감소 (Realtime 75%↓, DB/Egress 무변화)
-- **타 기능 악영향**: 없음 (공용 API 시그니처·동작 불변)
+- **기능 오작동**: 위 ①②③④⑥ 대응을 구현에 반영하면 없음.
+- **서버비 과다 부과**: 없음(순감소).
+- **다른 기능 악영향**: 없음.
+- **사전 이슈 병행 처리 권장**: `topping_comments REPLICA IDENTITY FULL` 마이그레이션 1줄 추가(A안과 별개로도 가치 있음).
 
-승인해주시면 진행하겠습니다.
+이 보완 3건 + 마이그레이션 1줄을 A안 계획에 포함해 진행 승인 부탁드립니다.
