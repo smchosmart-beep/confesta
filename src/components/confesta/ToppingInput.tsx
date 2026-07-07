@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Sparkles, MessageSquare, Hash, Lock, Megaphone } from "lucide-react";
+import { Send, Sparkles, MessageSquare, Hash, Lock, Megaphone, Loader2 } from "lucide-react";
 import type { ToppingKind } from "@/lib/confesta/types";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useToppingGate } from "@/hooks/use-topping-gate";
