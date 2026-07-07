@@ -12,6 +12,7 @@ import { SlotUnlockCard } from "@/components/confesta/SlotUnlockCard";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import { useToppingGate } from "@/hooks/use-topping-gate";
 import { useSessionToppings } from "@/hooks/use-toppings";
+import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import {
   issuePickupQR,
   listIssuedSlots,
@@ -428,6 +429,8 @@ function UnlockedSlotView({
   const issueFn = useServerFn(issuePickupQR);
   const rotateFn = useServerFn(rotatePickupQR);
   const getOrderFn = useServerFn(getOrderQRForPresenter);
+
+  useSessionBootstrap(sessionId);
 
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
