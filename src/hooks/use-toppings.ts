@@ -323,11 +323,12 @@ export function useSessionToppings(sessionId: string | null) {
       toppings,
       ready: !!deviceId && !!sessionId,
       submit,
+      isSubmitting: addTopping.isPending,
       toggleLike: toggleLike.mutate,
       togglePin: togglePin.mutate,
       toggleAddressed: toggleAddressed.mutate,
       deleteOwn,
     }),
-    [toppings, deviceId, sessionId, submit, toggleLike.mutate, togglePin.mutate, toggleAddressed.mutate, deleteOwn],
+    [toppings, deviceId, sessionId, submit, addTopping.isPending, toggleLike.mutate, togglePin.mutate, toggleAddressed.mutate, deleteOwn],
   );
 }
