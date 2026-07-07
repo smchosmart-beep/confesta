@@ -54,9 +54,9 @@ import {
 export const Route = createFileRoute("/presenter")({
   validateSearch: zodValidator(
     z.object({
-      day: fallback(z.coerce.number().int(), undefined).optional(),
-      period: fallback(z.enum(PERIODS), undefined).optional(),
-      room: fallback(z.string(), undefined).optional(),
+      day: z.coerce.number().int().optional().catch(undefined),
+      period: z.enum(PERIODS).optional().catch(undefined),
+      room: z.string().optional().catch(undefined),
     }),
   ),
   head: () => ({
