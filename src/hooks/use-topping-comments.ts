@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  listToppingComments,
+  listToppingCommentCounts,
+  listCommentsByTopping,
   addToppingComment as addFn,
   deleteOwnToppingComment as deleteOwnFn,
   deletePresenterToppingComment as deletePresenterFn,
@@ -27,6 +28,9 @@ type CommentRow = {
   created_at: string;
 };
 
+type CountsData = { counts: Record<string, number> };
+type ThreadData = { comments: CommentDTO[] };
+
 function rowToDTO(r: CommentRow, deviceId: string | null): CommentDTO {
   return {
     id: r.id,
@@ -39,24 +43,21 @@ function rowToDTO(r: CommentRow, deviceId: string | null): CommentDTO {
   };
 }
 
-export function useSessionToppingComments(sessionId: string | null) {
-  const deviceId = useDeviceId();
-  const { state: roleState } = useAudienceRole();
+/**
+ * 세션 진입 시 topping별 댓글 개수만 로드. 본문은 opt-in.
+ * Realtime INSERT/DELETE로 카운트 실시간 patch, 열린 thread 캐시도 동기 갱신.
+ */
+export function useToppingCommentCounts(sessionId: string | null) {
   const qc = useQueryClient();
-  const listFn = useServerFn(listToppingComments);
-  const addCommentFn = useServerFn(addFn);
-  const deleteOwnCommentFn = useServerFn(deleteOwnFn);
-  const deletePresenterCommentFn = useServerFn(deletePresenterFn);
-
-  const queryKey = ["topping-comments", sessionId, deviceId] as const;
+  const deviceId = useDeviceId();
+  const countsFn = useServerFn(listToppingCommentCounts);
   const healthy = useRealtimeHealth("comments", sessionId);
+
+  const queryKey = ["comment-counts", sessionId] as const;
 
   const { data } = useQuery({
     queryKey,
-    queryFn: () =>
-      listFn({
-        data: { sessionId: sessionId!, deviceId: deviceId ?? undefined },
-      }),
+    queryFn: () => countsFn({ data: { sessionId: sessionId! } }),
     enabled: !!sessionId,
     staleTime: 15_000,
     refetchOnWindowFocus: !healthy,
@@ -70,27 +71,52 @@ export function useSessionToppingComments(sessionId: string | null) {
     return subscribeToppingComments(sessionId, (payload: RealtimePayload) => {
       try {
         const type = payload.eventType;
-        const matches = qc.getQueriesData<{ comments: CommentDTO[] }>({
-          queryKey: ["topping-comments", sessionId],
-        });
 
         if (type === "DELETE") {
-          const oldId = (payload.old as { id?: string } | null)?.id;
-          if (!oldId) return;
-          for (const [key, prev] of matches) {
-            if (!prev) continue;
-            const next = prev.comments.filter((c) => c.id !== oldId);
-            if (next.length !== prev.comments.length) {
-              qc.setQueryData(key, { comments: next });
+          const oldRow = payload.old as { id?: string; topping_id?: string } | null;
+          if (!oldRow?.topping_id) return;
+          // counts -1
+          qc.setQueryData<CountsData>(queryKey, (prev) => {
+            if (!prev) return prev;
+            const cur = prev.counts[oldRow.topping_id!] ?? 0;
+            const next = { ...prev.counts };
+            if (cur <= 1) delete next[oldRow.topping_id!];
+            else next[oldRow.topping_id!] = cur - 1;
+            return { counts: next };
+          });
+          // 열린 thread에서 제거
+          if (oldRow.id) {
+            const threads = qc.getQueriesData<ThreadData>({
+              queryKey: ["comment-thread", oldRow.topping_id],
+            });
+            for (const [key, prev] of threads) {
+              if (!prev) continue;
+              const next = prev.comments.filter((c) => c.id !== oldRow.id);
+              if (next.length !== prev.comments.length) {
+                qc.setQueryData(key, { comments: next });
+              }
             }
           }
           return;
         }
 
         const row = payload.new as CommentRow | null;
-        if (!row?.id) return;
+        if (!row?.id || !row.topping_id) return;
 
-        for (const [key, prev] of matches) {
+        // counts patch — INSERT면 +1, UPDATE면 유지
+        if (type === "INSERT") {
+          qc.setQueryData<CountsData>(queryKey, (prev) => {
+            if (!prev) return prev;
+            const cur = prev.counts[row.topping_id] ?? 0;
+            return { counts: { ...prev.counts, [row.topping_id]: cur + 1 } };
+          });
+        }
+
+        // 열린 thread에 upsert (id dedupe)
+        const threads = qc.getQueriesData<ThreadData>({
+          queryKey: ["comment-thread", row.topping_id],
+        });
+        for (const [key, prev] of threads) {
           if (!prev) continue;
           const keyDeviceId = (key[2] as string | null) ?? null;
           const dto = rowToDTO(row, keyDeviceId);
@@ -100,44 +126,64 @@ export function useSessionToppingComments(sessionId: string | null) {
             next = prev.comments.slice();
             next[idx] = dto;
           } else {
-            // 서버 정렬: created_at ASC → 뒤에 append
             next = [...prev.comments, dto];
           }
           qc.setQueryData(key, { comments: next });
         }
       } catch {
-        qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] });
+        qc.invalidateQueries({ queryKey });
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, qc]);
 
-  const wasUnhealthyRef = useRef(false);
-  useEffect(() => {
-    if (!sessionId) return;
-    if (!healthy) {
-      wasUnhealthyRef.current = true;
-      return;
-    }
-    if (wasUnhealthyRef.current) {
-      wasUnhealthyRef.current = false;
-      qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] });
-    }
-  }, [healthy, sessionId, qc]);
+  const getCount = useCallback(
+    (toppingId: string) => data?.counts?.[toppingId] ?? 0,
+    [data],
+  );
+
+  return { getCount, ready: !!deviceId && !!sessionId };
+}
+
+/**
+ * 특정 topping의 댓글 본문. enabled=false면 fetch/subscribe 없음.
+ * 뮤테이션은 낙관적 업데이트 + Realtime dedupe로 서버 함수 호출 최소화.
+ */
+export function useToppingCommentThread(
+  sessionId: string | null,
+  toppingId: string | null,
+  enabled: boolean,
+) {
+  const qc = useQueryClient();
+  const deviceId = useDeviceId();
+  const { state: roleState } = useAudienceRole();
+  const threadFn = useServerFn(listCommentsByTopping);
+  const addCommentFn = useServerFn(addFn);
+  const deleteOwnCommentFn = useServerFn(deleteOwnFn);
+  const deletePresenterCommentFn = useServerFn(deletePresenterFn);
+  const healthy = useRealtimeHealth("comments", sessionId);
+
+  const threadKey = ["comment-thread", toppingId, deviceId] as const;
+  const countsKey = ["comment-counts", sessionId] as const;
+
+  const { data, isFetching } = useQuery({
+    queryKey: threadKey,
+    queryFn: () =>
+      threadFn({
+        data: { toppingId: toppingId!, deviceId: deviceId ?? undefined },
+      }),
+    enabled: enabled && !!toppingId && !!deviceId,
+    staleTime: 15_000,
+    refetchOnWindowFocus: !healthy,
+    refetchOnReconnect: true,
+    refetchIntervalInBackground: false,
+    refetchInterval: enabled && !healthy ? 60_000 : false,
+  });
 
   const comments: CommentDTO[] = data?.comments ?? [];
 
-  const commentsByTopping = useMemo(() => {
-    const m = new Map<string, CommentDTO[]>();
-    for (const c of comments) {
-      const arr = m.get(c.toppingId);
-      if (arr) arr.push(c);
-      else m.set(c.toppingId, [c]);
-    }
-    return m;
-  }, [comments]);
-
   const addComment = useMutation({
-    mutationFn: (input: { toppingId: string; text: string }) => {
+    mutationFn: async (input: { text: string }) => {
       const role: AudienceRole | undefined =
         roleState === "loading" || roleState === "none" ? undefined : roleState;
       if (!role) throw new Error("역할이 선택되지 않았어요");
@@ -145,21 +191,97 @@ export function useSessionToppingComments(sessionId: string | null) {
         data: {
           deviceId: deviceId!,
           sessionId: sessionId!,
-          toppingId: input.toppingId,
+          toppingId: toppingId!,
           text: input.text,
           role,
         },
       });
     },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: threadKey });
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const role: AudienceRole =
+        roleState === "loading" || roleState === "none"
+          ? "other"
+          : (roleState as AudienceRole);
+      const optimistic: CommentDTO = {
+        id: tempId,
+        toppingId: toppingId!,
+        sessionId: sessionId!,
+        text: input.text,
+        role,
+        mine: true,
+        createdAt: Date.now(),
+      };
+      const prevThread = qc.getQueryData<ThreadData>(threadKey);
+      qc.setQueryData<ThreadData>(threadKey, (prev) => ({
+        comments: [...(prev?.comments ?? []), optimistic],
+      }));
+      const prevCounts = qc.getQueryData<CountsData>(countsKey);
+      qc.setQueryData<CountsData>(countsKey, (prev) => {
+        if (!prev) return prev;
+        const cur = prev.counts[toppingId!] ?? 0;
+        return { counts: { ...prev.counts, [toppingId!]: cur + 1 } };
+      });
+      return { tempId, prevThread, prevCounts };
+    },
+    onError: (_e, _input, ctx) => {
+      if (!ctx) return;
+      if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
+      if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
+    onSuccess: (_result, _input, ctx) => {
+      // 임시 항목 제거. 실제 row는 Realtime INSERT로 도착하여 upsert됨.
+      // Realtime이 먼저 도착해 이미 실 id가 있어도 dedupe 로직이 정상 동작.
+      if (!ctx?.tempId) return;
+      qc.setQueryData<ThreadData>(threadKey, (prev) => {
+        if (!prev) return prev;
+        return { comments: prev.comments.filter((c) => c.id !== ctx.tempId) };
+      });
+      // counts는 낙관적으로 이미 +1 되어있고, Realtime INSERT가 다시 +1 하지 않도록 되돌림
+      qc.setQueryData<CountsData>(countsKey, (prev) => {
+        if (!prev) return prev;
+        const cur = prev.counts[toppingId!] ?? 0;
+        const nextVal = Math.max(0, cur - 1);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
+      });
+    },
   });
 
   const deleteOwnComment = useMutation({
     mutationFn: (commentId: string) =>
       deleteOwnCommentFn({ data: { deviceId: deviceId!, commentId } }),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] }),
+    onMutate: async (commentId: string) => {
+      await qc.cancelQueries({ queryKey: threadKey });
+      const prevThread = qc.getQueryData<ThreadData>(threadKey);
+      const prevCounts = qc.getQueryData<CountsData>(countsKey);
+      qc.setQueryData<ThreadData>(threadKey, (prev) =>
+        prev
+          ? { comments: prev.comments.filter((c) => c.id !== commentId) }
+          : prev,
+      );
+      qc.setQueryData<CountsData>(countsKey, (prev) => {
+        if (!prev) return prev;
+        const cur = prev.counts[toppingId!] ?? 0;
+        return { counts: { ...prev.counts, [toppingId!]: Math.max(0, cur - 1) } };
+      });
+      return { prevThread, prevCounts };
+    },
+    onError: (_e, _id, ctx) => {
+      if (!ctx) return;
+      if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
+      if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
+    onSuccess: (result, _id, ctx) => {
+      // 서버가 거절(!ok)한 경우 복원
+      if (!result?.ok && ctx) {
+        if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
+        if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+        return;
+      }
+      // 성공 시: Realtime DELETE가 다시 -1을 시도할 것이므로 counts를 복원해 상쇄
+      if (ctx?.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
   });
 
   const deletePresenterComment = useMutation({
@@ -167,19 +289,45 @@ export function useSessionToppingComments(sessionId: string | null) {
       deletePresenterCommentFn({
         data: { sessionId: sessionId!, commentId },
       }),
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["topping-comments", sessionId] }),
+    onMutate: async (commentId: string) => {
+      await qc.cancelQueries({ queryKey: threadKey });
+      const prevThread = qc.getQueryData<ThreadData>(threadKey);
+      const prevCounts = qc.getQueryData<CountsData>(countsKey);
+      qc.setQueryData<ThreadData>(threadKey, (prev) =>
+        prev
+          ? { comments: prev.comments.filter((c) => c.id !== commentId) }
+          : prev,
+      );
+      qc.setQueryData<CountsData>(countsKey, (prev) => {
+        if (!prev) return prev;
+        const cur = prev.counts[toppingId!] ?? 0;
+        return { counts: { ...prev.counts, [toppingId!]: Math.max(0, cur - 1) } };
+      });
+      return { prevThread, prevCounts };
+    },
+    onError: (_e, _id, ctx) => {
+      if (!ctx) return;
+      if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
+      if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
+    onSuccess: (result, _id, ctx) => {
+      if (!result?.ok && ctx) {
+        if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
+        if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+        return;
+      }
+      if (ctx?.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
   });
 
   return {
-    commentsByTopping,
-    ready: !!deviceId && !!sessionId,
+    comments,
+    isFetching,
+    ready: !!deviceId && !!sessionId && !!toppingId,
     canWrite:
       !!deviceId && !!sessionId && roleState !== "loading" && roleState !== "none",
-    addComment: (toppingId: string, text: string) =>
-      addComment.mutateAsync({ toppingId, text }),
-    deleteOwnComment: (commentId: string) =>
-      deleteOwnComment.mutateAsync(commentId),
+    addComment: (text: string) => addComment.mutateAsync({ text }),
+    deleteOwnComment: (commentId: string) => deleteOwnComment.mutateAsync(commentId),
     deletePresenterComment: (commentId: string) =>
       deletePresenterComment.mutateAsync(commentId),
   };

@@ -402,6 +402,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_comments_by_session: {
+        Args: { _session_id: string }
+        Returns: {
+          cnt: number
+          topping_id: string
+        }[]
+      }
       list_all_toppings_admin: {
         Args: { _session_id: string }
         Returns: {

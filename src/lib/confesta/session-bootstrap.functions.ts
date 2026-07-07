@@ -4,7 +4,7 @@ import type { AudienceRole } from "./audienceRole";
 import type { ToppingDTO } from "./toppings.functions";
 import type { AnswerPromptDTO } from "./prompts.functions";
 import type { ToppingGateDTO } from "./gates.functions";
-import type { CommentDTO } from "./comments.functions";
+
 
 const SessionIdSchema = z.string().min(1).max(120);
 const DeviceIdSchema = z.string().uuid();
@@ -19,12 +19,12 @@ export type SessionBootstrapResult = {
   toppings?: { toppings: ToppingDTO[] };
   prompts?: { prompts: AnswerPromptDTO[] };
   gate?: ToppingGateDTO;
-  comments?: { comments: CommentDTO[] };
+  commentCounts?: Record<string, number>;
   errors: {
     toppings?: string;
     prompts?: string;
     gate?: string;
-    comments?: string;
+    commentCounts?: string;
   };
 };
 
@@ -122,31 +122,24 @@ export const bootstrapSession = createServerFn({ method: "POST" })
       };
     };
 
-    const loadComments = async (): Promise<{ comments: CommentDTO[] }> => {
-      const { data: rows, error } = await supabaseAdmin
-        .from("topping_comments")
-        .select("id, topping_id, session_id, text, role, device_id, created_at")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
+    const loadCommentCounts = async (): Promise<Record<string, number>> => {
+      const { data: rows, error } = await supabaseAdmin.rpc(
+        "count_comments_by_session",
+        { _session_id: sessionId },
+      );
       if (error) throw error;
-      return {
-        comments: (rows ?? []).map((r) => ({
-          id: r.id,
-          toppingId: r.topping_id,
-          sessionId: r.session_id,
-          text: r.text,
-          role: (r.role ?? "other") as AudienceRole,
-          mine: r.device_id === deviceId,
-          createdAt: new Date(r.created_at).getTime(),
-        })),
-      };
+      const counts: Record<string, number> = {};
+      for (const r of (rows ?? []) as Array<{ topping_id: string; cnt: number }>) {
+        counts[r.topping_id] = r.cnt;
+      }
+      return counts;
     };
 
     const [t, p, g, c] = await Promise.allSettled([
       loadToppings(),
       loadPrompts(),
       loadGate(),
-      loadComments(),
+      loadCommentCounts(),
     ]);
 
     const result: SessionBootstrapResult = { errors: {} };
@@ -156,7 +149,7 @@ export const bootstrapSession = createServerFn({ method: "POST" })
     else result.errors.prompts = String(p.reason?.message ?? p.reason ?? "error");
     if (g.status === "fulfilled") result.gate = g.value;
     else result.errors.gate = String(g.reason?.message ?? g.reason ?? "error");
-    if (c.status === "fulfilled") result.comments = c.value;
-    else result.errors.comments = String(c.reason?.message ?? c.reason ?? "error");
+    if (c.status === "fulfilled") result.commentCounts = c.value;
+    else result.errors.commentCounts = String(c.reason?.message ?? c.reason ?? "error");
     return result;
   });

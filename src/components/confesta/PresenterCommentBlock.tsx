@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { MessageCircle, Trash2 } from "lucide-react";
 import { RoleBadge } from "./RoleBadge";
-import { useSessionToppingComments } from "@/hooks/use-topping-comments";
+import {
+  useToppingCommentCounts,
+  useToppingCommentThread,
+} from "@/hooks/use-topping-comments";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,10 +30,11 @@ export function PresenterCommentBlock({
   size = "sm",
   defaultOpen = false,
 }: Props) {
-  const { commentsByTopping, deletePresenterComment } =
-    useSessionToppingComments(sessionId);
-  const list = commentsByTopping.get(toppingId) ?? [];
+  const { getCount } = useToppingCommentCounts(sessionId);
   const [open, setOpen] = useState(defaultOpen);
+  const { comments, isFetching, deletePresenterComment } =
+    useToppingCommentThread(sessionId, toppingId, open);
+  const count = getCount(toppingId);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const isLg = size === "lg";
@@ -46,12 +50,20 @@ export function PresenterCommentBlock({
         aria-expanded={open}
       >
         <MessageCircle className={isLg ? "w-4 h-4" : "w-3.5 h-3.5"} />
-        <span>{list.length > 0 ? `댓글 ${list.length}` : "댓글 0"}</span>
+        <span>{count > 0 ? `댓글 ${count}` : "댓글 0"}</span>
       </button>
 
       {open && (
         <div className={isLg ? "mt-3" : "mt-2"}>
-          {list.length === 0 ? (
+          {comments.length === 0 && isFetching ? (
+            <div
+              className={`text-muted-foreground ${
+                isLg ? "text-sm py-3" : "text-xs py-2"
+              }`}
+            >
+              댓글 불러오는 중…
+            </div>
+          ) : comments.length === 0 ? (
             <div
               className={`text-muted-foreground ${
                 isLg ? "text-sm py-3" : "text-xs py-2"
@@ -61,7 +73,7 @@ export function PresenterCommentBlock({
             </div>
           ) : (
             <ul className="flex flex-col gap-2">
-              {list.map((c) => (
+              {comments.map((c) => (
                 <li
                   key={c.id}
                   className={`rounded-xl bg-white/85 border border-white text-foreground ${
