@@ -176,6 +176,7 @@ function AudienceView() {
 
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
+  useSessionBootstrap(activeSessionId);
   const { toppings, toggleLike, deleteOwn } = useSessionToppings(activeSessionId);
   const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
