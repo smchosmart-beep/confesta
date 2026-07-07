@@ -80,7 +80,7 @@ const likeGuards = new Map<
   { liked: boolean; likes: number; expires: number }
 >();
 const guardKey = (s: string, d: string, t: string) => `${s}:${d}:${t}`;
-function applyLikeGuards<T extends { id: string; likedByMe: boolean; likes: number }>(
+export function applyLikeGuards<T extends { id: string; likedByMe: boolean; likes: number }>(
   sessionId: string,
   deviceId: string | null,
   items: T[],
