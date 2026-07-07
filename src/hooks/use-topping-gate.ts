@@ -50,7 +50,7 @@ export function useToppingGate(sessionId: string | null) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchIntervalInBackground: false,
-    refetchInterval: healthy ? false : 30_000,
+    refetchInterval: healthy ? false : 60_000,
   });
 
   useEffect(() => {
