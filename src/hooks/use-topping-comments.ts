@@ -248,7 +248,9 @@ export function useToppingCommentThread(
       qc.setQueryData<CountsData>(countsKey, (prev) => {
         if (!prev) return prev;
         const cur = prev.counts[toppingId!] ?? 0;
-        return { counts: { ...prev.counts, [toppingId!]: cur + 1 } };
+        const nextVal = cur + 1;
+        warnCountJump("mutate-add", toppingId!, cur, nextVal);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
       });
       return { tempId, prevThread, prevCounts };
     },
@@ -259,20 +261,17 @@ export function useToppingCommentThread(
     },
     onSuccess: (_result, _input, ctx) => {
       // 임시 항목 제거. 실제 row는 Realtime INSERT로 도착하여 upsert됨.
-      // Realtime이 먼저 도착해 이미 실 id가 있어도 dedupe 로직이 정상 동작.
       if (!ctx?.tempId) return;
       qc.setQueryData<ThreadData>(threadKey, (prev) => {
         if (!prev) return prev;
         return { comments: prev.comments.filter((c) => c.id !== ctx.tempId) };
       });
-      // counts는 낙관적으로 이미 +1 되어있고, Realtime INSERT가 다시 +1 하지 않도록 되돌림
-      qc.setQueryData<CountsData>(countsKey, (prev) => {
-        if (!prev) return prev;
-        const cur = prev.counts[toppingId!] ?? 0;
-        const nextVal = Math.max(0, cur - 1);
-        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
-      });
+      // counts는 낙관 +1을 유지. 최종 정합은 onSettled의 invalidate가 담당.
     },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: countsKey });
+    },
+
   });
 
   const deleteOwnComment = useMutation({
