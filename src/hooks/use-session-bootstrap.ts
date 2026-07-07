@@ -24,30 +24,43 @@ export function useSessionBootstrap(sessionId: string | null) {
         data: { sessionId: sessionId!, deviceId: deviceId! },
       });
 
+      // 조건부 시딩: 각 하위 훅의 캐시가 비어 있을 때만 초기값을 주입한다.
+      // 이미 캐시가 존재하면(=하위 훅이 자체 fetch/mutation/realtime으로 최신
+      // 상태를 유지 중이면) 스테일한 bootstrap 응답이 최신 상태를 덮어써
+      // 낙관 업데이트가 되돌려지는 회귀를 방지한다.
       if (r.toppings) {
-        const guarded = applyLikeGuards(sessionId!, deviceId, r.toppings.toppings);
-        qc.setQueryData(["toppings", sessionId, deviceId], {
-          ...r.toppings,
-          toppings: guarded,
-        });
+        const key = ["toppings", sessionId, deviceId] as const;
+        if (qc.getQueryData(key) == null) {
+          const guarded = applyLikeGuards(sessionId!, deviceId, r.toppings.toppings);
+          qc.setQueryData(key, { ...r.toppings, toppings: guarded });
+        }
       }
       if (r.prompts) {
-        qc.setQueryData(["prompts", sessionId], r.prompts);
+        const key = ["prompts", sessionId] as const;
+        if (qc.getQueryData(key) == null) qc.setQueryData(key, r.prompts);
       }
       if (r.gate) {
-        qc.setQueryData(["gate", sessionId], r.gate);
+        const key = ["gate", sessionId] as const;
+        if (qc.getQueryData(key) == null) qc.setQueryData(key, r.gate);
       }
       if (r.commentCounts) {
-        qc.setQueryData(["comment-counts", sessionId], {
-          counts: r.commentCounts,
-        });
+        const key = ["comment-counts", sessionId] as const;
+        if (qc.getQueryData(key) == null) {
+          qc.setQueryData(key, { counts: r.commentCounts });
+        }
       }
       return r;
     },
     enabled: !!sessionId && !!deviceId,
-    staleTime: 15_000,
+    // 세션 진입 1회만 실행. 이후 각 하위 훅의 realtime/refetch/mutation이
+    // 개별 캐시의 최신성을 책임진다. 재실행되면 시딩 로직이 스테일 데이터로
+    // 캐시를 덮어쓸 위험이 있어 refetch를 원천 차단한다.
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     retry: 1,
   });
 }
+
