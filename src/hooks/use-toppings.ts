@@ -390,10 +390,17 @@ export function useSessionToppings(sessionId: string | null) {
       return { snapshots };
     },
     onError: (
-      _e: unknown,
+      e: unknown,
       _v: string,
       ctx: { snapshots: [readonly unknown[], { toppings: ToppingDTO[] } | undefined][] } | undefined,
     ) => {
+      console.error(`[toggle:${field}] failed`, e);
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(
+        /unauthorized/i.test(msg)
+          ? "권한이 필요해요. 발표자 잠금을 다시 해제해 주세요."
+          : "변경에 실패했어요. 잠시 후 다시 시도해 주세요.",
+      );
       if (!ctx) return;
       for (const [key, prev] of ctx.snapshots) qc.setQueryData(key, prev);
     },
@@ -404,11 +411,14 @@ export function useSessionToppings(sessionId: string | null) {
     ) => {
       // 서버 거부(권한/세션 불일치 등): 스냅샷 롤백
       if (!res || res.ok !== true) {
+        console.warn(`[toggle:${field}] server rejected`, res);
+        toast.error(res?.message ?? "권한이 필요해요. 발표자 잠금을 다시 해제해 주세요.");
         if (ctx) {
           for (const [key, prev] of ctx.snapshots) qc.setQueryData(key, prev);
         }
         return;
       }
+
       const confirmed = (res as Record<string, unknown>)[field] as boolean | undefined;
       if (typeof confirmed !== "boolean") return;
       const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
