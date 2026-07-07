@@ -38,9 +38,9 @@ interface SessionEntry {
 const sessionRegistry = new Map<string, SessionEntry>();
 
 const INITIAL_TIMEOUT_MS = 8000;
-const BACKOFF_STEPS_MS = [1000, 2000, 4000, 8000, 16000, 30000];
+const BACKOFF_STEPS_MS = [3000, 6000, 12000, 20000, 30000, 45000];
 
-function jitter(ms: number, ratio = 0.2): number {
+function jitter(ms: number, ratio = 0.5): number {
   const delta = ms * ratio;
   return ms + (Math.random() * 2 - 1) * delta;
 }
