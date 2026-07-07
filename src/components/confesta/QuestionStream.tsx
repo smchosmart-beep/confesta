@@ -57,7 +57,7 @@ export function QuestionStream({ sessionId }: Props) {
       value: "unaddressed",
       label: `미답변 ${toppings.filter((t) => !t.addressed).length}`,
     },
-    { value: "addressed", label: "답변완료" },
+    { value: "addressed", label: `답변완료 ${toppings.filter((t) => t.addressed).length}` },
   ];
 
   return (
