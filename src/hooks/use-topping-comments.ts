@@ -31,6 +31,28 @@ type CommentRow = {
 type CountsData = { counts: Record<string, number> };
 type ThreadData = { comments: CommentDTO[] };
 
+// 진단용: counts가 이전 대비 2 이상 튀는 경우 로그.
+// 재현 시 원인 확정 후 제거 예정.
+function warnCountJump(
+  source: string,
+  toppingId: string,
+  prev: number,
+  next: number,
+  extra?: Record<string, unknown>,
+) {
+  if (Math.abs(next - prev) >= 2) {
+    // eslint-disable-next-line no-console
+    console.warn("[comment-counts] suspicious jump", {
+      source,
+      toppingId,
+      prev,
+      next,
+      ...extra,
+    });
+  }
+}
+
+
 function rowToDTO(r: CommentRow, deviceId: string | null): CommentDTO {
   return {
     id: r.id,
@@ -108,9 +130,14 @@ export function useToppingCommentCounts(sessionId: string | null) {
           qc.setQueryData<CountsData>(queryKey, (prev) => {
             if (!prev) return prev;
             const cur = prev.counts[row.topping_id] ?? 0;
-            return { counts: { ...prev.counts, [row.topping_id]: cur + 1 } };
+            const nextVal = cur + 1;
+            warnCountJump("realtime-insert", row.topping_id, cur, nextVal, {
+              rowId: row.id,
+            });
+            return { counts: { ...prev.counts, [row.topping_id]: nextVal } };
           });
         }
+
 
         // 열린 thread에 upsert (id dedupe)
         const threads = qc.getQueriesData<ThreadData>({
@@ -221,7 +248,9 @@ export function useToppingCommentThread(
       qc.setQueryData<CountsData>(countsKey, (prev) => {
         if (!prev) return prev;
         const cur = prev.counts[toppingId!] ?? 0;
-        return { counts: { ...prev.counts, [toppingId!]: cur + 1 } };
+        const nextVal = cur + 1;
+        warnCountJump("mutate-add", toppingId!, cur, nextVal);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
       });
       return { tempId, prevThread, prevCounts };
     },
@@ -232,20 +261,17 @@ export function useToppingCommentThread(
     },
     onSuccess: (_result, _input, ctx) => {
       // 임시 항목 제거. 실제 row는 Realtime INSERT로 도착하여 upsert됨.
-      // Realtime이 먼저 도착해 이미 실 id가 있어도 dedupe 로직이 정상 동작.
       if (!ctx?.tempId) return;
       qc.setQueryData<ThreadData>(threadKey, (prev) => {
         if (!prev) return prev;
         return { comments: prev.comments.filter((c) => c.id !== ctx.tempId) };
       });
-      // counts는 낙관적으로 이미 +1 되어있고, Realtime INSERT가 다시 +1 하지 않도록 되돌림
-      qc.setQueryData<CountsData>(countsKey, (prev) => {
-        if (!prev) return prev;
-        const cur = prev.counts[toppingId!] ?? 0;
-        const nextVal = Math.max(0, cur - 1);
-        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
-      });
+      // counts는 낙관 +1을 유지. 최종 정합은 onSettled의 invalidate가 담당.
     },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: countsKey });
+    },
+
   });
 
   const deleteOwnComment = useMutation({
@@ -263,7 +289,9 @@ export function useToppingCommentThread(
       qc.setQueryData<CountsData>(countsKey, (prev) => {
         if (!prev) return prev;
         const cur = prev.counts[toppingId!] ?? 0;
-        return { counts: { ...prev.counts, [toppingId!]: Math.max(0, cur - 1) } };
+        const nextVal = Math.max(0, cur - 1);
+        warnCountJump("mutate-delete-own", toppingId!, cur, nextVal);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
       });
       return { prevThread, prevCounts };
     },
@@ -277,12 +305,14 @@ export function useToppingCommentThread(
       if (!result?.ok && ctx) {
         if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
         if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
-        return;
       }
-      // 성공 시: Realtime DELETE가 다시 -1을 시도할 것이므로 counts를 복원해 상쇄
-      if (ctx?.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+      // 성공 시 counts는 낙관 -1을 유지. 최종 정합은 onSettled의 invalidate가 담당.
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: countsKey });
     },
   });
+
 
   const deletePresenterComment = useMutation({
     mutationFn: (commentId: string) =>
@@ -301,7 +331,9 @@ export function useToppingCommentThread(
       qc.setQueryData<CountsData>(countsKey, (prev) => {
         if (!prev) return prev;
         const cur = prev.counts[toppingId!] ?? 0;
-        return { counts: { ...prev.counts, [toppingId!]: Math.max(0, cur - 1) } };
+        const nextVal = Math.max(0, cur - 1);
+        warnCountJump("mutate-delete-presenter", toppingId!, cur, nextVal);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
       });
       return { prevThread, prevCounts };
     },
@@ -314,11 +346,14 @@ export function useToppingCommentThread(
       if (!result?.ok && ctx) {
         if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
         if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
-        return;
       }
-      if (ctx?.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+      // 성공 시 counts는 낙관 -1을 유지. 최종 정합은 onSettled의 invalidate가 담당.
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: countsKey });
     },
   });
+
 
   return {
     comments,
