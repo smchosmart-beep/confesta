@@ -430,6 +430,8 @@ function UnlockedSlotView({
   const rotateFn = useServerFn(rotatePickupQR);
   const getOrderFn = useServerFn(getOrderQRForPresenter);
 
+  useSessionBootstrap(sessionId);
+
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
   const [progress, setProgress] = useState(100);
