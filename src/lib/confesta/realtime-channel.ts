@@ -2,35 +2,28 @@ import { useSyncExternalStore } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
-type TableSpec = {
-  table:
-    | "toppings"
-    | "topping_likes"
-    | "answer_prompts"
-    | "topping_gates"
-    | "topping_comments";
-};
-
 type Kind = "toppings" | "prompts" | "gate" | "comments";
 
-interface Entry {
+const KINDS: Kind[] = ["toppings", "prompts", "gate", "comments"];
+
+const KIND_TABLE: Record<Kind, string> = {
+  // topping_likes는 publication에서 제외됨. 좋아요 카운트는 toppings.likes UPDATE로 전파됨.
+  toppings: "toppings",
+  prompts: "answer_prompts",
+  gate: "topping_gates",
+  comments: "topping_comments",
+};
+
+interface SessionEntry {
   channel: RealtimeChannel | null;
-  refCount: number;
-  listeners: Set<() => void>;
+  refCount: number; // 4개 kind 리스너 총합
+  listenersByKind: Record<Kind, Set<() => void>>;
   healthListeners: Set<() => void>;
   healthy: boolean;
   attempt: number;
   backoffTimer: ReturnType<typeof setTimeout> | null;
   initialTimer: ReturnType<typeof setTimeout> | null;
 }
-
-const KIND_TABLES: Record<Kind, TableSpec[]> = {
-  // topping_likes는 publication에서 제외됨. 좋아요 카운트는 toppings.likes UPDATE로 전파됨.
-  toppings: [{ table: "toppings" }],
-  prompts: [{ table: "answer_prompts" }],
-  gate: [{ table: "topping_gates" }],
-  comments: [{ table: "topping_comments" }],
-};
 
 // 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소).
 // 2000명 동시 접속에서 이벤트당 순간 QPS를 시간축에 분산하기 위해
@@ -41,6 +34,7 @@ const NOTIFY_DEBOUNCE_MS = 2000;
 const NOTIFY_DEBOUNCE_JITTER_MS = 1000;
 const notifyTimers = new WeakMap<Set<() => void>, ReturnType<typeof setTimeout>>();
 function scheduleNotify(set: Set<() => void>) {
+  if (set.size === 0) return;
   const existing = notifyTimers.get(set);
   if (existing) return;
   const delay =
@@ -53,12 +47,8 @@ function scheduleNotify(set: Set<() => void>) {
   notifyTimers.set(set, t);
 }
 
-const registries: Record<Kind, Map<string, Entry>> = {
-  toppings: new Map(),
-  prompts: new Map(),
-  gate: new Map(),
-  comments: new Map(),
-};
+// 세션당 채널 1개. kind별 리스너 Set은 분리해 디바운스가 서로 섞이지 않게 함.
+const sessionRegistry = new Map<string, SessionEntry>();
 
 const INITIAL_TIMEOUT_MS = 8000;
 const BACKOFF_STEPS_MS = [1000, 2000, 4000, 8000, 16000, 30000];
@@ -78,13 +68,13 @@ function notifyAll(set: Set<() => void>) {
   }
 }
 
-function setHealthy(entry: Entry, healthy: boolean) {
+function setHealthy(entry: SessionEntry, healthy: boolean) {
   if (entry.healthy === healthy) return;
   entry.healthy = healthy;
   notifyAll(entry.healthListeners);
 }
 
-function clearTimers(entry: Entry) {
+function clearTimers(entry: SessionEntry) {
   if (entry.initialTimer) {
     clearTimeout(entry.initialTimer);
     entry.initialTimer = null;
@@ -95,7 +85,7 @@ function clearTimers(entry: Entry) {
   }
 }
 
-function teardownChannel(entry: Entry) {
+function teardownChannel(entry: SessionEntry) {
   clearTimers(entry);
   if (entry.channel) {
     void supabase.removeChannel(entry.channel);
@@ -103,21 +93,20 @@ function teardownChannel(entry: Entry) {
   }
 }
 
-function buildChannel(kind: Kind, sessionId: string, entry: Entry) {
-  const tables = KIND_TABLES[kind];
-  const channelName = `${kind}:${sessionId}:singleton`;
+function buildChannel(sessionId: string, entry: SessionEntry) {
+  const channelName = `session:${sessionId}:singleton`;
   const ch = supabase.channel(channelName);
 
-  for (const { table } of tables) {
+  for (const kind of KINDS) {
     ch.on(
       "postgres_changes" as never,
       {
         event: "*",
         schema: "public",
-        table,
+        table: KIND_TABLE[kind],
         filter: `session_id=eq.${sessionId}`,
       } as never,
-      () => scheduleNotify(entry.listeners),
+      () => scheduleNotify(entry.listenersByKind[kind]),
     );
   }
 
@@ -125,7 +114,7 @@ function buildChannel(kind: Kind, sessionId: string, entry: Entry) {
   entry.initialTimer = setTimeout(() => {
     if (!entry.healthy) {
       setHealthy(entry, false);
-      scheduleReconnect(kind, sessionId);
+      scheduleReconnect(sessionId);
     }
   }, INITIAL_TIMEOUT_MS);
 
@@ -140,15 +129,15 @@ function buildChannel(kind: Kind, sessionId: string, entry: Entry) {
       status === "CLOSED"
     ) {
       setHealthy(entry, false);
-      scheduleReconnect(kind, sessionId);
+      scheduleReconnect(sessionId);
     }
   });
 }
 
-function scheduleReconnect(kind: Kind, sessionId: string) {
-  const entry = registries[kind].get(sessionId);
+function scheduleReconnect(sessionId: string) {
+  const entry = sessionRegistry.get(sessionId);
   if (!entry || entry.refCount <= 0) return;
-  if (entry.backoffTimer) return; // already scheduled
+  if (entry.backoffTimer) return;
 
   const stepIdx = Math.min(entry.attempt, BACKOFF_STEPS_MS.length - 1);
   const base =
@@ -158,7 +147,7 @@ function scheduleReconnect(kind: Kind, sessionId: string) {
 
   entry.backoffTimer = setTimeout(() => {
     entry.backoffTimer = null;
-    const live = registries[kind].get(sessionId);
+    const live = sessionRegistry.get(sessionId);
     if (!live || live.refCount <= 0) return;
     if (live.channel) {
       void supabase.removeChannel(live.channel);
@@ -168,25 +157,30 @@ function scheduleReconnect(kind: Kind, sessionId: string) {
       clearTimeout(live.initialTimer);
       live.initialTimer = null;
     }
-    buildChannel(kind, sessionId, live);
+    buildChannel(sessionId, live);
   }, delay);
 }
 
-function ensureEntry(kind: Kind, sessionId: string): Entry {
-  let entry = registries[kind].get(sessionId);
+function ensureEntry(sessionId: string): SessionEntry {
+  let entry = sessionRegistry.get(sessionId);
   if (!entry) {
     entry = {
       channel: null,
       refCount: 0,
-      listeners: new Set(),
+      listenersByKind: {
+        toppings: new Set(),
+        prompts: new Set(),
+        gate: new Set(),
+        comments: new Set(),
+      },
       healthListeners: new Set(),
       healthy: false,
       attempt: 0,
       backoffTimer: null,
       initialTimer: null,
     };
-    registries[kind].set(sessionId, entry);
-    buildChannel(kind, sessionId, entry);
+    sessionRegistry.set(sessionId, entry);
+    buildChannel(sessionId, entry);
   }
   return entry;
 }
@@ -196,26 +190,25 @@ function subscribe(
   sessionId: string,
   onChange: () => void,
 ): () => void {
-  const entry = ensureEntry(kind, sessionId);
+  const entry = ensureEntry(sessionId);
   entry.refCount += 1;
-  entry.listeners.add(onChange);
+  entry.listenersByKind[kind].add(onChange);
 
   return () => {
-    entry.listeners.delete(onChange);
+    entry.listenersByKind[kind].delete(onChange);
     entry.refCount -= 1;
     if (entry.refCount <= 0) {
       teardownChannel(entry);
-      registries[kind].delete(sessionId);
+      sessionRegistry.delete(sessionId);
     }
   };
 }
 
 function subscribeHealth(
-  kind: Kind,
   sessionId: string,
   cb: () => void,
 ): () => void {
-  const entry = ensureEntry(kind, sessionId);
+  const entry = ensureEntry(sessionId);
   entry.healthListeners.add(cb);
   return () => {
     entry.healthListeners.delete(cb);
@@ -223,8 +216,8 @@ function subscribeHealth(
   };
 }
 
-function getHealthy(kind: Kind, sessionId: string): boolean {
-  return registries[kind].get(sessionId)?.healthy ?? false;
+function getHealthy(sessionId: string): boolean {
+  return sessionRegistry.get(sessionId)?.healthy ?? false;
 }
 
 export const subscribeToppings = (sessionId: string, cb: () => void) =>
@@ -237,15 +230,16 @@ export const subscribeToppingComments = (sessionId: string, cb: () => void) =>
   subscribe("comments", sessionId, cb);
 
 export function useRealtimeHealth(
-  kind: Kind,
+  _kind: Kind,
   sessionId: string | null,
 ): boolean {
+  // kind는 시그니처 호환용. 세션당 채널 1개이므로 세션 단위 health를 반환.
   return useSyncExternalStore(
     (cb) => {
       if (!sessionId) return () => {};
-      return subscribeHealth(kind, sessionId, cb);
+      return subscribeHealth(sessionId, cb);
     },
-    () => (sessionId ? getHealthy(kind, sessionId) : true),
+    () => (sessionId ? getHealthy(sessionId) : true),
     () => true, // SSR: assume healthy → no polling
   );
 }
