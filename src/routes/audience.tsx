@@ -25,6 +25,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAudience } from "@/hooks/use-audience";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
+import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import type { ToppingKind } from "@/lib/confesta/types";
 import { useAudienceRole } from "@/hooks/use-audience-role";
 import { playBeep } from "@/lib/confesta/beep";
