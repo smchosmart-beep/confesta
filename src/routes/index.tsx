@@ -78,7 +78,8 @@ function Home() {
           </span>
         </h1>
         <p className="relative mt-4 text-base sm:text-lg text-muted-foreground max-w-xl mx-auto whitespace-pre-line">
-          세션 등록부터 출석 인증, 토핑 추가(질문/응답), 굿즈 수령까지{"\n"}
+          세션 등록(주문QR)부터 출석 인증(수령QR),{"\n"}
+          토핑 추가(질문/응답), 굿즈 수령까지{"\n"}
           아이스크림 한 콘으로 즐기는 콘페스타 플랫폼
         </p>
       </section>
