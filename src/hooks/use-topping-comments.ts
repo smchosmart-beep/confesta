@@ -289,7 +289,9 @@ export function useToppingCommentThread(
       qc.setQueryData<CountsData>(countsKey, (prev) => {
         if (!prev) return prev;
         const cur = prev.counts[toppingId!] ?? 0;
-        return { counts: { ...prev.counts, [toppingId!]: Math.max(0, cur - 1) } };
+        const nextVal = Math.max(0, cur - 1);
+        warnCountJump("mutate-delete-own", toppingId!, cur, nextVal);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
       });
       return { prevThread, prevCounts };
     },
@@ -303,12 +305,14 @@ export function useToppingCommentThread(
       if (!result?.ok && ctx) {
         if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
         if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
-        return;
       }
-      // 성공 시: Realtime DELETE가 다시 -1을 시도할 것이므로 counts를 복원해 상쇄
-      if (ctx?.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+      // 성공 시 counts는 낙관 -1을 유지. 최종 정합은 onSettled의 invalidate가 담당.
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: countsKey });
     },
   });
+
 
   const deletePresenterComment = useMutation({
     mutationFn: (commentId: string) =>
