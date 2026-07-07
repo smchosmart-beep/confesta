@@ -130,9 +130,14 @@ export function useToppingCommentCounts(sessionId: string | null) {
           qc.setQueryData<CountsData>(queryKey, (prev) => {
             if (!prev) return prev;
             const cur = prev.counts[row.topping_id] ?? 0;
-            return { counts: { ...prev.counts, [row.topping_id]: cur + 1 } };
+            const nextVal = cur + 1;
+            warnCountJump("realtime-insert", row.topping_id, cur, nextVal, {
+              rowId: row.id,
+            });
+            return { counts: { ...prev.counts, [row.topping_id]: nextVal } };
           });
         }
+
 
         // 열린 thread에 upsert (id dedupe)
         const threads = qc.getQueriesData<ThreadData>({
