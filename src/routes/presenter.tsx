@@ -110,7 +110,7 @@ function PresenterPage() {
     room?: string | null;
   }) => {
     navigate({
-      search: (prev) => ({
+      search: (prev: Record<string, unknown>) => ({
         ...prev,
         ...(patch.day !== undefined ? { day: patch.day ?? undefined } : {}),
         ...(patch.period !== undefined ? { period: patch.period ?? undefined } : {}),
