@@ -89,10 +89,6 @@ export function inspectSlotCookieValue(
   return { ok: true, ageMs };
 }
 
-/** 로그용 짧은 해시(원본 노출 방지). */
-export function shortHash(input: string): string {
-  return crypto.createHash("sha1").update(input).digest("hex").slice(0, 8);
-}
 
 export const SLOT_COOKIE_MAX_AGE = COOKIE_TTL_SECONDS;
 
