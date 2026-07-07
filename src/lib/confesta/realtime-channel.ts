@@ -137,7 +137,7 @@ function scheduleReconnect(sessionId: string) {
 
   const stepIdx = Math.min(entry.attempt, BACKOFF_STEPS_MS.length - 1);
   const base =
-    entry.attempt === 0 ? Math.random() * 2000 : BACKOFF_STEPS_MS[stepIdx];
+    entry.attempt === 0 ? Math.random() * 8000 : BACKOFF_STEPS_MS[stepIdx];
   const delay = entry.attempt === 0 ? base : jitter(base);
   entry.attempt += 1;
 
