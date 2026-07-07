@@ -74,6 +74,7 @@ export const Route = createFileRoute("/presenter")({
 });
 
 const QR_INTERVAL_MS = 15_000;
+const LAST_SLOT_KEY = "confesta:presenter:last-slot";
 
 function PresenterPage() {
   const listFn = useServerFn(listIssuedSlots);
