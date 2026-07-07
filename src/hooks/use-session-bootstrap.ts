@@ -37,8 +37,10 @@ export function useSessionBootstrap(sessionId: string | null) {
       if (r.gate) {
         qc.setQueryData(["gate", sessionId], r.gate);
       }
-      if (r.comments) {
-        qc.setQueryData(["topping-comments", sessionId, deviceId], r.comments);
+      if (r.commentCounts) {
+        qc.setQueryData(["comment-counts", sessionId], {
+          counts: r.commentCounts,
+        });
       }
       return r;
     },

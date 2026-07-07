@@ -49,6 +49,54 @@ export const listToppingComments = createServerFn({ method: "POST" })
     };
   });
 
+export const listToppingCommentCounts = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ sessionId: SessionIdSchema }).parse(input),
+  )
+  .handler(async ({ data }): Promise<{ counts: Record<string, number> }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "count_comments_by_session",
+      { _session_id: data.sessionId },
+    );
+    if (error) throw error;
+    const counts: Record<string, number> = {};
+    for (const r of (rows ?? []) as Array<{ topping_id: string; cnt: number }>) {
+      counts[r.topping_id] = r.cnt;
+    }
+    return { counts };
+  });
+
+export const listCommentsByTopping = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        toppingId: ToppingIdSchema,
+        deviceId: DeviceIdSchema.optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<{ comments: CommentDTO[] }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin
+      .from("topping_comments")
+      .select("id, topping_id, session_id, text, role, device_id, created_at")
+      .eq("topping_id", data.toppingId)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    return {
+      comments: (rows ?? []).map((r) => ({
+        id: r.id,
+        toppingId: r.topping_id,
+        sessionId: r.session_id,
+        text: r.text,
+        role: (r.role ?? "other") as AudienceRole,
+        mine: !!data.deviceId && r.device_id === data.deviceId,
+        createdAt: new Date(r.created_at).getTime(),
+      })),
+    };
+  });
+
 export const addToppingComment = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
