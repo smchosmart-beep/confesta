@@ -212,26 +212,23 @@ function PresenterPage() {
               periodsAvailable={periodsAvailable}
               slotsInScope={slotsInScope}
               onChangeDay={(d) => {
-                setDay(d);
                 const periods = Array.from(
                   new Set(slots.filter((s) => s.day === d).map((s) => s.period)),
                 ) as Period[];
                 const nextPeriod =
                   period != null && periods.includes(period) ? period : periods[0] ?? null;
-                setPeriod(nextPeriod);
                 const rooms = slots
                   .filter((s) => s.day === d && s.period === nextPeriod)
                   .map((s) => s.room);
-                setRoom(rooms[0] ?? null);
+                setSel({ day: d, period: nextPeriod, room: rooms[0] ?? null });
               }}
               onChangePeriod={(p) => {
-                setPeriod(p);
                 const rooms = slots
                   .filter((s) => s.day === day && s.period === p)
                   .map((s) => s.room);
-                setRoom(rooms[0] ?? null);
+                setSel({ period: p, room: rooms[0] ?? null });
               }}
-              onChangeRoom={setRoom}
+              onChangeRoom={(r) => setSel({ room: r })}
               loading={slotsQuery.isLoading}
             />
           </div>
