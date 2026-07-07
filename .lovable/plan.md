@@ -1,43 +1,127 @@
-## F안: Realtime 재연결 지연 확장 + gate 폴백 통일
+## G안 리스크 재검토 결과 및 최종안 (보완 3건 포함)
 
-2000명 동시 접속 상황에서 서버 hiccup·배포 시 대량 재연결 몰림을 방지하기 위해 backoff 파라미터를 확장하고, 그로 인해 늘어난 unhealthy 창에서 REST 폴백이 몰리지 않도록 gate 폴링 주기를 다른 훅과 동일한 60s로 맞춘다.
+### 검토 결과 요약
 
-### 변경 파일 2개
+| 항목 | 판정 | 근거 |
+|---|---|---|
+| 기능 오작동 위험 | 낮음 | `topping_comments REPLICA IDENTITY FULL` 이미 적용 → DELETE payload에서 topping_id 접근 가능, counts -1 정확 반영 |
+| 서버비 증가 위험 | 없음 (오히려 감소) | 초기 payload -98%, 뮤테이션당 함수 호출 2→1 |
+| 다른 기능 악영향 | 없음 | likes/gate/prompts/pin/addressed 완전 격리. `subscribeToppingComments`는 세션당 채널 1개(기존 재사용) |
+| 회귀 위험 | 낮음 | 기존 `listToppingComments` 유지, 컴포넌트 3개만 훅 교체 |
 
-**1. `src/lib/confesta/realtime-channel.ts` (숫자 3개)**
-```ts
-// Before → After
-const BACKOFF_STEPS_MS = [1000, 2000, 4000, 8000, 16000, 30000];
-                       → [3000, 6000, 12000, 20000, 30000, 45000];
-function jitter(ms: number, ratio = 0.2)  →  ratio = 0.5
-// scheduleReconnect 1차 base
-Math.random() * 2000  →  Math.random() * 8000
+### 발견한 실질 리스크 3건 → 모두 보완안에 반영
+
+**리스크 1 — "-98%" 이 과장됨**
+- 초안대로 서버 함수에서 `.select('topping_id').eq(...)` 후 JS 그룹핑 시: 댓글 500개 → row 500개 반환 → ~18KB (실제 감소율 ~80%)
+- **대응**: DB에서 GROUP BY로 집계하는 RPC `count_comments_by_session` 신설. 30 topping → ~1.5KB (실제 -98%)
+
+**리스크 2 — 뮤테이션당 서버 함수 호출이 오히려 증가**
+- 초안 `onSuccess`에서 `["comment-counts"]`, `["comment-thread"]` 두 캐시 각각 invalidate → 뮤테이션 1회 = 함수 호출 3회 (현재 2회)
+- 2000명 시나리오에서 댓글 활동 몰릴 때 부하 역증가
+- **대응**: 낙관적 업데이트로 invalidate 제거. `onMutate`에서 thread append + counts +1, `onError`에서 rollback. Realtime과 id 기준 dedupe
+
+**리스크 3 — Spotlight 모달의 UX 저하**
+- Presenter가 스포트라이트한 질문의 댓글이 클릭 전엔 안 보임
+- **대응**: `PresenterCommentBlock`에 `defaultOpen` prop 추가, Spotlight에서만 true
+
+**추가 확인 (수용)**
+- Presenter가 `QuestionStream`에서 여러 카드 댓글을 일괄 스캔하려면 카드별 open 필요 — 필요 시 별도 "모두 펼치기" 토글 추후 추가 가능. 이번 범위 밖
+
+---
+
+## 최종 구현안
+
+### 변경 파일
+
+| 유형 | 경로 | 작업 |
+|---|---|---|
+| Migration | 신규 | RPC `count_comments_by_session` 생성 + GRANT EXECUTE |
+| 서버 함수 | `src/lib/confesta/comments.functions.ts` | `listToppingCommentCounts`, `listCommentsByTopping` 추가. `listToppingComments`는 유지(회귀 방지) |
+| 훅 | `src/hooks/use-topping-comments.ts` | `useSessionToppingComments` 제거, `useToppingCommentCounts` + `useToppingCommentThread` 신규 |
+| Bootstrap | `src/lib/confesta/session-bootstrap.functions.ts`, `src/hooks/use-session-bootstrap.ts` | `comments` 필드 → `commentCounts`로 교체 |
+| 컴포넌트 | `QuestionCommentBlock.tsx`, `PresenterCommentBlock.tsx`, `QuestionSpotlightModal.tsx`, `audience.tsx` 호출부 | 신규 훅으로 교체, Spotlight `defaultOpen` |
+
+### 1. 마이그레이션 (보완 1)
+
+```sql
+CREATE OR REPLACE FUNCTION public.count_comments_by_session(_session_id text)
+RETURNS TABLE(topping_id uuid, cnt int)
+LANGUAGE sql STABLE SET search_path = public AS $$
+  SELECT topping_id, COUNT(*)::int
+  FROM public.topping_comments
+  WHERE session_id = _session_id
+  GROUP BY topping_id;
+$$;
+GRANT EXECUTE ON FUNCTION public.count_comments_by_session(text)
+  TO anon, authenticated, service_role;
 ```
 
-**2. `src/hooks/use-topping-gate.ts` (숫자 1개)**
+기존 인덱스 `topping_comments_session_created_idx (session_id, created_at)` 사용.
+
+### 2. 서버 함수 신규 2개
+
+- **`listToppingCommentCounts({ sessionId })`** → RPC 호출 → `{ counts: Record<toppingId, number> }`
+- **`listCommentsByTopping({ toppingId, deviceId? })`** → 단일 topping 본문 (created_at ASC) → `{ comments: CommentDTO[] }`
+
+### 3. 훅 재구성
+
+**`useToppingCommentCounts(sessionId)`**
+- queryKey `["comment-counts", sessionId]`, staleTime 15s, `refetchInterval: healthy ? false : 60_000`
+- 세션당 `subscribeToppingComments` 1회 등록 (기존 채널 재사용):
+  - INSERT: counts[topping_id] +1, 열린 thread 캐시(있으면) append (id dedupe)
+  - DELETE: counts[old.topping_id] -1 (REPLICA IDENTITY FULL 활용), 열린 thread에서 제거
+- 반환: `getCount(toppingId) => number`
+
+**`useToppingCommentThread(sessionId, toppingId, enabled)`**
+- queryKey `["comment-thread", toppingId, deviceId]`
+- `enabled: enabled && !!toppingId && !!deviceId`, staleTime 15s, `refetchInterval: healthy ? false : 60_000`
+- **낙관적 뮤테이션** (보완 2):
+  - `onMutate`: 임시 id로 thread append + counts +1 patch, rollback context 반환
+  - `onSuccess`: 서버 응답의 실제 id로 임시 항목 교체 (Realtime이 먼저 도착했으면 임시만 제거)
+  - `onError`: rollback (임시 제거 + counts -1)
+  - **invalidateQueries 호출 없음** → 뮤테이션당 서버 함수 1회
+- Realtime dedupe: 캐시 patch 시 항상 `findIndex(c => c.id === row.id)` 확인 후 upsert
+
+**`useSessionToppingComments` 제거** (호출부 없음 확인 필요 — audience.tsx 등 3개 컴포넌트 교체 후).
+
+### 4. Bootstrap 반영
+
+`session-bootstrap.functions.ts`: 기존 전체 댓글 배열 대신 RPC로 카운트만 반환. `comments` → `commentCounts` (Record).
+
+`use-session-bootstrap.ts`:
 ```ts
-// L53
-refetchInterval: healthy ? false : 30_000,
-                              → 60_000,
+if (r.commentCounts) qc.setQueryData(["comment-counts", sessionId], { counts: r.commentCounts });
 ```
 
-### 효과 (2000명 기준)
-- 1차 재연결 창: 0~2s → 0~8s → 초당 재연결 요청 **1000건 → 250건 (-75%)**
-- 재시도 jitter: ±20% → ±50% → peak 완화
-- Unhealthy 창 최대 30s → 45s 이지만, gate 폴백 30s→60s 통일로 재연결 창 내 폴백 폴 발동 확률 최소화
-- 4개 훅 REST 폴백 주기 모두 60s로 일관성 확보
+기존 `["topping-comments", sessionId, deviceId]` seed 삭제.
 
-### 리스크
-- 기능·시그니처·이벤트 전달 로직 미변경
-- 놓친 이벤트는 폴백 refetch + E안 bootstrap(15s staleTime) + optimistic update가 커버
-- `subscribeOrders`/`subscribeSlots` 별도 경로 미영향
-- gate 60s 폴백: presenter가 gate 상태를 조작할 때 realtime healthy 상태에선 즉시 반영. unhealthy 상태에서만 최대 60s 지연 → 게이트가 pause 성격이므로 수용 가능
+### 5. 컴포넌트
 
-### 검증
-1. DevTools Network → WS 재연결 실패→성공 간격이 3~8s 창에 분포
-2. Realtime 강제 종료 시 gate REST 폴 60s 주기 확인
-3. `useRealtimeHealth` false→true 전환 정상
-4. 재연결 후 첫 이벤트 수신 정상
+- **`QuestionCommentBlock`** (audience): `useToppingCommentCounts`로 배지, open 상태에서 `useToppingCommentThread(..., open)` 로 본문
+- **`PresenterCommentBlock`**: 동일 패턴 + `defaultOpen?: boolean` prop 추가
+- **`QuestionSpotlightModal`**: `<PresenterCommentBlock defaultOpen />` (보완 3)
+- **`QuestionStream`**: 기존 open 토글 유지 (`defaultOpen` 미전달)
 
-### 롤백
-숫자 4개 원복.
+### 서버 부하 비교 (2000명 기준)
+
+| 항목 | 현재 | G안 최종 |
+|---|---|---|
+| 초기 payload/user | ~90KB | ~1.5KB (-98%) |
+| 초기 서버 함수/user | 1 (bootstrap) | 1 |
+| 뮤테이션당 함수 호출 | 2 | 1 (-50%) |
+| Thread REST/user | 0 | 사용자당 open한 topping 수 (평균 3~5) |
+| Realtime 채널 | 세션당 1 | 세션당 1 (동일) |
+
+### 검증 순서
+
+1. 마이그레이션 후 `SELECT * FROM count_comments_by_session('...')` 직접 확인
+2. Network: audience 초기 로드에 댓글 본문 payload 부재, `commentCounts`만 존재
+3. 댓글창 open → `listCommentsByTopping` 1회, 재open 시 캐시 hit (staleTime 15s 내)
+4. 다른 사용자 댓글 INSERT → 배지 실시간 +1, 열린 사용자는 append (dedupe 확인)
+5. 낙관적 add: 즉시 표시 → 서버 응답 후 실 id 교체 → Realtime 도착 시 중복 없음
+6. Spotlight 모달 open → 댓글 즉시 로드
+7. Realtime 강제 종료 → counts/thread 60s 폴백 정상
+
+### 롤백 순서
+
+컴포넌트 3개 원복 → 훅 원복 → bootstrap 필드 원복. RPC와 신규 서버 함수는 남겨도 무해.
