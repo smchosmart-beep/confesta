@@ -48,10 +48,18 @@ export function BookmarkBar({ sessionId }: Props) {
   const listFn = useServerFn(listBookmarks);
   const delFn = useServerFn(deleteBookmark);
 
+  // PIN 잠금 해제 상태 캐시 구독(별도 fetch 없음).
+  // SelectedSlotBody가 동일 key로 이미 조회하므로 캐시 재사용.
+  const authQuery = useQuery<{ ok: boolean } | undefined>({
+    queryKey: ["presenter-slot-auth", sessionId],
+    enabled: false,
+  });
+  const unlocked = authQuery.data?.ok === true;
+
   const query = useQuery({
     queryKey: ["bookmarks", sessionId],
     queryFn: () => listFn({ data: { sessionId: sessionId! } }),
-    enabled: !!sessionId,
+    enabled: !!sessionId && unlocked,
     staleTime: 5 * 60_000,
   });
 
@@ -71,6 +79,8 @@ export function BookmarkBar({ sessionId }: Props) {
   const items = query.data?.items ?? [];
 
   if (!sessionId) return null;
+  if (!unlocked) return null;
+
 
   return (
     <div className="flex flex-wrap items-center justify-end gap-1.5 max-w-full">

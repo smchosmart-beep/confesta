@@ -1,29 +1,28 @@
 ## 원인
 
-`src/routes/presenter.tsx`의 `day/period/room` 상태(93–95줄)가 로컬 `useState`. 새로고침 → 초기값 `null` → 114줄 auto-select 이펙트가 "첫 번째 slot"으로 강제 선택 → 이전 세션과 다른 sessionId면 PIN 잠금 쿠키(sessionId 기반)와 매칭되지 않아 다시 잠금 화면.
+`src/routes/presenter.tsx` 202줄에서 `BookmarkBar`가 `RoleHeader` 우측에 `selected`만 있으면 렌더링됨 — PIN 잠금 해제 여부(`SelectedSlotBody`의 `checkQuery.data?.ok`)와 무관.
+
+서버 함수(`requestBookmarkUpload` / `createBookmark` / `deleteBookmark` / `deleteBookmarkUpload`)는 모두 `assertPresenterSlot` 쿠키 검증이 있어서 **실제 쓰기는 401로 차단**되지만, UI에는 "자료 추가" 버튼과 기존 자료 칩(+ 삭제 X 버튼)이 그대로 노출되어 마치 인증 없이 되는 것처럼 보임. 또한 `listBookmarks`는 게이트가 없어 미인증 상태에서도 목록 fetch가 발생.
 
 ## 수정
 
-선택 상태를 URL 검색 파라미터로 승격 → 새로고침·공유·뒤로가기에도 유지.
+`BookmarkBar`를 PIN 잠금 해제된 슬롯에서만 표시.
 
-1. `createFileRoute("/presenter")`에 `validateSearch` 추가. `@tanstack/zod-adapter`의 `zodValidator` + `fallback` 사용:
-   ```ts
-   const searchSchema = z.object({
-     day: fallback(z.coerce.number().int(), undefined).optional(),
-     period: fallback(z.enum(PERIODS), undefined).optional(),
-     room: fallback(z.string(), undefined).optional(),
-   });
-   ```
-2. 컴포넌트에서 `Route.useSearch()`로 값 읽기, `useNavigate({ from: Route.fullPath })`로 쓰기. 로컬 `useState` 3개 제거.
-3. 114줄 auto-select 이펙트는 유지하되 `setDay/Period/Room` 대신 `navigate({ search: (p) => ({ ...p, day, period, room }), replace: true })`. deps는 `[slots]`만 유지(무한 루프 방지).
-4. RoleHeader에 넘기던 `onChangeDay/Period/Room`도 동일한 navigate 래퍼로 대체(시그니처 유지).
-5. `selected` 계산은 search 값에서 파생.
+**변경 파일: `src/components/confesta/BookmarkBar.tsx` 한 개**
 
-## 부작용 검토(요약)
+- 컴포넌트 초입에서 `useQuery({ queryKey: ["presenter-slot-auth", sessionId], enabled: false })`로 **캐시만 구독**(별도 fetch 트리거 없음, `SelectedSlotBody`가 이미 같은 key로 채움).
+- `data?.ok !== true`면 `return null` — 목록 fetch도, 자료 추가 버튼도, 칩도 렌더링하지 않음.
+- `sessionId`가 null이면 기존대로 null(변경 없음).
 
-- 서버비/DB: 영향 없음(순수 클라 라우팅).
-- PIN 잠금: sessionId 복원되므로 잠금 유지 상태로 곧바로 진입.
-- 무한 루프: auto-select deps는 `[slots]`뿐이라 navigate로 인한 search 변경은 재실행 없음.
-- 뒤로가기: `replace:true`로 히스토리 오염 없음.
-- 다른 라우트/기능: 무관(파일 국소 변경).
-- Period 타입: 실제 값 `"1000"|"1320"|"1530"`(`PERIODS` 상수) 사용.
+## 부작용 검토
+
+- **청중 화면(`AudienceBookmarkStrip`)**: 별도 컴포넌트라 영향 없음. 청중은 세션 게이트 통과 후 그대로 자료 열람 가능.
+- **서버비**: 오히려 감소. 미인증 상태의 `listBookmarks` 호출이 사라짐. 인증 후에는 기존과 동일(60초 in-memory 캐시 + staleTime 5분).
+- **중복 요청 없음**: `presenter-slot-auth` 쿼리는 `SelectedSlotBody`가 이미 소유. `enabled:false`로 캐시만 읽으므로 dedupe.
+- **잠금 재잠금(`onLock`)**: `checkQuery` 무효화되면 `ok=false` → BookmarkBar 자동으로 사라짐. 열려있던 다이얼로그가 있어도 부모 unmount로 정리됨.
+- **다른 라우트/기능**: `BookmarkBar`는 `presenter.tsx`에서만 사용(grep 확인). 무관.
+- **보안 관점**: 서버는 이미 안전하므로 이번 변경은 UX 정합성 개선. listBookmarks 정보 노출 소량 완화 부가 효과.
+
+## 대안(비채택)
+
+`presenter.tsx`에서 인증 상태를 상위로 끌어올려 조건부로 `<BookmarkBar/>` 렌더 — 구조 변경이 크고, `SelectedSlotBody` 내부 상태 승격이 필요. 컴포넌트 자체 게이트가 최소 변경.
