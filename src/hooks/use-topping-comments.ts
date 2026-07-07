@@ -31,6 +31,28 @@ type CommentRow = {
 type CountsData = { counts: Record<string, number> };
 type ThreadData = { comments: CommentDTO[] };
 
+// 진단용: counts가 이전 대비 2 이상 튀는 경우 로그.
+// 재현 시 원인 확정 후 제거 예정.
+function warnCountJump(
+  source: string,
+  toppingId: string,
+  prev: number,
+  next: number,
+  extra?: Record<string, unknown>,
+) {
+  if (Math.abs(next - prev) >= 2) {
+    // eslint-disable-next-line no-console
+    console.warn("[comment-counts] suspicious jump", {
+      source,
+      toppingId,
+      prev,
+      next,
+      ...extra,
+    });
+  }
+}
+
+
 function rowToDTO(r: CommentRow, deviceId: string | null): CommentDTO {
   return {
     id: r.id,
