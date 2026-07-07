@@ -33,9 +33,12 @@ const KIND_TABLES: Record<Kind, TableSpec[]> = {
 };
 
 // 폭주하는 invalidation을 합치는 trailing debounce (서버 read 부하 감소).
-// 30명 동시 접속에서 thundering herd를 막기 위해 base 600ms + ±200ms jitter.
-const NOTIFY_DEBOUNCE_MS = 600;
-const NOTIFY_DEBOUNCE_JITTER_MS = 200;
+// 2000명 동시 접속에서 이벤트당 순간 QPS를 시간축에 분산하기 위해
+// base 2000ms + ±1000ms jitter (실효 1000~3000ms 균등 분포).
+// 청중 본인의 mutation은 onSuccess 로컬 invalidate로 즉시 반영되므로 지연 없음.
+// 타 청중 화면은 최대 3초 내 반영 (발표 흐름상 무해).
+const NOTIFY_DEBOUNCE_MS = 2000;
+const NOTIFY_DEBOUNCE_JITTER_MS = 1000;
 const notifyTimers = new WeakMap<Set<() => void>, ReturnType<typeof setTimeout>>();
 function scheduleNotify(set: Set<() => void>) {
   const existing = notifyTimers.get(set);

@@ -269,6 +269,23 @@ export const addTopping = createServerFn({ method: "POST" })
       }
     }
 
+    // 소프트 dedup: 네트워크 재시도/더블 클릭으로 인한 진짜 중복 삽입 방지.
+    // 최근 10초 이내 동일 payload(device+session+kind+prompt+text)는 이미 성공한 것으로 취급.
+    const sinceIso = new Date(Date.now() - 10_000).toISOString();
+    let dedupQ = supabaseAdmin
+      .from("toppings")
+      .select("id")
+      .eq("device_id", data.deviceId)
+      .eq("session_id", data.sessionId)
+      .eq("kind", data.kind)
+      .eq("text", data.text)
+      .gte("created_at", sinceIso);
+    dedupQ = resolvedPromptId
+      ? dedupQ.eq("prompt_id", resolvedPromptId)
+      : dedupQ.is("prompt_id", null);
+    const { data: dup } = await dedupQ.limit(1).maybeSingle();
+    if (dup) return { ok: true as const };
+
     const { error } = await supabaseAdmin.from("toppings").insert({
       session_id: data.sessionId,
       device_id: data.deviceId,

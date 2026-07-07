@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Send, Sparkles, MessageSquare, Hash, Lock, Megaphone } from "lucide-react";
+import { Send, Sparkles, MessageSquare, Hash, Lock, Megaphone, Loader2 } from "lucide-react";
 import type { ToppingKind } from "@/lib/confesta/types";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useToppingGate } from "@/hooks/use-topping-gate";
@@ -40,7 +40,7 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
   const [text, setText] = useState("");
   const [sprinkles, setSprinkles] = useState<Sprinkle[]>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const { submit } = useSessionToppings(sessionId);
+  const { submit, isSubmitting } = useSessionToppings(sessionId);
 
   const autosize = () => {
     const el = taRef.current;
@@ -179,7 +179,7 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={placeholder}
-                disabled={!currentOpen}
+                disabled={!currentOpen || isSubmitting}
                 rows={1}
                 className="flex-1 min-w-0 bg-transparent outline-none text-sm py-1.5 resize-none overflow-y-auto disabled:cursor-not-allowed leading-relaxed break-words"
                 style={{ maxHeight: 192 }}
@@ -192,15 +192,25 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
               </span>
               <button
                 type="submit"
-                disabled={!text.trim() || !currentOpen}
+                disabled={!text.trim() || !currentOpen || isSubmitting}
                 className="bounce-press inline-flex items-center gap-1.5 bg-grad-strawberry text-white rounded-full px-4 py-2 text-xs font-bold shadow-pink disabled:opacity-40 disabled:hover:scale-100"
                 aria-label="토핑 전송"
               >
-                <Send className="w-3.5 h-3.5" />
-                보내기
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    보내는 중…
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    보내기
+                  </>
+                )}
               </button>
             </div>
           </div>
+
 
           <div className="pointer-events-none absolute inset-x-0 -top-2 h-2">
             {sprinkles.map((s) => (
