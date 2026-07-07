@@ -40,7 +40,7 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
   const [text, setText] = useState("");
   const [sprinkles, setSprinkles] = useState<Sprinkle[]>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const { submit } = useSessionToppings(sessionId);
+  const { submit, isSubmitting } = useSessionToppings(sessionId);
 
   const autosize = () => {
     const el = taRef.current;
