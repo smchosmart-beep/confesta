@@ -142,10 +142,96 @@ export function useSessionToppings(sessionId: string | null) {
 
   useEffect(() => {
     if (!sessionId) return;
-    return subscribeToppings(sessionId, () =>
-      qc.invalidateQueries({ queryKey: ["toppings", sessionId] }),
-    );
+    return subscribeToppings(sessionId, (payload: RealtimePayload) => {
+      try {
+        const type = payload.eventType;
+        const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+          queryKey: ["toppings", sessionId],
+        });
+
+        if (type === "DELETE") {
+          const oldId = (payload.old as { id?: string } | null)?.id;
+          if (!oldId) return;
+          for (const [key, prev] of matches) {
+            if (!prev) continue;
+            const next = prev.toppings.filter((t) => t.id !== oldId);
+            if (next.length !== prev.toppings.length) {
+              qc.setQueryData(key, { ...prev, toppings: next });
+            }
+          }
+          return;
+        }
+
+        const row = payload.new as ToppingRow | null;
+        if (!row?.id) return;
+
+        // prompt_text는 join 결과라 payload에 없음 → prompts 캐시에서 조회
+        const promptsCache = qc.getQueryData<{ prompts: AnswerPromptDTO[] }>([
+          "prompts",
+          sessionId,
+        ]);
+        const lookupPromptText = (pid: string | null): string | null =>
+          pid ? promptsCache?.prompts.find((p) => p.id === pid)?.text ?? null : null;
+
+        for (const [key, prev] of matches) {
+          if (!prev) continue;
+          const keyDeviceId = (key[2] as string | null) ?? null;
+          const idx = prev.toppings.findIndex((t) => t.id === row.id);
+          let nextList: ToppingDTO[];
+
+          if (idx >= 0) {
+            // UPDATE (또는 INSERT dedupe): 기존 promptText·likedByMe 보존
+            const existing = prev.toppings[idx];
+            const dto = rowToDTO(
+              row,
+              keyDeviceId,
+              lookupPromptText(row.prompt_id) ?? existing.promptText,
+              existing,
+            );
+            // prompt_id가 바뀌었는데 새 프롬프트가 캐시에 없으면 promptText 안전망 재조회
+            if (
+              row.prompt_id &&
+              row.prompt_id !== existing.promptId &&
+              dto.promptText === null
+            ) {
+              qc.invalidateQueries({ queryKey: ["prompts", sessionId] });
+            }
+            nextList = prev.toppings.slice();
+            nextList[idx] = dto;
+          } else {
+            if (type === "UPDATE") {
+              // 서버 필터에 걸려 있던 항목이 UPDATE로 조건 진입 → 정확 복제 어려움
+              qc.invalidateQueries({ queryKey: key });
+              continue;
+            }
+            // INSERT: created_at DESC 리스트의 맨 앞에 삽입
+            const dto = rowToDTO(row, keyDeviceId, lookupPromptText(row.prompt_id));
+            nextList = trimList([dto, ...prev.toppings]);
+          }
+
+          const guarded = applyLikeGuards(sessionId, keyDeviceId, nextList);
+          qc.setQueryData(key, { ...prev, toppings: guarded });
+        }
+      } catch {
+        qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+      }
+    });
   }, [sessionId, qc]);
+
+  // 채널 재연결 시 놓친 이벤트 동기화 (false→true 전이만)
+  const wasUnhealthyRef = useRef(false);
+  useEffect(() => {
+    if (!sessionId) return;
+    if (!healthy) {
+      wasUnhealthyRef.current = true;
+      return;
+    }
+    if (wasUnhealthyRef.current) {
+      wasUnhealthyRef.current = false;
+      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+    }
+  }, [healthy, sessionId, qc]);
+
 
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
