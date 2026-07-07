@@ -123,8 +123,9 @@ export const bootstrapSession = createServerFn({ method: "POST" })
       memoize(caches.toppingsRaw, sessionId, async () => {
         const { data: rows, error } = await supabaseAdmin.rpc(
           "list_toppings_with_my_like_v2",
-          // _device_id=null → liked_by_me는 항상 false, 반환 subset은 deviceId 무관
-          { _session_id: sessionId, _device_id: null, _limit: 100 },
+          // _device_id 생략 → RPC 기본값 NULL → liked_by_me는 항상 false,
+          // 반환 subset은 deviceId 무관.
+          { _session_id: sessionId, _limit: 100 },
         );
         if (error) throw error;
         return (rows ?? []) as ToppingRawRow[];
