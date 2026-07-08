@@ -269,9 +269,9 @@ export function useSessionToppings(sessionId: string | null) {
   });
 
   const toggleLike = useMutation({
-    // onMutate에서 skipped 판정 → mutationFn은 그 결정을 그대로 존중.
-    // 이렇게 하면 낙관 업데이트가 되었는데 서버 요청이 스킵되는(그리고
-    // 실시간 재조회로 되돌려지는) 불일치 자체가 발생하지 않는다.
+    // onMutate가 쿨다운/인플라이트로 skip을 결정하면 skippedLikeIds에 마킹한다.
+    // mutationFn은 그 마킹을 존중해서 서버 호출을 건너뛴다.
+    // (자기 자신이 넣은 inflightLikes 마킹을 보고 skip하던 self-reference 버그 제거)
     mutationFn: async (
       toppingId: string,
     ): Promise<
@@ -279,12 +279,10 @@ export function useSessionToppings(sessionId: string | null) {
       | { ok: false; skipped: true }
     > => {
       const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
-      // onMutate에서 이미 lastLikeAt.set(now) 처리되었는지로 통과 여부를 판단.
-      // 통과된 클릭이 아니면 서버 호출 없이 스킵 반환.
-      if (inflightLikes.has(k)) {
+      if (skippedLikeIds.has(k)) {
+        skippedLikeIds.delete(k);
         return { ok: false, skipped: true };
       }
-      inflightLikes.add(k);
       try {
         const opId =
           typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -299,13 +297,17 @@ export function useSessionToppings(sessionId: string | null) {
       }
     },
     // 작성자 본인 포함 모든 청중이 누를 수 있음. 낙관 업데이트로 즉시 반영.
-    // 쿨다운 판정을 여기서 단일 결정하고, 통과된 클릭만 lastLikeAt/낙관업데이트를 진행.
+    // 쿨다운·인플라이트 판정을 여기서 단일 결정하고, 통과된 클릭만 낙관 업데이트를 수행.
     onMutate: async (toppingId: string) => {
       const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
       const now = Date.now();
       const prevAt = lastLikeAt.get(k) ?? 0;
-      // 첫 클릭(prevAt===0)은 절대 스킵되지 않음. 이후 500ms 이내 재클릭만 스킵.
-      if (prevAt !== 0 && now - prevAt < LIKE_COOLDOWN_MS) {
+      const cooldownHit = prevAt !== 0 && now - prevAt < LIKE_COOLDOWN_MS;
+      const inflightHit = inflightLikes.has(k);
+      // 첫 클릭(prevAt===0)은 절대 스킵되지 않음. 이후 500ms 이내 재클릭 또는
+      // 이전 서버 요청이 아직 진행 중이면 스킵(낙관 업데이트도 하지 않음).
+      if (cooldownHit || inflightHit) {
+        skippedLikeIds.add(k);
         return {
           skipped: true as const,
           snapshots: [] as [readonly unknown[], { toppings: ToppingDTO[] } | undefined][],
