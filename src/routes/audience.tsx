@@ -178,7 +178,7 @@ function AudienceView() {
   const [toppingKind, setToppingKind] = useState<ToppingKind>("question");
 
   useSessionBootstrap(activeSessionId);
-  const { toppings, toggleLike, deleteOwn } = useSessionToppings(activeSessionId);
+  const { toppings, toggleLike, isLikePending, deleteOwn } = useSessionToppings(activeSessionId);
   const { getCount } = useToppingCommentCounts(activeSessionId);
   const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -572,6 +572,7 @@ function AudienceView() {
                           {list.map((t) => {
                             const liked = t.likedByMe;
                             const likeCount = t.likes ?? 0;
+                            const likePending = isLikePending(t.id);
                             return (
                               <li
                                 key={t.id}
@@ -597,6 +598,7 @@ function AudienceView() {
                                     }}
                                     aria-pressed={liked}
                                     aria-label={liked ? "좋아요 취소" : "좋아요"}
+                                    disabled={likePending}
                                     className={`bounce-press shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold border transition-colors ${
                                       liked
                                         ? "bg-grad-strawberry text-white border-transparent shadow-pink"
