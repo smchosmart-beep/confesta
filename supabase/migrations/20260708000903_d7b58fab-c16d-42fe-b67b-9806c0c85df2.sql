@@ -1,0 +1,1 @@
+ALTER PUBLICATION supabase_realtime ADD TABLE public.topping_comments, public.answer_prompts, public.topping_gates;
