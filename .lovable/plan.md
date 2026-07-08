@@ -1,47 +1,48 @@
-# 좋아요 저장 안 되는 버그 수정 (검토 반영판)
+## 목표
+청중이 좋아요를 누르면 화면의 1 표시가 서버 저장값과 일치하게 유지되고, 새로고침 후에도 `likedByMe`와 좋아요 수가 보존되도록 수정합니다.
 
-## 증상
-- 청중이 하트 눌러도 화면만 켜지고 DB 미반영
-- 새로고침 시 하트 리셋, 발표자 화면 개수 0 유지
-- DB 확인: `topping_likes` 전체 1행, `toppings.likes > 0`인 행 0개
+## 원인 가설
+현재 구현은 `onMutate`와 `mutationFn` 사이에 `skippedLikeIds` 전역 Set으로 “스킵 신호”를 주고받습니다. 이 방식은 빠른 재탭이나 잔여 마킹이 있을 때 서버 응답·낙관 업데이트·onSuccess 컨텍스트가 어긋날 수 있고, 그 결과 낙관값 1이 실시간/재조회로 0으로 덮이는 흐름이 생길 수 있습니다.
 
-## 원인
-`src/hooks/use-toppings.ts`의 `toggleLike`에서 `onMutate`가 `inflightLikes.add(k)`를 먼저 넣고, 이어 실행되는 `mutationFn`의 첫 줄이 `if (inflightLikes.has(k)) return { skipped: true }`로 조기 리턴한다. **자기 자신이 넣은 마킹을 자기가 보고 매번 skip** → 서버 RPC 절대 호출 안 됨. 추가로 skip 리턴 시 `finally`가 실행되지 않아 Set이 계속 오염된다.
+## 수정 계획
+`src/hooks/use-toppings.ts` 한 파일만 수정합니다. 서버 함수·RPC·스키마·RLS·실시간 채널 무변경.
 
-## 수정 방침 (client-only, 단일 파일)
+1. **좋아요 뮤테이션 단순화**
+   - `skippedLikeIds` Set을 제거합니다.
+   - `mutationFn`은 호출된 경우 항상 서버 RPC 1회만 실행하고 `finally`에서 `inflightLikes.delete(key)`를 보장합니다.
+   - `onMutate`는 스킵 판단을 하지 않고, 항상 스냅샷 저장 + 낙관 업데이트만 수행합니다.
 
-`src/hooks/use-toppings.ts`의 `toggleLike`만 손댄다. 서버 함수/RPC/스키마/RLS/실시간 채널 전부 무변경.
+2. **스킵/쿨다운 판단을 외부 콜백으로 이동**
+   - `useSessionToppings`가 노출하는 `toggleLike`를 얇은 wrap 함수로 바꿉니다.
+   - wrap 함수에서 다음 순서로 조기 반환합니다.
+     - `deviceId` 또는 `sessionId`가 없으면 무시.
+     - 같은 토핑이 `inflightLikes`에 있으면 무시.
+     - 500ms 이내 재탭이면 무시.
+   - 통과한 클릭만 `inflightLikes.add(key)` + `lastLikeAt.set(key, now)` 후 `mutate` 호출.
+   - 이렇게 하면 “스킵된 mutation”이 아예 만들어지지 않아 컨텍스트 불일치가 사라집니다.
 
-### 변경 내용
+3. **서버 응답 방어**
+   - `onSuccess`에서 응답값을 캐시에 patch하고 `likeGuards`에 2초 TTL로 등록하는 기존 로직 유지.
+   - `onError`는 스냅샷 롤백 + 실패 토스트. 인플라이트 정리는 `mutationFn`의 `finally`가 담당.
 
-1. 모듈 스코프에 `skippedLikeIds: Set<string>` 추가 — onMutate가 skip 결정 시 마킹.
-2. `onMutate`:
-   - 쿨다운(500ms) 또는 이전 서버 요청 미완(`inflightLikes.has(k)`) 시 → `skippedLikeIds.add(k)` + `{ skipped: true, snapshots: [] }` 반환. **낙관 업데이트 안 함**.
-   - 통과 시 → `lastLikeAt.set(k, now)`, `inflightLikes.add(k)`, 스냅샷 저장 + 낙관 업데이트.
-3. `mutationFn`:
-   - 첫 줄: `if (skippedLikeIds.has(k)) { skippedLikeIds.delete(k); return { ok: false, skipped: true }; }` — onMutate 신호를 존중하여 서버 호출 안 함.
-   - 통과 시: 서버 RPC 호출, `finally { inflightLikes.delete(k); }`.
-   - **자기 onMutate 마킹을 재확인하는 로직 제거**.
-4. `onSuccess`/`onError`의 `ctx.skipped` 분기는 그대로 유지 (스냅샷 롤백 스킵, likeGuards 미갱신).
+4. **useQuery `enabled` 조건은 변경하지 않음**
+   - 첫 렌더에서 목록이 잠깐 사라지는 부작용을 피하기 위해 현행 `enabled: !!sessionId` 유지.
+   - `deviceId` 가드는 2번의 wrap 콜백 안에서만 처리합니다.
 
-## 서버비/기능 영향 검토
-
-- **서버비**: 정상 클릭당 RPC 1회 → 원래 설계 수준. 현재는 0회라 정상화. 500ms 쿨다운·인플라이트 가드로 연타 폭주 방지. realtime 이벤트도 정상 클릭 1회당 UPDATE 1 + INSERT/DELETE 1로 원래 설계 그대로.
-- **realtime 정합성**: 기존 `op_id` dedupe(`toggle_topping_like` 3인자 오버로드)와 `likeGuards`(2초 TTL) 로직 그대로 동작. 자신이 낙관 업데이트한 값이 realtime로 되돌려지는 race는 이미 방어됨.
-- **발표자/관리자 화면**: `list_toppings_with_my_like_v2`가 `toppings.likes`를 반환하고 RPC가 그 컬럼을 갱신 → realtime UPDATE로 자동 반영. 코드 변경 없음.
-- **다른 기능 영향 없음**:
-  - `togglePin`/`toggleAddressed`/`addTopping`/`deleteOwn`: 별개 뮤테이션, 미변경.
-  - 지난 턴에 수정한 댓글 카운트 로직: 관련 없음.
-  - `useMyToppings`, 북마크, 슬라이드, 스태프, 관리자: 무관.
+## 영향 검토
+- **서버비**: 정상 클릭당 RPC 1회. 인플라이트·쿨다운 유지로 연타 폭주 방지. 실시간 이벤트도 UPDATE 1 + INSERT/DELETE 1로 원래 설계 그대로.
+- **실시간 정합성**: `likeGuards`(2초 TTL)와 `op_id` dedupe 그대로. 자기 낙관값이 realtime로 되돌려지는 race 방어 유지.
+- **발표자/관리자 화면**: `toppings.likes` UPDATE → realtime patch 경로 무변경.
+- **다른 기능**: `togglePin`/`toggleAddressed`/`addTopping`/`deleteOwn`, 댓글, 북마크, 슬라이드, 스태프, 관리자 모두 무관.
 - **엣지 케이스**:
-  - 네트워크 오류 → `onError`가 스냅샷 롤백, `finally`가 `inflightLikes` 정리.
+  - 네트워크 오류 → `onError` 롤백 + `finally` 정리.
+  - `deviceId` 준비 전 클릭 → wrap에서 무시(서버 호출·화면 변경 없음).
   - 서로 다른 토핑 연속 클릭 → 키가 달라 간섭 없음.
-  - 쿨다운 스킵된 클릭 → 서버 호출 없음, 화면도 안 바뀜(직관적).
 
-## 검증 절차
-
-1. 청중 화면에서 하트 클릭 → DB `topping_likes` INSERT, `toppings.likes` +1 확인 (`supabase--read_query`).
-2. 새로고침 → 하트 상태·개수 유지.
-3. 발표자 화면에서 실시간 개수 증가.
-4. 500ms 내 연타 → 서버 호출 1회만.
-5. 두 번째 클릭으로 좋아요 취소 → DELETE + `likes` -1 확인.
+## 검증
+1. 청중 화면에서 좋아요 클릭 후 1이 0으로 되돌아가지 않는지 확인.
+2. DB에서 `topping_likes` 행 추가 + `toppings.likes` +1 확인.
+3. 새로고침 후 하트 상태·숫자 유지 확인.
+4. 발표자 화면에서 실시간 또는 새로고침 후 반영 확인.
+5. 빠른 연타 시 RPC 중복 호출로 0으로 되돌아가지 않는지 확인.
+6. 두 번째 클릭으로 좋아요 취소 → DELETE + `likes` -1 확인.
