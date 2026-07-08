@@ -1,61 +1,47 @@
-확인 결과, 백엔드의 실제 댓글 수는 정상입니다.
+# 좋아요 저장 안 되는 버그 수정 (검토 반영판)
 
-- 현재 세션 `1|1320|404-B`의 질문 `444` 실제 댓글 수: 6개
-- 화면 표시: 91개
-- 따라서 데이터베이스 누적/집계 문제가 아니라, 화면 쪽 실시간 카운트 반영이 중복 실행되는 문제입니다.
-- 콘솔 경고가 안 나온 이유도 설명됩니다. 한 번에 `+86` 된 것이 아니라, 같은 이벤트가 여러 컴포넌트 리스너에서 `+1`씩 반복 적용되어 각 업데이트는 `+1`로 보였기 때문입니다.
+## 증상
+- 청중이 하트 눌러도 화면만 켜지고 DB 미반영
+- 새로고침 시 하트 리셋, 발표자 화면 개수 0 유지
+- DB 확인: `topping_likes` 전체 1행, `toppings.likes > 0`인 행 0개
 
 ## 원인
+`src/hooks/use-toppings.ts`의 `toggleLike`에서 `onMutate`가 `inflightLikes.add(k)`를 먼저 넣고, 이어 실행되는 `mutationFn`의 첫 줄이 `if (inflightLikes.has(k)) return { skipped: true }`로 조기 리턴한다. **자기 자신이 넣은 마킹을 자기가 보고 매번 skip** → 서버 RPC 절대 호출 안 됨. 추가로 skip 리턴 시 `finally`가 실행되지 않아 Set이 계속 오염된다.
 
-현재 질문 목록에서 질문 카드마다 `PresenterCommentBlock`이 렌더링되고, 각 블록이 다시 `useToppingCommentCounts(sessionId)`를 호출합니다.
+## 수정 방침 (client-only, 단일 파일)
 
-즉 질문이 많이 보일수록 같은 세션의 댓글 실시간 리스너가 여러 개 등록됩니다.
-댓글 1개가 추가되면:
+`src/hooks/use-toppings.ts`의 `toggleLike`만 손댄다. 서버 함수/RPC/스키마/RLS/실시간 채널 전부 무변경.
 
-```text
-실제 INSERT 1회
-→ 같은 세션 댓글 리스너 N개가 모두 실행
-→ 동일한 comment-counts 캐시에 +1을 N번 적용
-→ 5가 91처럼 튐
-```
+### 변경 내용
 
-좋아요가 0으로 보이는 건 별도 확인 결과 현재 백엔드에도 해당 세션 좋아요 행이 0개라, 댓글 수 문제와는 별개입니다. 우선 댓글 수 중복 리스너를 먼저 고칩니다.
+1. 모듈 스코프에 `skippedLikeIds: Set<string>` 추가 — onMutate가 skip 결정 시 마킹.
+2. `onMutate`:
+   - 쿨다운(500ms) 또는 이전 서버 요청 미완(`inflightLikes.has(k)`) 시 → `skippedLikeIds.add(k)` + `{ skipped: true, snapshots: [] }` 반환. **낙관 업데이트 안 함**.
+   - 통과 시 → `lastLikeAt.set(k, now)`, `inflightLikes.add(k)`, 스냅샷 저장 + 낙관 업데이트.
+3. `mutationFn`:
+   - 첫 줄: `if (skippedLikeIds.has(k)) { skippedLikeIds.delete(k); return { ok: false, skipped: true }; }` — onMutate 신호를 존중하여 서버 호출 안 함.
+   - 통과 시: 서버 RPC 호출, `finally { inflightLikes.delete(k); }`.
+   - **자기 onMutate 마킹을 재확인하는 로직 제거**.
+4. `onSuccess`/`onError`의 `ctx.skipped` 분기는 그대로 유지 (스냅샷 롤백 스킵, likeGuards 미갱신).
 
-## 수정 계획
+## 서버비/기능 영향 검토
 
-1. `useToppingCommentCounts(sessionId)`를 질문 카드마다 호출하지 않게 변경
-   - 발표자 질문 목록의 부모 컴포넌트에서 세션당 1번만 호출
-   - 각 댓글 버튼에는 이미 계산된 `count` 값을 prop으로 전달
+- **서버비**: 정상 클릭당 RPC 1회 → 원래 설계 수준. 현재는 0회라 정상화. 500ms 쿨다운·인플라이트 가드로 연타 폭주 방지. realtime 이벤트도 정상 클릭 1회당 UPDATE 1 + INSERT/DELETE 1로 원래 설계 그대로.
+- **realtime 정합성**: 기존 `op_id` dedupe(`toggle_topping_like` 3인자 오버로드)와 `likeGuards`(2초 TTL) 로직 그대로 동작. 자신이 낙관 업데이트한 값이 realtime로 되돌려지는 race는 이미 방어됨.
+- **발표자/관리자 화면**: `list_toppings_with_my_like_v2`가 `toppings.likes`를 반환하고 RPC가 그 컬럼을 갱신 → realtime UPDATE로 자동 반영. 코드 변경 없음.
+- **다른 기능 영향 없음**:
+  - `togglePin`/`toggleAddressed`/`addTopping`/`deleteOwn`: 별개 뮤테이션, 미변경.
+  - 지난 턴에 수정한 댓글 카운트 로직: 관련 없음.
+  - `useMyToppings`, 북마크, 슬라이드, 스태프, 관리자: 무관.
+- **엣지 케이스**:
+  - 네트워크 오류 → `onError`가 스냅샷 롤백, `finally`가 `inflightLikes` 정리.
+  - 서로 다른 토핑 연속 클릭 → 키가 달라 간섭 없음.
+  - 쿨다운 스킵된 클릭 → 서버 호출 없음, 화면도 안 바뀜(직관적).
 
-2. 청중 화면도 같은 구조로 정리
-   - `QuestionCommentBlock`도 카드마다 카운트 훅을 직접 호출하고 있어 동일한 위험이 있음
-   - 청중 질문 리스트 부모에서 한 번만 카운트 훅을 호출하고, 각 블록에 count 전달
+## 검증 절차
 
-3. 스포트라이트 모달은 별도 처리
-   - 모달은 목록과 별도로 뜨므로, 필요 시 모달 내부에서 1회만 카운트 훅을 호출하거나 부모에서 count 전달
-   - 같은 질문에 대해 목록/모달이 동시에 열려도 카운트가 중복 증가하지 않도록 구조를 맞춤
-
-4. `useToppingCommentCounts` 내부 안전장치 추가
-   - 같은 세션에서 여러 컴포넌트가 실수로 훅을 호출해도 실시간 INSERT/DELETE 패치가 중복 적용되지 않도록 최근 이벤트 id를 짧게 기억해 dedupe
-   - 이중 방어라서 이후 다른 컴포넌트에서 같은 실수가 생겨도 91 같은 튐을 막음
-
-5. 진단 로그 조정
-   - 기존 `warnCountJump`는 이번 케이스를 못 잡았으므로, 리스너 수/중복 이벤트를 잡을 수 있는 로그로 바꾸거나 수정 후 제거
-
-## 영향 검토
-
-- 백엔드 스키마 변경 없음
-- 서버 함수 변경 없음
-- 댓글 작성/삭제 기능 유지
-- 댓글 본문 로딩 방식 유지
-- 서버비 증가 없음. 오히려 중복 실시간 리스너와 중복 캐시 업데이트가 줄어듦
-- 좋아요/질문/답변/북마크/QR 기능에는 직접 영향 없음
-
-## 검증
-
-수정 후 같은 세션에서 확인합니다.
-
-1. 현재 `444` 질문의 댓글 배지가 실제값 6 근처로 수렴하는지 확인
-2. 댓글 1개 추가 시 `댓글 6 → 7`처럼 정확히 +1 되는지 확인
-3. 발표자 화면과 청중 화면 모두에서 같은 동작 확인
-4. 좋아요는 별도 이슈로, 실제 좋아요 행이 생성되는지 이후 분리 점검
+1. 청중 화면에서 하트 클릭 → DB `topping_likes` INSERT, `toppings.likes` +1 확인 (`supabase--read_query`).
+2. 새로고침 → 하트 상태·개수 유지.
+3. 발표자 화면에서 실시간 개수 증가.
+4. 500ms 내 연타 → 서버 호출 1회만.
+5. 두 번째 클릭으로 좋아요 취소 → DELETE + `likes` -1 확인.
