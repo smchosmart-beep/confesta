@@ -463,6 +463,18 @@ export type Database = {
           text: string
         }[]
       }
+      set_topping_like: {
+        Args: {
+          _device_id: string
+          _liked: boolean
+          _op_id: string
+          _topping_id: string
+        }
+        Returns: {
+          liked: boolean
+          likes: number
+        }[]
+      }
       toggle_topping_like:
         | {
             Args: { _device_id: string; _topping_id: string }
