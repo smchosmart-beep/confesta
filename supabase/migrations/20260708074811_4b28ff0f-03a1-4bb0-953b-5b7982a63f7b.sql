@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS topping_likes_fill_session_id_before_write ON public.topping_likes;

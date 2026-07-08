@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -114,6 +114,7 @@ export function useSessionToppings(sessionId: string | null) {
   const deviceId = useDeviceId();
   const { state: roleState } = useAudienceRole();
   const qc = useQueryClient();
+  const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set());
   const listFn = useServerFn(listToppings);
   const addFn = useServerFn(addToppingFn);
   const likeFn = useServerFn(toggleLikeFn);
@@ -288,6 +289,12 @@ export function useSessionToppings(sessionId: string | null) {
         return { ok: true, liked: !!res.liked, likes: res.likes ?? 0 };
       } finally {
         inflightLikes.delete(k);
+        setPendingLikeIds((prev) => {
+          if (!prev.has(vars.toppingId)) return prev;
+          const next = new Set(prev);
+          next.delete(vars.toppingId);
+          return next;
+        });
       }
     },
     // 낙관 업데이트를 요청된 최종 상태에 정렬. 캐시가 이미 그 상태면 delta=0.
@@ -362,7 +369,10 @@ export function useSessionToppings(sessionId: string | null) {
         queryKey: ["toppings", sessionId],
       });
       let currentLiked: boolean | null = null;
+      const guarded = likeGuards.get(k);
+      if (guarded && guarded.expires >= now) currentLiked = guarded.liked;
       for (const [, prev] of matches) {
+        if (currentLiked !== null) break;
         const t = prev?.toppings.find((x) => x.id === toppingId);
         if (t) {
           currentLiked = t.likedByMe;
@@ -374,9 +384,20 @@ export function useSessionToppings(sessionId: string | null) {
 
       lastLikeAt.set(k, now);
       inflightLikes.add(k);
+      setPendingLikeIds((prev) => {
+        if (prev.has(toppingId)) return prev;
+        const next = new Set(prev);
+        next.add(toppingId);
+        return next;
+      });
       toggleLikeMut.mutate({ toppingId, liked: nextLiked });
     },
     [sessionId, deviceId, qc, toggleLikeMut],
+  );
+
+  const isLikePending = useCallback(
+    (toppingId: string) => pendingLikeIds.has(toppingId),
+    [pendingLikeIds],
   );
 
 
@@ -490,11 +511,12 @@ export function useSessionToppings(sessionId: string | null) {
       submit,
       isSubmitting: addTopping.isPending,
       toggleLike,
+      isLikePending,
       togglePin: togglePin.mutate,
       toggleAddressed: toggleAddressed.mutate,
       deleteOwn,
     }),
-    [toppings, deviceId, sessionId, submit, addTopping.isPending, toggleLike, togglePin.mutate, toggleAddressed.mutate, deleteOwn],
+    [toppings, deviceId, sessionId, submit, addTopping.isPending, toggleLike, isLikePending, togglePin.mutate, toggleAddressed.mutate, deleteOwn],
 
   );
 }

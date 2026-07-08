@@ -1,61 +1,45 @@
 ## 목표
-좋아요 클릭 시 화면의 1 표시가 서버 저장값과 계속 일치하도록, 서버 API를 "토글"에서 "명시적 최종 상태 설정"으로 바꿉니다. 낙관 업데이트도 요청된 최종 상태에 정렬되어 자기 자신 요청으로 인해 1→0으로 되돌아가는 경로를 제거합니다.
+좋아요를 눌렀을 때 화면에서 `1`로 올랐다가 바로 `0`으로 되돌아가는 문제를 더 이상 UI 보호 로직에만 맡기지 않고, 실제 저장 상태와 새로고침 후 상태까지 기준으로 고칩니다.
 
-## 변경 요약
+## 현재 의심 원인
+이전 수정은 `toppings.likes` 카운트와 클라이언트 캐시 보호에 초점을 맞췄지만, 화면이 다시 `0`으로 내려간다는 것은 다음 중 하나가 아직 남아있을 가능성이 큽니다.
 
-### 1. DB: 새 함수 `set_topping_like` (migration)
-- 시그니처: `set_topping_like(_topping_id uuid, _device_id uuid, _liked boolean, _op_id uuid) returns table(liked boolean, likes integer)`
-- 동작:
-  - `_liked = true` → `INSERT ... ON CONFLICT DO NOTHING`. 실제 삽입된 경우에만 `toppings.likes += 1`, `op_id = _op_id`.
-  - `_liked = false` → `DELETE ...`. 실제 삭제된 경우에만 `toppings.likes = GREATEST(likes-1, 0)`, `op_id = _op_id`.
-  - 어느 경우든 마지막에 현재 `likes`를 조회해 `(_liked, likes)` 반환. 동일 요청 재전송에 대해 완전 idempotent.
-- `SECURITY DEFINER`, `search_path = public`, 기존 `toggle_topping_like`는 롤백 안전을 위해 그대로 둠(호출자 없음).
-- `GRANT EXECUTE ... TO anon, authenticated` (기존 `toggle_topping_like`와 동일 grant).
+1. `topping_likes` 행이 실제로 저장되지 않거나 즉시 사라짐
+2. `toppings.likes`는 잠깐 `1`이 되지만 이후 목록 재조회/RPC가 `liked_by_me=false`, `likes=0`을 돌려줌
+3. 실시간 `toppings` UPDATE payload가 `likedByMe`를 보존하지 못하고 stale 캐시와 합쳐짐
+4. 버튼 쪽에서 클릭 이벤트가 중복 발생해 두 번째 요청이 취소 상태로 들어감
 
-### 2. 서버 함수: `src/lib/confesta/toppings.functions.ts`
-- `toggleLikeTopping` 입력 스키마에 `liked: boolean` 추가.
-- 내부 RPC 호출을 `set_topping_like`로 교체하고 `_liked`를 그대로 전달.
-- 반환 형태 `{ liked, likes }` 유지 → 훅 시그니처 변경 불필요.
+## 적용 계획
 
-### 3. 훅: `src/hooks/use-toppings.ts`
-- `toggleLikeMut` 입력 타입을 `{ toppingId: string; liked: boolean }`로 변경.
-- `mutationFn`: `likeFn({ data: { deviceId, toppingId, liked, opId } })` 호출. `finally { inflightLikes.delete(k) }` 유지.
-- `onMutate(vars)`: 스냅샷 저장 후 낙관 업데이트를 **요청된 최종 상태에 정렬**.
-  - 규칙 (보강 반영, 핵심):
-    ```
-    if t.likedByMe === vars.liked: delta = 0                // idempotent 요청 → UI 변경 없음
-    else:                          delta = vars.liked ? +1 : -1
-    next.likedByMe = vars.liked
-    next.likes     = Math.max(0, t.likes + delta)
-    ```
-  - 이 규칙으로 “이미 좋아요 상태인데 다시 좋아요를 눌러도 0이 되는” 경로가 원천 차단.
-- `onSuccess(res, vars)`: 기존대로 `likeGuards`에 2초 TTL로 서버 확정값 등록 + 캐시 patch.
-- `onError`: 스냅샷 롤백. `inflightLikes` 정리는 `finally`가 담당.
-- `toggleLike` wrap 콜백:
-  - 조기 반환: `!sessionId || !deviceId` → 무시, `inflightLikes.has(k)` → 무시, 500ms 쿨다운 이내 → 무시.
-  - 현재 캐시의 해당 토핑 `likedByMe`를 읽어 `nextLiked = !likedByMe` 계산.
-  - `inflightLikes.add(k)`, `lastLikeAt.set(k, now)` 후 `mutate({ toppingId, liked: nextLiked })`.
+### 1. 실제 DB 상태 기준으로 재현 확인
+- 좋아요 클릭 전/후에 해당 토핑의 `toppings.likes`와 `topping_likes` 존재 여부를 확인합니다.
+- 목록 RPC(`list_toppings_with_my_like_v2`)가 같은 `device_id`로 `liked_by_me=true`를 반환하는지 확인합니다.
+- 이 결과로 문제가 “저장 실패”인지 “화면 캐시/실시간 반영 실패”인지 분리합니다.
 
-### 4. 유지되는 방어선(무변경)
-- `likeGuards` 2초 TTL, `applyLikeGuards` 적용 경로.
-- `op_id` 기반 realtime dedupe.
-- `refetchOnWindowFocus`/`reconnect` 재동기화, 채널 unhealthy→healthy 전이 시 invalidate.
-- `togglePin`/`toggleAddressed`/`addTopping`/`deleteOwn`, 댓글, 북마크, 슬라이드, 발표자/관리자 화면 등 모두 무변경.
+### 2. 서버 함수 반환값 강화
+- `set_topping_like`가 `INSERT/DELETE` 후 반드시 실제 DB 기준으로 최종 상태를 재조회하도록 보강합니다.
+- 반환값을 “요청한 liked”가 아니라 “실제 `topping_likes` 존재 여부 + 실제 `toppings.likes`”로 확정합니다.
+- 필요하면 함수 내부를 단일 트랜잭션성 흐름으로 정리해 동시 클릭/중복 호출에서도 카운트가 틀어지지 않게 합니다.
 
-## 서버비/성능 영향
-- 클릭당 RPC 1회로 이전과 동일. Realtime 이벤트도 UPDATE 1 + INSERT/DELETE 1로 동일.
-- 500ms 쿨다운 + 인플라이트 가드로 연타 폭주 방지 유지.
-- 새 인덱스/트리거 없음.
+### 3. 클라이언트 좋아요 흐름 단순화
+- 클릭 시 `nextLiked`를 계산한 뒤 요청 중에는 동일 버튼의 재클릭을 확실히 막습니다.
+- 성공 시 서버 반환값만 최종값으로 반영합니다.
+- 실패 시에만 스냅샷으로 롤백합니다.
+- 현재의 `likeGuards`는 유지하되, 서버에서 확인된 최종값만 저장하게 해서 stale refetch가 다시 `0`으로 덮지 못하게 합니다.
 
-## 리스크와 대응
-- 캐시에 없는 토핑에 `toggleLike` 호출 → 현재 UI 흐름상 없음. 만약 발생하면 wrap에서 조기 반환.
-- 네트워크 오류 → `onError` 롤백 + `finally` 인플라이트 해제.
-- 여러 탭에서 서로 다른 `liked` 요청 동시 발생 → 서버가 idempotent + 마지막 UPDATE 승자로 수렴, `likeGuards`가 자기 값 보호.
+### 4. 실시간 UPDATE와 refetch 충돌 방지
+- `toppings` 실시간 UPDATE를 받을 때 해당 토핑에 활성 좋아요 guard가 있으면 `likedByMe`와 `likes`를 서버 확정값으로 유지합니다.
+- 재조회 결과에도 guard를 적용하는 현재 흐름을 점검해, `deviceId`가 없는 캐시 또는 다른 queryKey가 내 화면 값을 덮지 않게 합니다.
 
-## 검증 절차
-1. 청중: 좋아요 클릭 → 1 유지, 새로고침 후에도 하트/숫자 유지.
-2. DB: `topping_likes` 행 존재, `toppings.likes`가 실제 행 수와 일치.
-3. 청중: 다시 클릭 → 하트 해제, `topping_likes` 삭제, `likes` -1.
-4. 청중: 좋아요 상태에서 빠르게 여러 번 클릭 → 최종 상태가 마지막 클릭과 일치, 서버 카운트 일치.
-5. 발표자/관리자 화면: realtime 또는 새로고침 후 카운트 일치.
-6. 두 브라우저로 동일 토핑에 각각 좋아요 → `likes = 2`, 각자 하트 유지.
+### 5. 검증
+- 한 브라우저에서 좋아요 클릭: `0 → 1` 유지
+- 새로고침 후에도 `1` 유지 및 내 좋아요 상태 유지
+- 다시 클릭: `1 → 0` 정상 취소
+- 빠른 연타: 한 번만 처리되거나 최종 상태가 일관됨
+- 두 브라우저/두 기기: 합산 likes가 정확히 증가
+
+## 영향 검토
+- 서버 호출 수는 여전히 클릭당 1회입니다.
+- 새 테이블/인덱스/구독은 추가하지 않습니다.
+- 발표자/관리자 화면의 pin/addressed/comment/bookmark 흐름은 건드리지 않습니다.
+- 기존 `toggle_topping_like`는 롤백 안전용으로 유지합니다.
