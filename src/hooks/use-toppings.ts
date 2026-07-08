@@ -267,26 +267,31 @@ export function useSessionToppings(sessionId: string | null) {
   });
 
   const toggleLikeMut = useMutation({
-    // mutationFn은 항상 서버 RPC를 1회 호출. 스킵/쿨다운 판단은 아래 wrap 콜백에서 처리.
+    // mutationFn은 요청된 최종 상태를 서버에 그대로 전달. 서버는 idempotent.
     mutationFn: async (
-      toppingId: string,
+      vars: { toppingId: string; liked: boolean },
     ): Promise<{ ok: true; liked: boolean; likes: number }> => {
-      const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
+      const k = guardKey(sessionId ?? "", deviceId ?? "", vars.toppingId);
       try {
         const opId =
           typeof crypto !== "undefined" && "randomUUID" in crypto
             ? crypto.randomUUID()
-            : undefined;
+            : "00000000-0000-0000-0000-000000000000";
         const res = await likeFn({
-          data: { deviceId: deviceId!, toppingId, opId },
+          data: {
+            deviceId: deviceId!,
+            toppingId: vars.toppingId,
+            liked: vars.liked,
+            opId,
+          },
         });
         return { ok: true, liked: !!res.liked, likes: res.likes ?? 0 };
       } finally {
         inflightLikes.delete(k);
       }
     },
-    // 항상 스냅샷 저장 + 낙관 업데이트. 스킵 판단은 wrap 콜백에서 이미 처리됨.
-    onMutate: async (toppingId: string) => {
+    // 낙관 업데이트를 요청된 최종 상태에 정렬. 캐시가 이미 그 상태면 delta=0.
+    onMutate: async (vars: { toppingId: string; liked: boolean }) => {
       await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
       const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
         queryKey: ["toppings", sessionId],
@@ -295,15 +300,15 @@ export function useSessionToppings(sessionId: string | null) {
         if (!prev) continue;
         qc.setQueryData<{ toppings: ToppingDTO[] }>(key, {
           ...prev,
-          toppings: prev.toppings.map((t) =>
-            t.id === toppingId
-              ? {
-                  ...t,
-                  likedByMe: !t.likedByMe,
-                  likes: Math.max(0, (t.likes ?? 0) + (t.likedByMe ? -1 : 1)),
-                }
-              : t,
-          ),
+          toppings: prev.toppings.map((t) => {
+            if (t.id !== vars.toppingId) return t;
+            const delta = t.likedByMe === vars.liked ? 0 : vars.liked ? 1 : -1;
+            return {
+              ...t,
+              likedByMe: vars.liked,
+              likes: Math.max(0, (t.likes ?? 0) + delta),
+            };
+          }),
         });
       }
       return { snapshots };
@@ -315,12 +320,12 @@ export function useSessionToppings(sessionId: string | null) {
         qc.setQueryData(key, prev);
       }
     },
-    // 서버 응답을 캐시에 반영 + 짧은 TTL 보호 구간 설정.
-    onSuccess: (res, toppingId) => {
+    // 서버 확정값 patch + 2초 TTL 보호 구간 설정.
+    onSuccess: (res, vars) => {
       if (!res || !res.ok) return;
       const { liked, likes } = res;
       if (sessionId && deviceId) {
-        likeGuards.set(guardKey(sessionId, deviceId, toppingId), {
+        likeGuards.set(guardKey(sessionId, deviceId, vars.toppingId), {
           liked,
           likes,
           expires: Date.now() + LIKE_GUARD_TTL_MS,
@@ -334,14 +339,15 @@ export function useSessionToppings(sessionId: string | null) {
         qc.setQueryData<{ toppings: ToppingDTO[] }>(key, {
           ...prev,
           toppings: prev.toppings.map((t) =>
-            t.id === toppingId ? { ...t, likedByMe: liked, likes } : t,
+            t.id === vars.toppingId ? { ...t, likedByMe: liked, likes } : t,
           ),
         });
       }
     },
   });
 
-  // 스킵/쿨다운/인플라이트 판단을 이곳에서 단일 결정. 통과한 클릭만 mutate 호출.
+  // 스킵/쿨다운/인플라이트 판단은 이곳에서 단일 결정. 통과한 클릭만 mutate.
+  // 현재 캐시의 likedByMe를 읽어 요청할 최종 상태(nextLiked)를 계산.
   const toggleLike = useCallback(
     (toppingId: string) => {
       if (!sessionId || !deviceId) return;
@@ -350,11 +356,27 @@ export function useSessionToppings(sessionId: string | null) {
       const now = Date.now();
       const prevAt = lastLikeAt.get(k) ?? 0;
       if (prevAt !== 0 && now - prevAt < LIKE_COOLDOWN_MS) return;
+
+      // 현재 캐시에서 likedByMe 조회. 여러 캐시 엔트리가 있으면 첫 매치 사용.
+      const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
+        queryKey: ["toppings", sessionId],
+      });
+      let currentLiked: boolean | null = null;
+      for (const [, prev] of matches) {
+        const t = prev?.toppings.find((x) => x.id === toppingId);
+        if (t) {
+          currentLiked = t.likedByMe;
+          break;
+        }
+      }
+      if (currentLiked === null) return; // 캐시에 없는 항목은 무시
+      const nextLiked = !currentLiked;
+
       lastLikeAt.set(k, now);
       inflightLikes.add(k);
-      toggleLikeMut.mutate(toppingId);
+      toggleLikeMut.mutate({ toppingId, liked: nextLiked });
     },
-    [sessionId, deviceId, toggleLikeMut],
+    [sessionId, deviceId, qc, toggleLikeMut],
   );
 
 
