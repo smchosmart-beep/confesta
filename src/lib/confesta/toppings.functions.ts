@@ -304,23 +304,21 @@ export const toggleLikeTopping = createServerFn({ method: "POST" })
       .object({
         deviceId: DeviceIdSchema,
         toppingId: ToppingIdSchema,
-        opId: z.string().uuid().optional(),
+        liked: z.boolean(),
+        opId: z.string().uuid(),
       })
       .parse(input),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // op_id가 있으면 3인자 오버로드로 realtime dedupe 지원, 없으면 기존 2인자 유지.
-    const { data: rows, error } = data.opId
-      ? await supabaseAdmin.rpc("toggle_topping_like", {
-          _topping_id: data.toppingId,
-          _device_id: data.deviceId,
-          _op_id: data.opId,
-        })
-      : await supabaseAdmin.rpc("toggle_topping_like", {
-          _topping_id: data.toppingId,
-          _device_id: data.deviceId,
-        });
+    // set_topping_like: 명시적 최종 상태 설정 + idempotent. 클라 stale 상태로 인한
+    // 좋아요 반전(1→0) race를 원천 차단한다.
+    const { data: rows, error } = await supabaseAdmin.rpc("set_topping_like", {
+      _topping_id: data.toppingId,
+      _device_id: data.deviceId,
+      _liked: data.liked,
+      _op_id: data.opId,
+    });
     if (error) throw error;
     const row = (rows as Array<{ liked: boolean; likes: number }> | null)?.[0];
     return { ok: true as const, liked: !!row?.liked, likes: row?.likes ?? 0 };
