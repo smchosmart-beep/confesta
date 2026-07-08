@@ -266,21 +266,12 @@ export function useSessionToppings(sessionId: string | null) {
     },
   });
 
-  const toggleLike = useMutation({
-    // onMutate가 쿨다운/인플라이트로 skip을 결정하면 skippedLikeIds에 마킹한다.
-    // mutationFn은 그 마킹을 존중해서 서버 호출을 건너뛴다.
-    // (자기 자신이 넣은 inflightLikes 마킹을 보고 skip하던 self-reference 버그 제거)
+  const toggleLikeMut = useMutation({
+    // mutationFn은 항상 서버 RPC를 1회 호출. 스킵/쿨다운 판단은 아래 wrap 콜백에서 처리.
     mutationFn: async (
       toppingId: string,
-    ): Promise<
-      | { ok: true; liked: boolean; likes: number }
-      | { ok: false; skipped: true }
-    > => {
+    ): Promise<{ ok: true; liked: boolean; likes: number }> => {
       const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
-      if (skippedLikeIds.has(k)) {
-        skippedLikeIds.delete(k);
-        return { ok: false, skipped: true };
-      }
       try {
         const opId =
           typeof crypto !== "undefined" && "randomUUID" in crypto
@@ -294,27 +285,8 @@ export function useSessionToppings(sessionId: string | null) {
         inflightLikes.delete(k);
       }
     },
-    // 작성자 본인 포함 모든 청중이 누를 수 있음. 낙관 업데이트로 즉시 반영.
-    // 쿨다운·인플라이트 판정을 여기서 단일 결정하고, 통과된 클릭만 낙관 업데이트를 수행.
+    // 항상 스냅샷 저장 + 낙관 업데이트. 스킵 판단은 wrap 콜백에서 이미 처리됨.
     onMutate: async (toppingId: string) => {
-      const k = guardKey(sessionId ?? "", deviceId ?? "", toppingId);
-      const now = Date.now();
-      const prevAt = lastLikeAt.get(k) ?? 0;
-      const cooldownHit = prevAt !== 0 && now - prevAt < LIKE_COOLDOWN_MS;
-      const inflightHit = inflightLikes.has(k);
-      // 첫 클릭(prevAt===0)은 절대 스킵되지 않음. 이후 500ms 이내 재클릭 또는
-      // 이전 서버 요청이 아직 진행 중이면 스킵(낙관 업데이트도 하지 않음).
-      if (cooldownHit || inflightHit) {
-        skippedLikeIds.add(k);
-        return {
-          skipped: true as const,
-          snapshots: [] as [readonly unknown[], { toppings: ToppingDTO[] } | undefined][],
-        };
-      }
-      // 통과된 클릭만 타임스탬프 갱신 + 인플라이트 마킹.
-      lastLikeAt.set(k, now);
-      inflightLikes.add(k);
-
       await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
       const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
         queryKey: ["toppings", sessionId],
@@ -334,19 +306,17 @@ export function useSessionToppings(sessionId: string | null) {
           ),
         });
       }
-      return { skipped: false as const, snapshots };
+      return { snapshots };
     },
     onError: (e, _v, ctx) => {
       console.error("[toggleLike] failed", e);
-      if (!ctx || ctx.skipped) return;
+      if (!ctx) return;
       for (const [key, prev] of ctx.snapshots) {
         qc.setQueryData(key, prev);
       }
     },
-    // 서버 응답({ ok, liked, likes })을 캐시에 반영 + 짧은 TTL 보호 구간 설정.
-    // 직후의 realtime invalidate→refetch가 stale 값으로 덮어쓰는 것을 차단.
-    onSuccess: (res, toppingId, ctx) => {
-      if (ctx?.skipped) return;
+    // 서버 응답을 캐시에 반영 + 짧은 TTL 보호 구간 설정.
+    onSuccess: (res, toppingId) => {
       if (!res || !res.ok) return;
       const { liked, likes } = res;
       if (sessionId && deviceId) {
@@ -370,6 +340,24 @@ export function useSessionToppings(sessionId: string | null) {
       }
     },
   });
+
+  // 스킵/쿨다운/인플라이트 판단을 이곳에서 단일 결정. 통과한 클릭만 mutate 호출.
+  const toggleLike = useCallback(
+    (toppingId: string) => {
+      if (!sessionId || !deviceId) return;
+      const k = guardKey(sessionId, deviceId, toppingId);
+      if (inflightLikes.has(k)) return;
+      const now = Date.now();
+      const prevAt = lastLikeAt.get(k) ?? 0;
+      if (prevAt !== 0 && now - prevAt < LIKE_COOLDOWN_MS) return;
+      lastLikeAt.set(k, now);
+      inflightLikes.add(k);
+      toggleLikeMut.mutate(toppingId);
+    },
+    [sessionId, deviceId, toggleLikeMut],
+  );
+
+
 
 
 
