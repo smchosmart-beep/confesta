@@ -6,6 +6,7 @@ import { AUDIENCE_ROLES, type AudienceRole } from "@/lib/confesta/audienceRole";
 import { RoleBadge } from "./RoleBadge";
 import { QuestionSpotlightModal } from "./QuestionSpotlightModal";
 import { PresenterCommentBlock } from "./PresenterCommentBlock";
+import { useToppingCommentCounts } from "@/hooks/use-topping-comments";
 
 type Filter = "all" | "pinned" | "unaddressed" | "addressed";
 type Sort = "recent" | "likes";
@@ -17,6 +18,7 @@ interface Props {
 
 export function QuestionStream({ sessionId }: Props) {
   const { toppings: allToppings, togglePin, toggleAddressed } = useSessionToppings(sessionId);
+  const { getCount } = useToppingCommentCounts(sessionId);
   const toppings = useMemo(
     () => allToppings.filter((t) => t.kind !== "answer"),
     [allToppings],
@@ -199,7 +201,11 @@ export function QuestionStream({ sessionId }: Props) {
                   </div>
                 </div>
                 <div className="relative">
-                  <PresenterCommentBlock sessionId={sessionId} toppingId={t.id} />
+                  <PresenterCommentBlock
+                    sessionId={sessionId}
+                    toppingId={t.id}
+                    count={getCount(t.id)}
+                  />
                 </div>
               </div>
             );
@@ -210,6 +216,7 @@ export function QuestionStream({ sessionId }: Props) {
       <QuestionSpotlightModal
         topping={spotlight}
         sessionId={sessionId}
+        commentCount={spotlight ? getCount(spotlight.id) : 0}
         onClose={() => setSpotlight(null)}
         onPrev={() => {
           if (!spotlight) return;

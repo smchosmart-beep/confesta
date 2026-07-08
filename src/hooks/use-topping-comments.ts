@@ -31,6 +31,38 @@ type CommentRow = {
 type CountsData = { counts: Record<string, number> };
 type ThreadData = { comments: CommentDTO[] };
 
+const RECENT_COMMENT_EVENT_TTL_MS = 30_000;
+const recentCommentEvents = new Map<string, number>();
+
+function pruneRecentCommentEvents(now: number) {
+  if (recentCommentEvents.size < 500) return;
+  for (const [key, expiresAt] of recentCommentEvents) {
+    if (expiresAt <= now) recentCommentEvents.delete(key);
+  }
+}
+
+function claimCommentEvent(
+  sessionId: string,
+  type: string,
+  payload: RealtimePayload,
+) {
+  if (type !== "INSERT" && type !== "DELETE") return true;
+
+  const row = (type === "DELETE" ? payload.old : payload.new) as {
+    id?: string;
+  } | null;
+  if (!row?.id) return true;
+
+  const now = Date.now();
+  pruneRecentCommentEvents(now);
+  const key = `${sessionId}:${type}:${row.id}`;
+  const expiresAt = recentCommentEvents.get(key) ?? 0;
+  if (expiresAt > now) return false;
+
+  recentCommentEvents.set(key, now + RECENT_COMMENT_EVENT_TTL_MS);
+  return true;
+}
+
 // 진단용: counts가 이전 대비 2 이상 튀는 경우 로그.
 // 재현 시 원인 확정 후 제거 예정.
 function warnCountJump(
@@ -93,6 +125,7 @@ export function useToppingCommentCounts(sessionId: string | null) {
     return subscribeToppingComments(sessionId, (payload: RealtimePayload) => {
       try {
         const type = payload.eventType;
+        if (!claimCommentEvent(sessionId, type, payload)) return;
 
         if (type === "DELETE") {
           const oldRow = payload.old as { id?: string; topping_id?: string } | null;
