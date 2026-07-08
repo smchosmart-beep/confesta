@@ -26,6 +26,7 @@ import { useAudience } from "@/hooks/use-audience";
 import { useSessionToppings } from "@/hooks/use-toppings";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
+import { useToppingCommentCounts } from "@/hooks/use-topping-comments";
 import type { ToppingKind } from "@/lib/confesta/types";
 import { useAudienceRole } from "@/hooks/use-audience-role";
 import { playBeep } from "@/lib/confesta/beep";
@@ -178,6 +179,7 @@ function AudienceView() {
 
   useSessionBootstrap(activeSessionId);
   const { toppings, toggleLike, deleteOwn } = useSessionToppings(activeSessionId);
+  const { getCount } = useToppingCommentCounts(activeSessionId);
   const { prompts: answerPrompts } = useAnswerPrompts(activeSessionId);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -624,6 +626,7 @@ function AudienceView() {
                                 <QuestionCommentBlock
                                   sessionId={activeSessionId}
                                   toppingId={t.id}
+                                  count={getCount(t.id)}
                                 />
                               </li>
                             );

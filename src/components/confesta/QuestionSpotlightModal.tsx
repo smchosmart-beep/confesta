@@ -11,12 +11,13 @@ interface SpotlightTopping {
 interface Props {
   topping: SpotlightTopping | null;
   sessionId: string;
+  commentCount: number;
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
 }
 
-export function QuestionSpotlightModal({ topping, sessionId, onClose, onPrev, onNext }: Props) {
+export function QuestionSpotlightModal({ topping, sessionId, commentCount, onClose, onPrev, onNext }: Props) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" && onPrev) {
@@ -103,6 +104,7 @@ export function QuestionSpotlightModal({ topping, sessionId, onClose, onPrev, on
           <PresenterCommentBlock
             sessionId={sessionId}
             toppingId={topping.id}
+            count={commentCount}
             size="lg"
             defaultOpen
           />

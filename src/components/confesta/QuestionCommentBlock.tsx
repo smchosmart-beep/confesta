@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { MessageCircle, Send, Trash2 } from "lucide-react";
 import { RoleBadge } from "./RoleBadge";
-import {
-  useToppingCommentCounts,
-  useToppingCommentThread,
-} from "@/hooks/use-topping-comments";
+import { useToppingCommentThread } from "@/hooks/use-topping-comments";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,16 +17,15 @@ import { toast } from "sonner";
 interface Props {
   sessionId: string;
   toppingId: string;
+  count: number;
 }
 
 const MAX_LEN = 200;
 
-export function QuestionCommentBlock({ sessionId, toppingId }: Props) {
-  const { getCount } = useToppingCommentCounts(sessionId);
+export function QuestionCommentBlock({ sessionId, toppingId, count }: Props) {
   const [open, setOpen] = useState(false);
   const { comments, isFetching, canWrite, addComment, deleteOwnComment } =
     useToppingCommentThread(sessionId, toppingId, open);
-  const count = getCount(toppingId);
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
