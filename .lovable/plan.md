@@ -1,45 +1,22 @@
 ## 목표
-좋아요를 눌렀을 때 화면에서 `1`로 올랐다가 바로 `0`으로 되돌아가는 문제를 더 이상 UI 보호 로직에만 맡기지 않고, 실제 저장 상태와 새로고침 후 상태까지 기준으로 고칩니다.
+AlertDialog 모달(질문 삭제, 댓글 삭제 등)이 흰 배경 + 붉은 버튼의 기본 shadcn 톤이라 앱의 크림/핑크·둥근·부드러운 톤과 이질감이 큼. 앱 톤(크림 배경, 라운드-3xl, 핑크 그라디언트, `shadow-pink/cream`)에 맞춰 통일.
 
-## 현재 의심 원인
-이전 수정은 `toppings.likes` 카운트와 클라이언트 캐시 보호에 초점을 맞췄지만, 화면이 다시 `0`으로 내려간다는 것은 다음 중 하나가 아직 남아있을 가능성이 큽니다.
+## 변경 파일
+1. `src/components/ui/alert-dialog.tsx` — 공통 스타일 앱 톤으로 교체
+   - `AlertDialogOverlay`: `bg-black/80` → `bg-foreground/70 backdrop-blur-sm`
+   - `AlertDialogContent`: `bg-background sm:rounded-lg border p-6 shadow-lg` → `bg-grad-cream border border-white/70 rounded-3xl p-6 sm:p-7 shadow-pink max-w-sm` (스케일 인 애니메이션 유지)
+   - `AlertDialogTitle`: `text-lg font-semibold` → `text-xl font-extrabold text-foreground text-center`
+   - `AlertDialogDescription`: 중앙 정렬 + `text-[13px]` 미세 조정
+   - `AlertDialogFooter`: 모바일 우선 세로 스택, `gap-2`, 우측 정렬 대신 풀폭
+   - `AlertDialogAction`: 기본 버튼 대신 `rounded-full px-4 py-2.5 font-bold text-white bg-grad-strawberry shadow-pink bounce-press w-full` — 소비자가 `className`로 색 오버라이드 가능(예: 파괴적 액션은 `bg-red-500` 계열 유지 옵션)
+   - `AlertDialogCancel`: `rounded-full bg-white/85 border border-white text-foreground font-bold w-full bounce-press`
 
-1. `topping_likes` 행이 실제로 저장되지 않거나 즉시 사라짐
-2. `toppings.likes`는 잠깐 `1`이 되지만 이후 목록 재조회/RPC가 `liked_by_me=false`, `likes=0`을 돌려줌
-3. 실시간 `toppings` UPDATE payload가 `likedByMe`를 보존하지 못하고 stale 캐시와 합쳐짐
-4. 버튼 쪽에서 클릭 이벤트가 중복 발생해 두 번째 요청이 취소 상태로 들어감
+2. 사용처에서 붉은 오버라이드 톤 조정(선택)
+   - `PresenterCommentBlock.tsx`, `QuestionCommentBlock.tsx`, `audience.tsx`, `BookmarkBar.tsx`에서 삭제 액션에 붙어 있는 `bg-red-600 hover:bg-red-700`을 앱 파괴적 톤으로 통일: `bg-gradient-to-r from-rose-500 to-pink-600 hover:opacity-90`. 새 기본 스타일과 자연스럽게 어우러지고 삭제라는 시맨틱은 유지.
 
-## 적용 계획
+## 비변경
+- 로직/기능 없음. 순수 프레젠테이션만.
+- 다른 Dialog(예: `SlotQRModal`, `QuestionSpotlightModal`)는 이미 앱 톤 커스텀 모달이라 손대지 않음.
 
-### 1. 실제 DB 상태 기준으로 재현 확인
-- 좋아요 클릭 전/후에 해당 토핑의 `toppings.likes`와 `topping_likes` 존재 여부를 확인합니다.
-- 목록 RPC(`list_toppings_with_my_like_v2`)가 같은 `device_id`로 `liked_by_me=true`를 반환하는지 확인합니다.
-- 이 결과로 문제가 “저장 실패”인지 “화면 캐시/실시간 반영 실패”인지 분리합니다.
-
-### 2. 서버 함수 반환값 강화
-- `set_topping_like`가 `INSERT/DELETE` 후 반드시 실제 DB 기준으로 최종 상태를 재조회하도록 보강합니다.
-- 반환값을 “요청한 liked”가 아니라 “실제 `topping_likes` 존재 여부 + 실제 `toppings.likes`”로 확정합니다.
-- 필요하면 함수 내부를 단일 트랜잭션성 흐름으로 정리해 동시 클릭/중복 호출에서도 카운트가 틀어지지 않게 합니다.
-
-### 3. 클라이언트 좋아요 흐름 단순화
-- 클릭 시 `nextLiked`를 계산한 뒤 요청 중에는 동일 버튼의 재클릭을 확실히 막습니다.
-- 성공 시 서버 반환값만 최종값으로 반영합니다.
-- 실패 시에만 스냅샷으로 롤백합니다.
-- 현재의 `likeGuards`는 유지하되, 서버에서 확인된 최종값만 저장하게 해서 stale refetch가 다시 `0`으로 덮지 못하게 합니다.
-
-### 4. 실시간 UPDATE와 refetch 충돌 방지
-- `toppings` 실시간 UPDATE를 받을 때 해당 토핑에 활성 좋아요 guard가 있으면 `likedByMe`와 `likes`를 서버 확정값으로 유지합니다.
-- 재조회 결과에도 guard를 적용하는 현재 흐름을 점검해, `deviceId`가 없는 캐시 또는 다른 queryKey가 내 화면 값을 덮지 않게 합니다.
-
-### 5. 검증
-- 한 브라우저에서 좋아요 클릭: `0 → 1` 유지
-- 새로고침 후에도 `1` 유지 및 내 좋아요 상태 유지
-- 다시 클릭: `1 → 0` 정상 취소
-- 빠른 연타: 한 번만 처리되거나 최종 상태가 일관됨
-- 두 브라우저/두 기기: 합산 likes가 정확히 증가
-
-## 영향 검토
-- 서버 호출 수는 여전히 클릭당 1회입니다.
-- 새 테이블/인덱스/구독은 추가하지 않습니다.
-- 발표자/관리자 화면의 pin/addressed/comment/bookmark 흐름은 건드리지 않습니다.
-- 기존 `toggle_topping_like`는 롤백 안전용으로 유지합니다.
+## 검증
+- `/audience`에서 내 질문 삭제 다이얼로그, 내 댓글 삭제 다이얼로그, 발표자 댓글 삭제 다이얼로그가 크림 배경 + 둥근 카드 + 핑크 CTA로 보이는지 스크린샷 확인.

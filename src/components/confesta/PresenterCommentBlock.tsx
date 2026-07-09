@@ -131,7 +131,7 @@ export function PresenterCommentBlock({
                   toast.error("삭제 중 오류가 발생했어요");
                 }
               }}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-gradient-to-r from-rose-500 to-pink-600 hover:opacity-90"
             >
               삭제
             </AlertDialogAction>
