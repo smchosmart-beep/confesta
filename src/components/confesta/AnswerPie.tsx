@@ -7,7 +7,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { useSessionToppings } from "@/hooks/use-toppings";
+import { useSessionAnswerTexts } from "@/hooks/use-answer-texts";
 import { extractKeywords } from "@/lib/confesta/keywords";
 
 const PALETTE = [
@@ -26,14 +26,11 @@ interface Props {
 }
 
 export function AnswerPie({ sessionId, promptId }: Props) {
-  const { toppings } = useSessionToppings(sessionId);
+  const { items } = useSessionAnswerTexts(sessionId);
 
   const answers = useMemo(
-    () =>
-      toppings.filter(
-        (t) => t.kind === "answer" && promptId != null && t.promptId === promptId,
-      ),
-    [toppings, promptId],
+    () => items.filter((t) => promptId != null && t.promptId === promptId),
+    [items, promptId],
   );
   const sorted = useMemo(() => {
     const kws = extractKeywords(answers.map((a) => a.text));

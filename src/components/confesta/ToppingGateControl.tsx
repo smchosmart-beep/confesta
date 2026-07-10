@@ -11,7 +11,7 @@ import {
   Check,
   Plus,
 } from "lucide-react";
-import { useSessionToppings } from "@/hooks/use-toppings";
+import { usePresenterToppings } from "@/hooks/use-toppings";
 import { useToppingGate } from "@/hooks/use-topping-gate";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 
@@ -21,7 +21,7 @@ interface Props {
 
 export function ToppingGateControl({ sessionId }: Props) {
   const { gate, setGate } = useToppingGate(sessionId);
-  const { toppings } = useSessionToppings(sessionId);
+  const { toppings } = usePresenterToppings(sessionId);
   const { prompts, create, update, close, reopen, remove } = useAnswerPrompts(sessionId);
 
   const sessionPrompts = useMemo(
