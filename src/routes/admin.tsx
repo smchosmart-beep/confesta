@@ -744,7 +744,7 @@ function SlotResetButton({
       await resetFn({ data: { day, period, room, pin: trimmed } });
       toast.success(`${label} 데이터를 초기화했어요`);
       qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
-      qc.invalidateQueries({ queryKey: ["slot-aggregates", day, period] });
+      qc.invalidateQueries({ queryKey: ["admin-aggregates", day, period] });
       setOpen(false);
       reset();
     } catch (err) {
