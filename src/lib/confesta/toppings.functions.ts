@@ -81,6 +81,97 @@ export const listToppings = createServerFn({ method: "POST" })
     };
   });
 
+/** 발표자 전용: 세션의 질문+응답 전량 반환. presenter slot 검증 필수. */
+export const listToppingsForPresenter = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sessionId: SessionIdSchema,
+        deviceId: DeviceIdSchema.optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<{ toppings: ToppingDTO[] }> => {
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "list_toppings_for_presenter",
+      { _session_id: data.sessionId, _device_id: data.deviceId },
+    );
+    if (error) throw error;
+
+    const rowsTyped = ((rows ?? []) as Array<{
+      id: string;
+      session_id: string;
+      text: string;
+      kind: string;
+      prompt_id: string | null;
+      prompt_text: string | null;
+      pinned: boolean;
+      addressed: boolean;
+      likes: number;
+      created_at: string;
+      device_id: string | null;
+      role: AudienceRole | null;
+      op_id: string | null;
+      liked_by_me: boolean;
+    }>);
+
+    return {
+      toppings: rowsTyped.map((r) => ({
+        id: r.id,
+        sessionId: r.session_id,
+        text: r.text,
+        kind: r.kind as "question" | "answer",
+        promptId: r.prompt_id,
+        promptText: r.prompt_text,
+        pinned: r.pinned,
+        addressed: r.addressed,
+        likes: r.likes,
+        likedByMe: r.liked_by_me,
+        mine: !!data.deviceId && r.device_id === data.deviceId,
+        role: (r.role ?? "other") as AudienceRole,
+        createdAt: new Date(r.created_at).getTime(),
+      })),
+    };
+  });
+
+export type AnswerTextItem = {
+  id: string;
+  text: string;
+  promptId: string | null;
+  createdAt: number;
+};
+
+/** 청중용 응답 텍스트 집계 (파이/워드클라우드/카운트). 안전 컬럼만 반환. */
+export const listAnswerTextsBySession = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ sessionId: SessionIdSchema }).parse(input),
+  )
+  .handler(async ({ data }): Promise<{ items: AnswerTextItem[] }> => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: rows, error } = await supabaseAdmin.rpc(
+      "list_answer_texts_by_session",
+      { _session_id: data.sessionId },
+    );
+    if (error) throw error;
+    const rowsTyped = ((rows ?? []) as Array<{
+      id: string;
+      text: string;
+      prompt_id: string | null;
+      created_at: string;
+    }>);
+    return {
+      items: rowsTyped.map((r) => ({
+        id: r.id,
+        text: r.text,
+        promptId: r.prompt_id,
+        createdAt: new Date(r.created_at).getTime(),
+      })),
+    };
+  });
+
 /** 관리자 전용: 세션 종료 후 100건 캡 없이 모든 토핑을 조회. */
 export const listAllToppingsAdmin = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
