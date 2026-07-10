@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import {
   listToppings,
+  listToppingsForPresenter,
   addTopping as addToppingFn,
   toggleLikeTopping as toggleLikeFn,
   togglePinTopping as togglePinFn,
@@ -59,9 +60,7 @@ function rowToDTO(
   };
 }
 
-// v2 서버 필터를 유지하기 위한 클라 측 소프트 캡. 200건 초과 시 우선순위
-// (kind='answer' || pinned || addressed) 항목은 모두 유지하고, 나머지 신규 목록
-// 앞에서부터 채워 상한선을 유지한다. 정합성은 focus/reconnect resync로 수렴.
+// 청중용 소프트 캡 (질문 전용). 발표자 모드에서는 트림 비활성.
 function trimList(items: ToppingDTO[], cap = 200): ToppingDTO[] {
   if (items.length <= cap) return items;
   const priorityIds = new Set<string>();
@@ -74,8 +73,7 @@ function trimList(items: ToppingDTO[], cap = 200): ToppingDTO[] {
   return items.filter((t) => priorityIds.has(t.id) || keepNonPri.has(t.id));
 }
 
-// 모듈 수준 좋아요 보호 구간: RPC commit 직후 refetch가 stale 값으로
-// 덮어쓰는 race를 차단. key = `${sessionId}:${deviceId}:${toppingId}`.
+// 모듈 수준 좋아요 보호 구간 — 두 훅(audience/presenter) 공유.
 const LIKE_GUARD_TTL_MS = 2000;
 const likeGuards = new Map<
   string,
@@ -103,26 +101,37 @@ export function applyLikeGuards<T extends { id: string; likedByMe: boolean; like
   });
   return changed ? next : items;
 }
-// 같은 토핑에 대한 동시 클릭 차단(낙관/서버 race 방지).
 const inflightLikes = new Set<string>();
-// 짧은 시간 내 연타(모바일 이중 탭 등)로 인한 즉시 취소 방지 쿨다운.
 const LIKE_COOLDOWN_MS = 500;
 const lastLikeAt = new Map<string, number>();
 
+type Mode = "audience" | "presenter";
 
-export function useSessionToppings(sessionId: string | null) {
+interface ToppingsHookOpts {
+  mode: Mode;
+}
+
+function useToppingsCore(sessionId: string | null, opts: ToppingsHookOpts) {
+  const { mode } = opts;
+  const keyPrefix = mode === "presenter" ? "toppings-presenter" : "toppings";
+  // 발표자 모드는 질문+응답 전량, 청중은 질문 전용 + 응답 realtime 스킵
+  const skipAnswerRealtime = mode === "audience";
+  const softCap = mode === "presenter" ? 5000 : 200;
+
   const deviceId = useDeviceId();
   const { state: roleState } = useAudienceRole();
   const qc = useQueryClient();
   const [pendingLikeIds, setPendingLikeIds] = useState<Set<string>>(() => new Set());
-  const listFn = useServerFn(listToppings);
+  const listAudienceFn = useServerFn(listToppings);
+  const listPresenterFn = useServerFn(listToppingsForPresenter);
+  const listFn = mode === "presenter" ? listPresenterFn : listAudienceFn;
   const addFn = useServerFn(addToppingFn);
   const likeFn = useServerFn(toggleLikeFn);
   const pinFn = useServerFn(togglePinFn);
   const addrFn = useServerFn(toggleAddressedFn);
   const deleteFn = useServerFn(deleteOwnFn);
 
-  const queryKey = ["toppings", sessionId, deviceId] as const;
+  const queryKey = [keyPrefix, sessionId, deviceId] as const;
   const healthy = useRealtimeHealth("toppings", sessionId);
 
   const { data } = useQuery({
@@ -150,7 +159,7 @@ export function useSessionToppings(sessionId: string | null) {
       try {
         const type = payload.eventType;
         const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
-          queryKey: ["toppings", sessionId],
+          queryKey: [keyPrefix, sessionId],
         });
 
         if (type === "DELETE") {
@@ -168,8 +177,9 @@ export function useSessionToppings(sessionId: string | null) {
 
         const row = payload.new as ToppingRow | null;
         if (!row?.id) return;
+        // 청중 캐시는 질문 전용 — 응답 이벤트는 무시(오염 방지)
+        if (skipAnswerRealtime && row.kind === "answer") return;
 
-        // prompt_text는 join 결과라 payload에 없음 → prompts 캐시에서 조회
         const promptsCache = qc.getQueryData<{ prompts: AnswerPromptDTO[] }>([
           "prompts",
           sessionId,
@@ -184,7 +194,6 @@ export function useSessionToppings(sessionId: string | null) {
           let nextList: ToppingDTO[];
 
           if (idx >= 0) {
-            // UPDATE (또는 INSERT dedupe): 기존 promptText·likedByMe 보존
             const existing = prev.toppings[idx];
             const dto = rowToDTO(
               row,
@@ -192,7 +201,6 @@ export function useSessionToppings(sessionId: string | null) {
               lookupPromptText(row.prompt_id) ?? existing.promptText,
               existing,
             );
-            // prompt_id가 바뀌었는데 새 프롬프트가 캐시에 없으면 promptText 안전망 재조회
             if (
               row.prompt_id &&
               row.prompt_id !== existing.promptId &&
@@ -204,25 +212,22 @@ export function useSessionToppings(sessionId: string | null) {
             nextList[idx] = dto;
           } else {
             if (type === "UPDATE") {
-              // 서버 필터에 걸려 있던 항목이 UPDATE로 조건 진입 → 정확 복제 어려움
               qc.invalidateQueries({ queryKey: key });
               continue;
             }
-            // INSERT: created_at DESC 리스트의 맨 앞에 삽입
             const dto = rowToDTO(row, keyDeviceId, lookupPromptText(row.prompt_id));
-            nextList = trimList([dto, ...prev.toppings]);
+            nextList = trimList([dto, ...prev.toppings], softCap);
           }
 
           const guarded = applyLikeGuards(sessionId, keyDeviceId, nextList);
           qc.setQueryData(key, { ...prev, toppings: guarded });
         }
       } catch {
-        qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+        qc.invalidateQueries({ queryKey: [keyPrefix, sessionId] });
       }
     });
-  }, [sessionId, qc]);
+  }, [sessionId, qc, keyPrefix, skipAnswerRealtime, softCap]);
 
-  // 채널 재연결 시 놓친 이벤트 동기화 (false→true 전이만)
   const wasUnhealthyRef = useRef(false);
   useEffect(() => {
     if (!sessionId) return;
@@ -232,11 +237,9 @@ export function useSessionToppings(sessionId: string | null) {
     }
     if (wasUnhealthyRef.current) {
       wasUnhealthyRef.current = false;
-      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+      qc.invalidateQueries({ queryKey: [keyPrefix, sessionId] });
     }
-  }, [healthy, sessionId, qc]);
-
-
+  }, [healthy, sessionId, qc, keyPrefix]);
 
   const toppings: ToppingDTO[] = data?.toppings ?? [];
 
@@ -261,14 +264,17 @@ export function useSessionToppings(sessionId: string | null) {
         },
       });
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+    onSuccess: (_res, vars) => {
+      qc.invalidateQueries({ queryKey: [keyPrefix, sessionId] });
       qc.invalidateQueries({ queryKey: ["my-toppings", deviceId] });
+      // 응답 텍스트 집계 캐시(파이·워드클라우드·응답 카운트) 즉시 갱신
+      if (vars.kind === "answer") {
+        qc.invalidateQueries({ queryKey: ["answer-texts", sessionId] });
+      }
     },
   });
 
   const toggleLikeMut = useMutation({
-    // mutationFn은 요청된 최종 상태를 서버에 그대로 전달. 서버는 idempotent.
     mutationFn: async (
       vars: { toppingId: string; liked: boolean },
     ): Promise<{ ok: true; liked: boolean; likes: number }> => {
@@ -297,11 +303,10 @@ export function useSessionToppings(sessionId: string | null) {
         });
       }
     },
-    // 낙관 업데이트를 요청된 최종 상태에 정렬. 캐시가 이미 그 상태면 delta=0.
     onMutate: async (vars: { toppingId: string; liked: boolean }) => {
-      await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
+      await qc.cancelQueries({ queryKey: [keyPrefix, sessionId] });
       const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
-        queryKey: ["toppings", sessionId],
+        queryKey: [keyPrefix, sessionId],
       });
       for (const [key, prev] of snapshots) {
         if (!prev) continue;
@@ -327,7 +332,6 @@ export function useSessionToppings(sessionId: string | null) {
         qc.setQueryData(key, prev);
       }
     },
-    // 서버 확정값 patch + 2초 TTL 보호 구간 설정.
     onSuccess: (res, vars) => {
       if (!res || !res.ok) return;
       const { liked, likes } = res;
@@ -339,7 +343,7 @@ export function useSessionToppings(sessionId: string | null) {
         });
       }
       const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
-        queryKey: ["toppings", sessionId],
+        queryKey: [keyPrefix, sessionId],
       });
       for (const [key, prev] of matches) {
         if (!prev) continue;
@@ -353,8 +357,6 @@ export function useSessionToppings(sessionId: string | null) {
     },
   });
 
-  // 스킵/쿨다운/인플라이트 판단은 이곳에서 단일 결정. 통과한 클릭만 mutate.
-  // 현재 캐시의 likedByMe를 읽어 요청할 최종 상태(nextLiked)를 계산.
   const toggleLike = useCallback(
     (toppingId: string) => {
       if (!sessionId || !deviceId) return;
@@ -364,9 +366,8 @@ export function useSessionToppings(sessionId: string | null) {
       const prevAt = lastLikeAt.get(k) ?? 0;
       if (prevAt !== 0 && now - prevAt < LIKE_COOLDOWN_MS) return;
 
-      // 현재 캐시에서 likedByMe 조회. 여러 캐시 엔트리가 있으면 첫 매치 사용.
       const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
-        queryKey: ["toppings", sessionId],
+        queryKey: [keyPrefix, sessionId],
       });
       let currentLiked: boolean | null = null;
       const guarded = likeGuards.get(k);
@@ -379,7 +380,7 @@ export function useSessionToppings(sessionId: string | null) {
           break;
         }
       }
-      if (currentLiked === null) return; // 캐시에 없는 항목은 무시
+      if (currentLiked === null) return;
       const nextLiked = !currentLiked;
 
       lastLikeAt.set(k, now);
@@ -392,7 +393,7 @@ export function useSessionToppings(sessionId: string | null) {
       });
       toggleLikeMut.mutate({ toppingId, liked: nextLiked });
     },
-    [sessionId, deviceId, qc, toggleLikeMut],
+    [sessionId, deviceId, qc, toggleLikeMut, keyPrefix],
   );
 
   const isLikePending = useCallback(
@@ -400,17 +401,11 @@ export function useSessionToppings(sessionId: string | null) {
     [pendingLikeIds],
   );
 
-
-
-
-
-  // 낙관 업데이트 공통 헬퍼: 특정 boolean 필드를 즉시 토글하고,
-  // 서버 확정값으로 patch하거나 실패 시 스냅샷으로 롤백.
   const optimisticToggleField = <K extends "pinned" | "addressed">(field: K) => ({
     onMutate: async (toppingId: string) => {
-      await qc.cancelQueries({ queryKey: ["toppings", sessionId] });
+      await qc.cancelQueries({ queryKey: [keyPrefix, sessionId] });
       const snapshots = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
-        queryKey: ["toppings", sessionId],
+        queryKey: [keyPrefix, sessionId],
       });
       for (const [key, prev] of snapshots) {
         if (!prev) continue;
@@ -443,7 +438,6 @@ export function useSessionToppings(sessionId: string | null) {
       toppingId: string,
       ctx: { snapshots: [readonly unknown[], { toppings: ToppingDTO[] } | undefined][] } | undefined,
     ) => {
-      // 서버 거부(권한/세션 불일치 등): 스냅샷 롤백
       if (!res || res.ok !== true) {
         console.warn(`[toggle:${field}] server rejected`, res);
         toast.error(res?.message ?? "권한이 필요해요. 발표자 잠금을 다시 해제해 주세요.");
@@ -456,7 +450,7 @@ export function useSessionToppings(sessionId: string | null) {
       const confirmed = (res as Record<string, unknown>)[field] as boolean | undefined;
       if (typeof confirmed !== "boolean") return;
       const matches = qc.getQueriesData<{ toppings: ToppingDTO[] }>({
-        queryKey: ["toppings", sessionId],
+        queryKey: [keyPrefix, sessionId],
       });
       for (const [key, prev] of matches) {
         if (!prev) continue;
@@ -486,7 +480,7 @@ export function useSessionToppings(sessionId: string | null) {
     mutationFn: (toppingId: string) =>
       deleteFn({ data: { deviceId: deviceId!, toppingId } }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["toppings", sessionId] });
+      qc.invalidateQueries({ queryKey: [keyPrefix, sessionId] });
       qc.invalidateQueries({ queryKey: ["my-toppings", deviceId] });
     },
   });
@@ -517,6 +511,13 @@ export function useSessionToppings(sessionId: string | null) {
       deleteOwn,
     }),
     [toppings, deviceId, sessionId, submit, addTopping.isPending, toggleLike, isLikePending, togglePin.mutate, toggleAddressed.mutate, deleteOwn],
-
   );
+}
+
+export function useSessionToppings(sessionId: string | null) {
+  return useToppingsCore(sessionId, { mode: "audience" });
+}
+
+export function usePresenterToppings(sessionId: string | null) {
+  return useToppingsCore(sessionId, { mode: "presenter" });
 }
