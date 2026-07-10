@@ -427,6 +427,34 @@ export type Database = {
           text: string
         }[]
       }
+      list_answer_texts_by_session: {
+        Args: { _session_id: string }
+        Returns: {
+          created_at: string
+          id: string
+          prompt_id: string
+          text: string
+        }[]
+      }
+      list_toppings_for_presenter: {
+        Args: { _device_id?: string; _session_id: string }
+        Returns: {
+          addressed: boolean
+          created_at: string
+          device_id: string
+          id: string
+          kind: string
+          liked_by_me: boolean
+          likes: number
+          op_id: string
+          pinned: boolean
+          prompt_id: string
+          prompt_text: string
+          role: Database["public"]["Enums"]["audience_role"]
+          session_id: string
+          text: string
+        }[]
+      }
       list_toppings_with_my_like: {
         Args: { _device_id?: string; _session_id: string }
         Returns: {
