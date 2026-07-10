@@ -76,7 +76,7 @@ export function SlotQRModal({
     align-items: center; justify-content: flex-start; padding: 6mm 0 0; text-align: center; box-sizing: border-box; }
   .label { font-size: 18px; font-weight: 700; letter-spacing: .12em;
     text-transform: uppercase; color: #555; }
-  h1 { font-size: 56px; font-weight: 900; margin: 4px 0 2px; line-height: 1.05; }
+  h1 { font-size: 46px; font-weight: 900; margin: 4px 0 2px; line-height: 1.05; }
   .sub { font-size: 24px; color: #222; margin: 0 0 18mm; font-weight: 600; }
   .qr { display: inline-flex; align-items: center; justify-content: center; margin: 0 0 10mm; }
   .qr svg { display: block !important; width: ${w}px !important; height: ${h}px !important; max-width: none !important; }
@@ -136,7 +136,7 @@ export function SlotQRModal({
           ref={qrRef}
           className="bg-white p-4 sm:p-6 rounded-2xl flex items-center justify-center"
         >
-          <QRCode value={payload} size={280} style={{ width: "100%", height: "auto", maxWidth: 320 }} />
+          <QRCode value={payload} size={252} style={{ width: "100%", height: "auto", maxWidth: 288 }} />
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground mt-3 font-mono break-all">
