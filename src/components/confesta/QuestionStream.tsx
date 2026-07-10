@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Pin, Check, Heart, Maximize2 } from "lucide-react";
-import { useSessionToppings } from "@/hooks/use-toppings";
+import { usePresenterToppings } from "@/hooks/use-toppings";
 import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
 import { AUDIENCE_ROLES, type AudienceRole } from "@/lib/confesta/audienceRole";
 import { RoleBadge } from "./RoleBadge";
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function QuestionStream({ sessionId }: Props) {
-  const { toppings: allToppings, togglePin, toggleAddressed } = useSessionToppings(sessionId);
+  const { toppings: allToppings, togglePin, toggleAddressed } = usePresenterToppings(sessionId);
   const { getCount } = useToppingCommentCounts(sessionId);
   const toppings = useMemo(
     () => allToppings.filter((t) => t.kind !== "answer"),

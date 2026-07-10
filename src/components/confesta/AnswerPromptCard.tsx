@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Send, Lock, Megaphone } from "lucide-react";
 import type { AnswerPromptDTO } from "@/lib/confesta/prompts.functions";
 import { useSessionToppings } from "@/hooks/use-toppings";
+import { useSessionAnswerTexts } from "@/hooks/use-answer-texts";
 import { useToppingGate } from "@/hooks/use-topping-gate";
 import { AnswerPie } from "./AnswerPie";
 
@@ -12,7 +13,8 @@ interface Props {
 }
 
 export function AnswerPromptCard({ prompt }: Props) {
-  const { toppings, submit } = useSessionToppings(prompt.sessionId);
+  const { submit } = useSessionToppings(prompt.sessionId);
+  const { items } = useSessionAnswerTexts(prompt.sessionId);
   const { gate } = useToppingGate(prompt.sessionId);
 
   const isActive = prompt.closedAt == null;
@@ -28,11 +30,11 @@ export function AnswerPromptCard({ prompt }: Props) {
   }, [text]);
 
   const total = useMemo(
-    () =>
-      toppings.filter((t) => t.kind === "answer" && t.promptId === prompt.id)
-        .length,
-    [toppings, prompt.id],
+    () => items.filter((i) => i.promptId === prompt.id).length,
+    [items, prompt.id],
   );
+
+
 
 
   const handleSubmit = async (e: React.FormEvent) => {

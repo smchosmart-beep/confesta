@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { useSessionToppings } from "@/hooks/use-toppings";
+import { useSessionAnswerTexts } from "@/hooks/use-answer-texts";
 import { extractKeywords } from "@/lib/confesta/keywords";
 import { Cherry, ChocChip, StarSprinkle, Heart, Sprinkle } from "./ToppingDecor";
 
@@ -38,15 +38,13 @@ export function ToppingTubScene({
   promptId,
   promptsCount,
 }: Props) {
-  const { toppings: allToppings } = useSessionToppings(sessionId);
-  const toppings = useMemo(
+  const { items } = useSessionAnswerTexts(sessionId);
+  const answers = useMemo(
     () =>
-      allToppings.filter(
-        (t) =>
-          t.kind === "answer" &&
-          (promptId === undefined ? true : t.promptId === promptId),
+      items.filter((t) =>
+        promptId === undefined ? true : t.promptId === promptId,
       ),
-    [allToppings, promptId],
+    [items, promptId],
   );
   const [tick, setTick] = useState(0);
 
@@ -56,10 +54,11 @@ export function ToppingTubScene({
   }, []);
 
   const keywords = useMemo(() => {
-    const all = extractKeywords(toppings.map((t) => t.text));
+    const all = extractKeywords(answers.map((t) => t.text));
     return all.slice(0, compact ? 14 : 22);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [toppings, compact, tick]);
+  }, [answers, compact, tick]);
+
 
   const emptyMessage =
     promptsCount === 0

@@ -13,7 +13,7 @@ import { ToppingGateControl } from "@/components/confesta/ToppingGateControl";
 import { SlotUnlockCard } from "@/components/confesta/SlotUnlockCard";
 import { useAnswerPrompts } from "@/hooks/use-answer-prompts";
 import { useToppingGate } from "@/hooks/use-topping-gate";
-import { useSessionToppings } from "@/hooks/use-toppings";
+import { usePresenterToppings } from "@/hooks/use-toppings";
 import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import {
   issuePickupQR,
@@ -733,7 +733,7 @@ function UnlockedSlotView({
 function AnswerPromptTabs({ sessionId }: { sessionId: string }) {
   const { prompts } = useAnswerPrompts(sessionId);
   const { gate } = useToppingGate(sessionId);
-  const { toppings } = useSessionToppings(sessionId);
+  const { toppings } = usePresenterToppings(sessionId);
 
   const sorted = useMemo(
     () => [...prompts].sort((a, b) => b.createdAt - a.createdAt),
