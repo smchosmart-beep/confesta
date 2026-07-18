@@ -1,33 +1,40 @@
-## 검토 결론
-- **기능 오작동**: 없습니다. CSS만 수정하며 스포트라이트 모달의 데이터 흐름/상태는 그대로입니다.
-- **서버비 과다 부과**: 없습니다. 서버 함수 호출이나 DB 쿼리가 늘어나지 않습니다.
-- **타 기능 악영향**: 없습니다. 수정 영역은 `QuestionSpotlightModal.tsx` 단일 컴포넌트이며 다른 페이지나 컴포넌트를 참조하지 않습니다.
+## 목표
+프로젝트 루트에 `README.md` 를 새로 생성합니다. 기존 `spec.md`(제품 스펙)와 `package.json` 을 근거로, GitHub/저장소 첫 진입자가 바로 이해할 수 있는 한글 README 를 만듭니다.
 
-## 기존 계획에서 보완할 점
-`bg-grad-sunset-soft`는 `@utility` 클래스이지 CSS 변수(`var(--gradient-sunset-soft)`)가 아닙니다. `style`에 `var(--gradient-sunset-soft)`를 사용하면 값이 없어 배경이 사라질 수 있습니다. 두 그라디언트를 동시에 적용하려면 인라인 스타일로 직접 쓰거나, 구조를 바꿔야 합니다.
+## 파일
+- **신규**: `README.md` (루트)
+- 기존 `spec.md`, `design.md` 는 그대로 두고 README 에서 링크로 참조
 
-더 안전한 방법은 **스크롤 컨테이너 안에 `min-h-full` wrapper를 두고, 그 wrapper 안에 기존 absolute 그라디언트 레이어를 그대로 유지**하는 것입니다. 이렇게 하면 wrapper가 실제 콘텐츠 높이만큼 늘어나므로 absolute 배경도 댓글이 길어진 전체 영역을 덮습니다. 기존 색상/투명도(60%)를 변경하지 않아 시각적 차이가 없습니다.
+## 구성
 
-## 수정 방안
-- 파일: `src/components/confesta/QuestionSpotlightModal.tsx`
-- 안쪽 스크롤 카드 div를 다음과 같이 변경:
-  - `p-8 sm:p-12` padding을 내부 wrapper로 이동
-  - 내부 wrapper에 `relative min-h-full` 추가
-  - 기존 `bg-grad-cream` / `bg-grad-sunset-soft opacity-60` absolute div를 그대로 wrapper 내부에 유지
-  - 콘텐츠(`p` 태그, `PresenterCommentBlock` 등)는 wrapper 내부에 배치, `relative`는 그대로 유지해도 무방
+1. **프로젝트 타이틀 & 태그라인**
+   - Confesta (콘페스타) — AI 디지털 컨퍼런스&페스티벌 게이미피케이션 플랫폼
+2. **한 줄 소개 + 핵심 메타포**
+   - 콘 / 주문 / 스쿱 / 토핑 / 영수증 개념 요약
+3. **주요 기능**
+   - 4개 역할(청중·발표자·스태프·관리자)별 핵심 액션 bullet
+4. **기술 스택**
+   - TanStack Start v1, React 19, Vite 7, Tailwind v4, shadcn/ui, TanStack Query/Router, Lovable Cloud(Postgres+Realtime+Auth), Cloudflare Workers 타겟
+5. **시작하기**
+   - 요구사항: Bun
+   - `bun install`
+   - `bun run dev` / `bun run build` / `bun run lint` / `bun run format`
+   - Lovable Cloud 사용 안내 (`.env` 는 자동 관리, 수동 편집 금지)
+6. **디렉터리 구조 요약**
+   - `src/routes/` (파일 기반 라우팅, `/audience`, `/presenter`, `/staff`, `/admin`)
+   - `src/components/confesta/`, `src/hooks/`, `src/lib/confesta/`, `src/integrations/supabase/`
+7. **배포**
+   - Lovable 에서 Publish (Preview / Published URL 예시 문구)
+8. **문서 링크**
+   - 상세 스펙: `./spec.md`
+   - 디자인 가이드: `./design.md`
+9. **라이선스/크레딧**
+   - Private 프로젝트 명시, "Built with Lovable" 배지 언급
 
-  예상 구조:
-  ```tsx
-  <div className="relative overflow-hidden max-w-4xl w-full max-h-[85vh] overflow-y-auto rounded-[2rem] shadow-pink animate-scale-in border border-white/60">
-    <div className="relative min-h-full p-8 sm:p-12">
-      <div className="absolute inset-0 bg-grad-cream pointer-events-none" />
-      <div className="absolute inset-0 bg-grad-sunset-soft opacity-60 pointer-events-none" />
-      <p className="relative ...">청중 질문 스포트라이트</p>
-      ...
-    </div>
-  </div>
-  ```
+## 스타일
+- 한국어 본문, 코드 블록은 영어
+- 이모지 없음(사용자 정책 존중), 간결한 마크다운
+- 길이: 약 120~180줄 목표
 
-## 검증
-- `bun run tsgo` 또는 `bunx tsc --noEmit` 타입 체크
-- `/presenter` 접속 후 스포트라이트 모달 열어 댓글이 많은 질문에서 스크롤 상/하단 모두 분홍 배경이 연결되어 보이는지 확인
+## 확인
+- 파일 생성 후 `bun run lint` 는 md 를 검사하지 않으므로 별도 명령 없이 종료. 빌드/타입 영향 없음.
