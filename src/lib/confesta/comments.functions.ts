@@ -9,6 +9,8 @@ const CommentIdSchema = z.string().uuid();
 const RoleSchema = z.enum(AUDIENCE_ROLE_KEYS as [string, ...string[]]);
 const TextSchema = z.string().trim().min(1).max(200);
 
+export type CommentAuthorKind = "audience" | "presenter";
+
 export type CommentDTO = {
   id: string;
   toppingId: string;
@@ -17,6 +19,7 @@ export type CommentDTO = {
   role: AudienceRole;
   mine: boolean;
   createdAt: number;
+  authorKind: CommentAuthorKind;
 };
 
 export const listToppingComments = createServerFn({ method: "POST" })
@@ -32,7 +35,7 @@ export const listToppingComments = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("topping_comments")
-      .select("id, topping_id, session_id, text, role, device_id, created_at")
+      .select("id, topping_id, session_id, text, role, device_id, created_at, author_kind")
       .eq("session_id", data.sessionId)
       .order("created_at", { ascending: true });
     if (error) throw error;
@@ -45,6 +48,7 @@ export const listToppingComments = createServerFn({ method: "POST" })
         role: (r.role ?? "other") as AudienceRole,
         mine: !!data.deviceId && r.device_id === data.deviceId,
         createdAt: new Date(r.created_at).getTime(),
+        authorKind: (r.author_kind === "presenter" ? "presenter" : "audience") as CommentAuthorKind,
       })),
     };
   });
@@ -80,7 +84,7 @@ export const listCommentsByTopping = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("topping_comments")
-      .select("id, topping_id, session_id, text, role, device_id, created_at")
+      .select("id, topping_id, session_id, text, role, device_id, created_at, author_kind")
       .eq("topping_id", data.toppingId)
       .order("created_at", { ascending: true });
     if (error) throw error;
@@ -93,6 +97,7 @@ export const listCommentsByTopping = createServerFn({ method: "POST" })
         role: (r.role ?? "other") as AudienceRole,
         mine: !!data.deviceId && r.device_id === data.deviceId,
         createdAt: new Date(r.created_at).getTime(),
+        authorKind: (r.author_kind === "presenter" ? "presenter" : "audience") as CommentAuthorKind,
       })),
     };
   });
@@ -186,6 +191,41 @@ export const deletePresenterToppingComment = createServerFn({ method: "POST" })
       .from("topping_comments")
       .delete()
       .eq("id", data.commentId);
+    if (error) throw error;
+    return { ok: true as const };
+  });
+
+export const addPresenterToppingComment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sessionId: SessionIdSchema,
+        toppingId: ToppingIdSchema,
+        text: TextSchema,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: top, error: tErr } = await supabaseAdmin
+      .from("toppings")
+      .select("id, session_id")
+      .eq("id", data.toppingId)
+      .maybeSingle();
+    if (tErr) throw tErr;
+    if (!top || top.session_id !== data.sessionId) {
+      return { ok: false as const, message: "질문을 찾을 수 없어요" };
+    }
+    const { error } = await supabaseAdmin.from("topping_comments").insert({
+      topping_id: data.toppingId,
+      session_id: data.sessionId,
+      device_id: null,
+      role: "other",
+      text: data.text,
+      author_kind: "presenter",
+    });
     if (error) throw error;
     return { ok: true as const };
   });

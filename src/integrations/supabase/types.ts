@@ -268,8 +268,9 @@ export type Database = {
       }
       topping_comments: {
         Row: {
+          author_kind: string
           created_at: string
-          device_id: string
+          device_id: string | null
           id: string
           op_id: string | null
           role: Database["public"]["Enums"]["audience_role"]
@@ -278,8 +279,9 @@ export type Database = {
           topping_id: string
         }
         Insert: {
+          author_kind?: string
           created_at?: string
-          device_id: string
+          device_id?: string | null
           id?: string
           op_id?: string | null
           role: Database["public"]["Enums"]["audience_role"]
@@ -288,8 +290,9 @@ export type Database = {
           topping_id: string
         }
         Update: {
+          author_kind?: string
           created_at?: string
-          device_id?: string
+          device_id?: string | null
           id?: string
           op_id?: string | null
           role?: Database["public"]["Enums"]["audience_role"]

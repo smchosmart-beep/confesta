@@ -31,9 +31,10 @@ export function QuestionStream({ sessionId }: Props) {
 
   const filtered = useMemo(() => {
     let list = [...toppings];
-    if (filter === "pinned") list = list.filter((t) => t.pinned);
+    if (filter === "pinned") list = list.filter((t) => t.pinned && !t.addressed);
     else if (filter === "unaddressed") list = list.filter((t) => !t.addressed);
     else if (filter === "addressed") list = list.filter((t) => t.addressed);
+    else list = list.filter((t) => !t.addressed);
 
     if (roleFilter !== "all") list = list.filter((t) => t.role === roleFilter);
 
@@ -48,18 +49,22 @@ export function QuestionStream({ sessionId }: Props) {
 
   const roleCounts = useMemo(() => {
     const m = new Map<AudienceRole, number>();
-    for (const t of toppings) m.set(t.role, (m.get(t.role) ?? 0) + 1);
+    for (const t of toppings) {
+      if (t.addressed) continue;
+      m.set(t.role, (m.get(t.role) ?? 0) + 1);
+    }
     return m;
   }, [toppings]);
 
+  const unaddressedCount = toppings.filter((t) => !t.addressed).length;
+  const pinnedActiveCount = toppings.filter((t) => t.pinned && !t.addressed).length;
+  const addressedCount = toppings.filter((t) => t.addressed).length;
+
   const filters: { value: Filter; label: string }[] = [
-    { value: "all", label: `전체 ${toppings.length}` },
-    { value: "pinned", label: `핀 ${toppings.filter((t) => t.pinned).length}` },
-    {
-      value: "unaddressed",
-      label: `미답변 ${toppings.filter((t) => !t.addressed).length}`,
-    },
-    { value: "addressed", label: `답변완료 ${toppings.filter((t) => t.addressed).length}` },
+    { value: "all", label: `전체 ${unaddressedCount}` },
+    { value: "pinned", label: `핀 ${pinnedActiveCount}` },
+    { value: "unaddressed", label: `미답변 ${unaddressedCount}` },
+    { value: "addressed", label: `답변완료 ${addressedCount}` },
   ];
 
   return (
