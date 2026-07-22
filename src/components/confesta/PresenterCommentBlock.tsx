@@ -99,7 +99,7 @@ export function PresenterCommentBlock({
                     key={c.id}
                     className={`rounded-xl border text-foreground ${
                       isPresenter
-                        ? "bg-grad-strawberry-soft border-pink-200"
+                        ? "bg-pink-50 border-pink-200"
                         : "bg-white/85 border-white"
                     } ${isLg ? "px-4 py-3 text-sm" : "px-3 py-2 text-[13px]"}`}
                   >
