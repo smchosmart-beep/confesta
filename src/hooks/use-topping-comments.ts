@@ -5,9 +5,11 @@ import {
   listToppingCommentCounts,
   listCommentsByTopping,
   addToppingComment as addFn,
+  addPresenterToppingComment as addPresenterFn,
   deleteOwnToppingComment as deleteOwnFn,
   deletePresenterToppingComment as deletePresenterFn,
   type CommentDTO,
+  type CommentAuthorKind,
 } from "@/lib/confesta/comments.functions";
 import { useDeviceId } from "./use-device-id";
 import { useAudienceRole } from "./use-audience-role";
@@ -26,6 +28,7 @@ type CommentRow = {
   role: AudienceRole | null;
   device_id: string | null;
   created_at: string;
+  author_kind?: string | null;
 };
 
 type CountsData = { counts: Record<string, number> };
