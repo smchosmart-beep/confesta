@@ -72,7 +72,7 @@ export function QuestionCommentBlock({ sessionId, toppingId, count }: Props) {
                     key={c.id}
                     className={`rounded-xl border px-3 py-2 text-[13px] text-foreground ${
                       isPresenter
-                        ? "bg-grad-strawberry-soft border-pink-200"
+                        ? "bg-pink-50 border-pink-200"
                         : "bg-white/85 border-white"
                     }`}
                   >
