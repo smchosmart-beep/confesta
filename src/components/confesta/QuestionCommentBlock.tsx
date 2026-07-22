@@ -65,31 +65,44 @@ export function QuestionCommentBlock({ sessionId, toppingId, count }: Props) {
             </div>
           ) : comments.length > 0 ? (
             <ul className="flex flex-col gap-2">
-              {comments.map((c) => (
-                <li
-                  key={c.id}
-                  className="rounded-xl bg-white/85 border border-white px-3 py-2 text-[13px] text-foreground"
-                >
-                  <div className="flex items-start gap-2">
-                    <span className="flex-1 whitespace-pre-wrap break-words">
-                      {c.text}
-                    </span>
-                    {c.mine && (
-                      <button
-                        type="button"
-                        onClick={() => setPendingDeleteId(c.id)}
-                        aria-label="내 댓글 삭제"
-                        className="bounce-press shrink-0 inline-flex items-center justify-center rounded-full w-6 h-6 text-muted-foreground/70 hover:text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="mt-1.5">
-                    <RoleBadge role={c.role} size="xs" />
-                  </div>
-                </li>
-              ))}
+              {comments.map((c) => {
+                const isPresenter = c.authorKind === "presenter";
+                return (
+                  <li
+                    key={c.id}
+                    className={`rounded-xl border px-3 py-2 text-[13px] text-foreground ${
+                      isPresenter
+                        ? "bg-grad-strawberry-soft border-pink-200"
+                        : "bg-white/85 border-white"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <span className="flex-1 whitespace-pre-wrap break-words">
+                        {c.text}
+                      </span>
+                      {c.mine && (
+                        <button
+                          type="button"
+                          onClick={() => setPendingDeleteId(c.id)}
+                          aria-label="내 댓글 삭제"
+                          className="bounce-press shrink-0 inline-flex items-center justify-center rounded-full w-6 h-6 text-muted-foreground/70 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-1.5">
+                      {isPresenter ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-grad-strawberry text-white px-2 py-0.5 text-[10px] font-bold shadow-pink">
+                          🎤 발표자
+                        </span>
+                      ) : (
+                        <RoleBadge role={c.role} size="xs" />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
 
