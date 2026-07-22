@@ -268,6 +268,7 @@ export type Database = {
       }
       topping_comments: {
         Row: {
+          author_kind: string
           created_at: string
           device_id: string
           id: string
@@ -278,6 +279,7 @@ export type Database = {
           topping_id: string
         }
         Insert: {
+          author_kind?: string
           created_at?: string
           device_id: string
           id?: string
@@ -288,6 +290,7 @@ export type Database = {
           topping_id: string
         }
         Update: {
+          author_kind?: string
           created_at?: string
           device_id?: string
           id?: string
