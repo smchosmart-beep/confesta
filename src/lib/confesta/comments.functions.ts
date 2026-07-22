@@ -194,3 +194,38 @@ export const deletePresenterToppingComment = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true as const };
   });
+
+export const addPresenterToppingComment = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sessionId: SessionIdSchema,
+        toppingId: ToppingIdSchema,
+        text: TextSchema,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { assertPresenterSlot } = await import("./assertRole");
+    await assertPresenterSlot(data.sessionId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: top, error: tErr } = await supabaseAdmin
+      .from("toppings")
+      .select("id, session_id")
+      .eq("id", data.toppingId)
+      .maybeSingle();
+    if (tErr) throw tErr;
+    if (!top || top.session_id !== data.sessionId) {
+      return { ok: false as const, message: "질문을 찾을 수 없어요" };
+    }
+    const { error } = await supabaseAdmin.from("topping_comments").insert({
+      topping_id: data.toppingId,
+      session_id: data.sessionId,
+      device_id: null,
+      role: "other",
+      text: data.text,
+      author_kind: "presenter",
+    });
+    if (error) throw error;
+    return { ok: true as const };
+  });
