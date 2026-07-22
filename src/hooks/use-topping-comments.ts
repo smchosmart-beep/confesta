@@ -223,6 +223,7 @@ export function useToppingCommentThread(
   const { state: roleState } = useAudienceRole();
   const threadFn = useServerFn(listCommentsByTopping);
   const addCommentFn = useServerFn(addFn);
+  const addPresenterCommentFn = useServerFn(addPresenterFn);
   const deleteOwnCommentFn = useServerFn(deleteOwnFn);
   const deletePresenterCommentFn = useServerFn(deletePresenterFn);
   const healthy = useRealtimeHealth("comments", sessionId);
