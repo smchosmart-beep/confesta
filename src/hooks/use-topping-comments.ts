@@ -396,6 +396,60 @@ export function useToppingCommentThread(
     },
   });
 
+  const addPresenterComment = useMutation({
+    mutationFn: async (input: { text: string }) =>
+      addPresenterCommentFn({
+        data: {
+          sessionId: sessionId!,
+          toppingId: toppingId!,
+          text: input.text,
+        },
+      }),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: threadKey });
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const optimistic: CommentDTO = {
+        id: tempId,
+        toppingId: toppingId!,
+        sessionId: sessionId!,
+        text: input.text,
+        role: "other",
+        mine: false,
+        createdAt: Date.now(),
+        authorKind: "presenter",
+      };
+      const prevThread = qc.getQueryData<ThreadData>(threadKey);
+      qc.setQueryData<ThreadData>(threadKey, (prev) => ({
+        comments: [...(prev?.comments ?? []), optimistic],
+      }));
+      const prevCounts = qc.getQueryData<CountsData>(countsKey);
+      qc.setQueryData<CountsData>(countsKey, (prev) => {
+        if (!prev) return prev;
+        const cur = prev.counts[toppingId!] ?? 0;
+        const nextVal = cur + 1;
+        warnCountJump("mutate-add-presenter", toppingId!, cur, nextVal);
+        return { counts: { ...prev.counts, [toppingId!]: nextVal } };
+      });
+      return { tempId, prevThread, prevCounts };
+    },
+    onError: (_e, _input, ctx) => {
+      if (!ctx) return;
+      if (ctx.prevThread) qc.setQueryData(threadKey, ctx.prevThread);
+      if (ctx.prevCounts) qc.setQueryData(countsKey, ctx.prevCounts);
+    },
+    onSuccess: (_result, _input, ctx) => {
+      if (ctx?.tempId) {
+        qc.setQueryData<ThreadData>(threadKey, (prev) => {
+          if (!prev) return prev;
+          return { comments: prev.comments.filter((c) => c.id !== ctx.tempId) };
+        });
+      }
+      qc.invalidateQueries({ queryKey: ["comment-thread", toppingId] });
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: countsKey });
+    },
+  });
 
   return {
     comments,
@@ -404,6 +458,8 @@ export function useToppingCommentThread(
     canWrite:
       !!deviceId && !!sessionId && roleState !== "loading" && roleState !== "none",
     addComment: (text: string) => addComment.mutateAsync({ text }),
+    addPresenterComment: (text: string) =>
+      addPresenterComment.mutateAsync({ text }),
     deleteOwnComment: (commentId: string) => deleteOwnComment.mutateAsync(commentId),
     deletePresenterComment: (commentId: string) =>
       deletePresenterComment.mutateAsync(commentId),
