@@ -276,6 +276,7 @@ export function useToppingCommentThread(
         role,
         mine: true,
         createdAt: Date.now(),
+        authorKind: "audience",
       };
       const prevThread = qc.getQueryData<ThreadData>(threadKey);
       qc.setQueryData<ThreadData>(threadKey, (prev) => ({
