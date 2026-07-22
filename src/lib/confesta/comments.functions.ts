@@ -9,6 +9,8 @@ const CommentIdSchema = z.string().uuid();
 const RoleSchema = z.enum(AUDIENCE_ROLE_KEYS as [string, ...string[]]);
 const TextSchema = z.string().trim().min(1).max(200);
 
+export type CommentAuthorKind = "audience" | "presenter";
+
 export type CommentDTO = {
   id: string;
   toppingId: string;
@@ -17,6 +19,7 @@ export type CommentDTO = {
   role: AudienceRole;
   mine: boolean;
   createdAt: number;
+  authorKind: CommentAuthorKind;
 };
 
 export const listToppingComments = createServerFn({ method: "POST" })
