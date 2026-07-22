@@ -1,0 +1,1 @@
+ALTER TABLE public.topping_comments ALTER COLUMN device_id DROP NOT NULL;

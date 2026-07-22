@@ -270,7 +270,7 @@ export type Database = {
         Row: {
           author_kind: string
           created_at: string
-          device_id: string
+          device_id: string | null
           id: string
           op_id: string | null
           role: Database["public"]["Enums"]["audience_role"]
@@ -281,7 +281,7 @@ export type Database = {
         Insert: {
           author_kind?: string
           created_at?: string
-          device_id: string
+          device_id?: string | null
           id?: string
           op_id?: string | null
           role: Database["public"]["Enums"]["audience_role"]
@@ -292,7 +292,7 @@ export type Database = {
         Update: {
           author_kind?: string
           created_at?: string
-          device_id?: string
+          device_id?: string | null
           id?: string
           op_id?: string | null
           role?: Database["public"]["Enums"]["audience_role"]
