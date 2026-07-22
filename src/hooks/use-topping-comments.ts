@@ -97,6 +97,7 @@ function rowToDTO(r: CommentRow, deviceId: string | null): CommentDTO {
     role: (r.role ?? "other") as AudienceRole,
     mine: !!deviceId && r.device_id === deviceId,
     createdAt: new Date(r.created_at).getTime(),
+    authorKind: (r.author_kind === "presenter" ? "presenter" : "audience") as CommentAuthorKind,
   };
 }
 
