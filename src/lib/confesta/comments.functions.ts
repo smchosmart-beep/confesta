@@ -35,7 +35,7 @@ export const listToppingComments = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin
       .from("topping_comments")
-      .select("id, topping_id, session_id, text, role, device_id, created_at")
+      .select("id, topping_id, session_id, text, role, device_id, created_at, author_kind")
       .eq("session_id", data.sessionId)
       .order("created_at", { ascending: true });
     if (error) throw error;
@@ -48,6 +48,7 @@ export const listToppingComments = createServerFn({ method: "POST" })
         role: (r.role ?? "other") as AudienceRole,
         mine: !!data.deviceId && r.device_id === data.deviceId,
         createdAt: new Date(r.created_at).getTime(),
+        authorKind: (r.author_kind === "presenter" ? "presenter" : "audience") as CommentAuthorKind,
       })),
     };
   });
