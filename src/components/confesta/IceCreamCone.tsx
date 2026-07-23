@@ -192,8 +192,12 @@ export function IceCreamCone({ scoops, size = 200, toppingCount = 0 }: Props) {
                   }}
                 />
                 {isTop && (
-                  <div className="absolute inset-x-0 top-[18%] text-center text-[10px] font-bold text-muted-foreground tracking-wide">
-                    QR 스캔하면 스쿱이 쌓여요
+                  <div className="absolute inset-x-0 top-[40%] flex flex-col items-center justify-center px-4 text-center text-[10px] font-bold leading-tight text-muted-foreground tracking-wide">
+                    <span>아직 스쿱이 쌓이지 않았어요.</span>
+                    <span className="mt-0.5">
+                      <strong className="text-pink-500">수령 QR을 스캔</strong>하면
+                    </span>
+                    <span>콘에 1스쿱이 적립돼요.</span>
                   </div>
                 )}
               </div>

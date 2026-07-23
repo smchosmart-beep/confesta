@@ -1,23 +1,21 @@
-## 목표
-청중 헤더에서 설명 문구를 제거하고, 역할 배지를 "청중 (Audience)" 제목 오른쪽에 제목과 비슷한 크기로 인라인 배치한다.
+주문탭의 안내 문구를 제거하고, My 콘 탭의 콘 비주얼 빈 스쿱 위치로 이동시킨다.
 
-## 변경 파일
+### 1. 변경 대상
+- `src/components/confesta/OrderCard.tsx`: 주문탭의 "아직 스쿱이 쌓이지 않았어요..." 안내 블록 삭제
+- `src/components/confesta/IceCreamCone.tsx`: My 콘 콘 비주얼의 빈 스쿱 마스크 위 기존 문구 "QR 스캔하면 스쿱이 쌓여요" 자리에 이동된 문구를 배치
 
-### 1. `src/components/confesta/RoleHeader.tsx`
-- 신규 prop `titleTrailing?: React.ReactNode` 추가.
-- `<h1>`을 `<div className="flex items-center gap-2 min-w-0">`로 감싸 제목 옆에 `titleTrailing`을 인라인 렌더. 제목에는 `truncate` 유지, 트레일링에는 `shrink-0`.
-- 기존 `right` prop과 `description`/`subtitle` 로직은 그대로 보존(다른 화면 영향 없음).
+### 2. 구현 세부
+- `OrderCard.tsx`의 `{!picked && (...)}` 안내 `<div>`를 완전히 제거. 삭제로 인한 레이아웃 붕괴 없이 상위 여백/위치만 조정.
+- `IceCreamCone.tsx`의 빈 스쿱(`placeholderCount`) 위 텍스트 영역에서:
+  - 기존 `QR 스캔하면 스쿱이 쌓여요` → `아직 스쿱이 쌓이지 않았어요. 수령 QR을 스캔하면 콘에 1스쿱이 적립돼요.`로 교체
+  - 텍스트가 길어지므로 줄바꿈/폰트 크기/패딩을 조정하여 원형 마스크 안에 보기 좋게 배치. 예: `text-[10px] leading-tight` → `text-[10px] leading-snug` 또는 `text-xs`로 다운, `px-3` 및 `max-w-[80%]` 적용 검토.
+- 두 컴포넌트 모두 변경 후 audience 탭의 레이아웃을 확인하여 좌우 간격과 가독성을 유지.
 
-### 2. `src/routes/audience.tsx` (335~352행 부근)
-- `RoleHeader` 호출에서 `description` prop 삭제.
-- 기존 `right`에 있던 역할 변경 버튼(RoleBadge 포함)을 `titleTrailing`으로 이동.
-- 배지 크기를 제목(text-2xl)과 조화시키기 위해 `RoleBadge`에 `size="sm"` + `className="text-sm px-2.5 py-1"` (Tailwind 뒤 클래스 우선)로 살짝 키움. 아이콘 크기는 기본 유지.
-- `right` prop은 넘기지 않아 우측 빈 공간이 사라지고 헤더가 컴팩트해짐.
+### 3. 영향도
+- 기능/상태: 변경 없음. UI 텍스트 이동만 수행.
+- 서버비: 없음.
+- 타 기능: OrderCard의 버튼/QR 스캐너 동작 유지. IceCreamCone은 OrderCard와 독립적이므로 ReceiptCard 등 다른 사용처에 영향 없음.
 
-## 미변경
-- 다른 화면(presenter, admin 등)의 `RoleHeader` 사용은 무변경.
-- RoleBadge 컴포넌트 자체 로직 변경 없음(외부 className 오버라이드만 사용).
-
-## 검증
-- 모바일 프리뷰: 설명 문구 사라짐, 제목 오른쪽에 "교원" 배지 인라인 표시, 탭·아래 레이아웃 정상.
-- Typecheck.
+### 4. 검증
+- audience 모바일 뷰에서 주문탭 설명 문구 제거 확인.
+- My 콘 탭의 빈 콘 위치에 이동된 문구 노출 확인 및 시각적 깨짐 여부 스크린샷 검증.
