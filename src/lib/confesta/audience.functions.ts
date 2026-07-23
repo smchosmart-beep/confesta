@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { MAX_SCOOPS, makeReceiptToken, parseSessionQR } from "./shared";
+import { MAX_SCOOPS, MIN_SCOOPS_FOR_RECEIPT, makeReceiptToken, parseSessionQR } from "./shared";
 
 const DeviceIdSchema = z.string().uuid();
 
