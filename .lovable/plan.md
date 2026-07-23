@@ -1,21 +1,23 @@
-주문탭의 안내 문구를 제거하고, My 콘 탭의 콘 비주얼 빈 스쿱 위치로 이동시킨다.
+#### 문제
+- 청중이 주문을 여러 개 한 뒤 토핑 추가 탭에서 세션을 선택할 때, 세션명이 길면 드롭다운 오른쪽이 잘리거나 텍스트가 말 줄임으로 보입니다.
+- 기본 SelectTrigger에 `line-clamp-1`과 `whitespace-nowrap`이 적용되어 있어 긴 세션명을 제대로 표시하지 못합니다.
 
-### 1. 변경 대상
-- `src/components/confesta/OrderCard.tsx`: 주문탭의 "아직 스쿱이 쌓이지 않았어요..." 안내 블록 삭제
-- `src/components/confesta/IceCreamCone.tsx`: My 콘 콘 비주얼의 빈 스쿱 마스크 위 기존 문구 "QR 스캔하면 스쿱이 쌓여요" 자리에 이동된 문구를 배치
+#### 수정 방향
+1. `src/lib/confesta/selectStyles.ts`에 세션 선택 전용 스타일 추가 (기존 공용 스타일은 그대로 유지)
+   - `sessionSelectTriggerCls`: 줄바꿈 허용, 왼쪽 정렬, 선택값 텍스트에 `block` + `whitespace-normal` + `break-words`를 적용해 기본 `line-clamp-1` 덮어쓰기
+   - `sessionSelectItemCls`: 줄바꿈 허용, 왼쪽 정렬, 체크 아이콘 공간은 유지(pr-8)
+   - `sessionSelectContentCls`: 모바일 화면을 넘지 않도록 `max-w-[calc(100vw-2rem)]` 추가
+2. `src/routes/audience.tsx`의 토핑 추가 탭 세션 선택 Select에 위 신규 스타일 적용
+   - `<SelectTrigger className={sessionSelectTriggerCls}>`
+   - `<SelectContent className={sessionSelectContentCls}>`
+   - `<SelectItem className={sessionSelectItemCls}>`
+3. 필요시 `title` 속성으로 긴 세션명 툴팁 제공
 
-### 2. 구현 세부
-- `OrderCard.tsx`의 `{!picked && (...)}` 안내 `<div>`를 완전히 제거. 삭제로 인한 레이아웃 붕괴 없이 상위 여백/위치만 조정.
-- `IceCreamCone.tsx`의 빈 스쿱(`placeholderCount`) 위 텍스트 영역에서:
-  - 기존 `QR 스캔하면 스쿱이 쌓여요` → `아직 스쿱이 쌓이지 않았어요. 수령 QR을 스캔하면 콘에 1스쿱이 적립돼요.`로 교체
-  - 텍스트가 길어지므로 줄바꿈/폰트 크기/패딩을 조정하여 원형 마스크 안에 보기 좋게 배치. 예: `text-[10px] leading-tight` → `text-[10px] leading-snug` 또는 `text-xs`로 다운, `px-3` 및 `max-w-[80%]` 적용 검토.
-- 두 컴포넌트 모두 변경 후 audience 탭의 레이아웃을 확인하여 좌우 간격과 가독성을 유지.
+#### 검증
+- 모바일 뷰포트(예: 375~390px)에서 /audience 토핑 추가 탭 열기
+- 주문을 2개 이상 만들어 세션 선택 드롭다운을 열고, 긴 세션명이 줄바꿈되어 드롭박스 오른쪽이 잘리지 않는 스크린샷 확인
+- 다른 탭(주문/My콘/영수증)과 기존 Select(presenter/admin)에 영향 없는지 확인
 
-### 3. 영향도
-- 기능/상태: 변경 없음. UI 텍스트 이동만 수행.
-- 서버비: 없음.
-- 타 기능: OrderCard의 버튼/QR 스캐너 동작 유지. IceCreamCone은 OrderCard와 독립적이므로 ReceiptCard 등 다른 사용처에 영향 없음.
-
-### 4. 검증
-- audience 모바일 뷰에서 주문탭 설명 문구 제거 확인.
-- My 콘 탭의 빈 콘 위치에 이동된 문구 노출 확인 및 시각적 깨짐 여부 스크린샷 검증.
+#### 영향 범위
+- 수정은 audience.tsx의 세션 선택 드롭다운에만 집중. 기존 presenter/admin Select에는 영향을 주지 않기 위해 별도 클래스를 사용합니다.
+- 레이아웃/높이가 유동적으로 늘어날 수 있으므로, 모바일에서 선택한 후 트리거 높이가 2줄로 커져도 주변 요소가 깨지지 않는지 함께 확인합니다.
