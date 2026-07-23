@@ -101,6 +101,7 @@ export function useAudience() {
     orders,
     scoops,
     receipt: state.receipt,
+    slotCategories: state.slotCategories,
     placeOrder: placeOrder.mutateAsync,
     pickup: pickup.mutateAsync,
     issueReceipt: issueReceipt.mutateAsync,
@@ -109,3 +110,4 @@ export function useAudience() {
     issuingReceipt: issueReceipt.isPending,
   };
 }
+
