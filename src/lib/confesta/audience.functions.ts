@@ -67,25 +67,32 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
   if (scoopsRes.error) throw scoopsRes.error;
   if (receiptRes.error) throw receiptRes.error;
 
-  // Fetch slot titles for orders that use slot-key sessionIds
+  // Fetch slot titles + categories for orders / scoops that use slot-key sessionIds
   const { parseSlotKey } = await import("./shared");
   const titleMap = new Map<string, string>();
-  const slotKeys = (ordersRes.data ?? [])
-    .map((o) => ({ id: o.session_id, slot: parseSlotKey(o.session_id) }))
-    .filter((x) => x.slot);
-  if (slotKeys.length > 0) {
+  const catMap: Record<string, string | null> = {};
+  const sessionIds = new Set<string>();
+  (ordersRes.data ?? []).forEach((o) => sessionIds.add(o.session_id));
+  (scoopsRes.data ?? []).forEach((s) => sessionIds.add(s.session_id));
+  const slotSessionIds = [...sessionIds].filter((id) => parseSlotKey(id));
+  if (slotSessionIds.length > 0) {
     const { data: slotsRows } = await supabaseAdmin
       .from("session_slots")
-      .select("day, period, room, title");
-    const byKey = new Map<string, string>();
+      .select("day, period, room, title, category");
+    const titleByKey = new Map<string, string>();
+    const catByKey = new Map<string, string | null>();
     (slotsRows ?? []).forEach((r) => {
-      byKey.set(`${r.day}|${r.period}|${r.room}`, r.title ?? "");
+      const k = `${r.day}|${r.period}|${r.room}`;
+      titleByKey.set(k, r.title ?? "");
+      catByKey.set(k, (r.category ?? null) as string | null);
     });
-    slotKeys.forEach(({ id }) => {
-      const t = byKey.get(id);
+    slotSessionIds.forEach((id) => {
+      const t = titleByKey.get(id);
       if (t && t.trim().length > 0) titleMap.set(id, t);
+      if (catByKey.has(id)) catMap[id] = catByKey.get(id) ?? null;
     });
   }
+
 
   return {
     orders: (ordersRes.data ?? []).map((o) => ({
