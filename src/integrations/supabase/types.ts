@@ -412,6 +412,15 @@ export type Database = {
           topping_id: string
         }[]
       }
+      get_slot_aggregates: {
+        Args: { _day: number; _period: string }
+        Returns: {
+          orders: number
+          pickups: number
+          session_id: string
+          toppings: number
+        }[]
+      }
       list_all_toppings_admin: {
         Args: { _session_id: string }
         Returns: {
