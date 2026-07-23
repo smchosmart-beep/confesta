@@ -28,12 +28,15 @@ const SAMPLE_TOPPING_ENTRIES: { kind: "question" | "answer"; promptText?: string
 ];
 
 export function ReceiptCard() {
-  const { scoops, receipt, issueReceipt, reset, issuingReceipt, slotCategories } = useAudience();
+  const { scoops, receipt, issueReceipt, reset, issuingReceipt, slotCategories, slotTitles } = useAudience();
   const slotCatMap = useMemo(() => {
     const m = new Map<string, string | null>();
     for (const [k, v] of Object.entries(slotCategories ?? {})) m.set(k, v);
     return m as Map<string, import("@/lib/confesta/types").CategoryKey | null>;
   }, [slotCategories]);
+  const resolveTitle = (id: string): string =>
+    (slotTitles && slotTitles[id]) || SESSIONS.find((s) => s.id === id)?.title || id;
+
 
   const token = receipt?.token ?? null;
   const redeemed = receipt?.redeemedAt ? { at: receipt.redeemedAt } : null;
