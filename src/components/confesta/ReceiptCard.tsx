@@ -260,7 +260,8 @@ function SampleReceipt({ scoops }: { scoops: StackedScoop[] }) {
           {scoops.map((s, i) => (
             <div key={s.id} className="flex justify-between gap-3">
               <span className="shrink-0">스쿱 #{i + 1}</span>
-              <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
+              <span className="text-right truncate">{sampleSessionTitle(s.sessionId)}</span>
+
             </div>
           ))}
 
