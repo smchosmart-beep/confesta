@@ -440,6 +440,65 @@ function SlotTitleInput({
 }
 
 // =========================
+// Slot Category Picker
+// =========================
+function SlotCategoryPicker({
+  day,
+  period,
+  room,
+  value,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  value: CategoryKey | null;
+}) {
+  const qc = useQueryClient();
+  const upsertFn = useServerFn(upsertSlotCategory);
+  const save = useMutation({
+    mutationFn: (category: CategoryKey | null) =>
+      upsertFn({ data: { day, period, room, category } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+      toast.success("카테고리 저장됨");
+    },
+    onError: () => toast.error("카테고리 저장 실패"),
+  });
+  return (
+    <Select
+      value={value ?? "__none__"}
+      onValueChange={(v) => save.mutate(v === "__none__" ? null : (v as CategoryKey))}
+    >
+      <SelectTrigger className={`${selectTriggerCls} h-7 text-[11px] px-2 py-0.5 rounded-md`}>
+        <SelectValue placeholder="카테고리 선택" />
+      </SelectTrigger>
+      <SelectContent className={selectContentCls}>
+        <SelectItem className={selectItemCls} value="__none__">
+          — 미지정 —
+        </SelectItem>
+        {_CATEGORY_OPTIONS.map((c) => (
+          <SelectItem key={c.key} className={selectItemCls} value={c.key}>
+            {c.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+const _CATEGORY_OPTIONS: { key: CategoryKey; label: string }[] = [
+  { key: "vision-keynote", label: "비전특강 및 선포식" },
+  { key: "conference", label: "컨퍼런스" },
+  { key: "class-share", label: "수업나눔" },
+  { key: "networking", label: "네트워킹 (feat. 선도교사)" },
+  { key: "leader-school", label: "선도학교 공유회" },
+  { key: "parents", label: "학부모 대상 특강" },
+  { key: "hackathon", label: "누구나 개발자 해커톤" },
+];
+
+
+
+// =========================
 // Presenter password input
 // =========================
 function SlotPresenterPasswordInput({
