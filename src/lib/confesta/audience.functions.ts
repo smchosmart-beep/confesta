@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { MAX_SCOOPS, makeReceiptToken, parseSessionQR } from "./shared";
+import { MAX_SCOOPS, MIN_SCOOPS_FOR_RECEIPT, makeReceiptToken, parseSessionQR } from "./shared";
 
 const DeviceIdSchema = z.string().uuid();
 
@@ -285,8 +285,8 @@ export const generateReceipt = createServerFn({ method: "POST" })
       .select("id, session_id")
       .eq("device_id", data.deviceId)
       .order("stacked_at", { ascending: true });
-    if (!scoops || scoops.length < MAX_SCOOPS) {
-      return { ok: false, message: `스쿱 ${MAX_SCOOPS}개를 먼저 모아주세요` };
+    if (!scoops || scoops.length < MIN_SCOOPS_FOR_RECEIPT) {
+      return { ok: false, message: `스쿱 ${MIN_SCOOPS_FOR_RECEIPT}개 이상 모아주세요` };
     }
 
     const token = makeReceiptToken(scoops.map((s) => ({ sessionId: s.session_id })));

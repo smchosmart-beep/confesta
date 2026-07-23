@@ -1,40 +1,59 @@
 ## 목표
-프로젝트 루트에 `README.md` 를 새로 생성합니다. 기존 `spec.md`(제품 스펙)와 `package.json` 을 근거로, GitHub/저장소 첫 진입자가 바로 이해할 수 있는 한글 README 를 만듭니다.
 
-## 파일
-- **신규**: `README.md` (루트)
-- 기존 `spec.md`, `design.md` 는 그대로 두고 README 에서 링크로 참조
+디지털 보상 영수증이 자동 발급되는 최소 조건을 기존 3스쿱에서 **1스쿱 이상**으로 낮춥니다. 콘 최대 용량(MAX_SCOOPS = 3)은 그대로 유지합니다.
 
-## 구성
+## 변경 범위
 
-1. **프로젝트 타이틀 & 태그라인**
-   - Confesta (콘페스타) — AI 디지털 컨퍼런스&페스티벌 게이미피케이션 플랫폼
-2. **한 줄 소개 + 핵심 메타포**
-   - 콘 / 주문 / 스쿱 / 토핑 / 영수증 개념 요약
-3. **주요 기능**
-   - 4개 역할(청중·발표자·스태프·관리자)별 핵심 액션 bullet
-4. **기술 스택**
-   - TanStack Start v1, React 19, Vite 7, Tailwind v4, shadcn/ui, TanStack Query/Router, Lovable Cloud(Postgres+Realtime+Auth), Cloudflare Workers 타겟
-5. **시작하기**
-   - 요구사항: Bun
-   - `bun install`
-   - `bun run dev` / `bun run build` / `bun run lint` / `bun run format`
-   - Lovable Cloud 사용 안내 (`.env` 는 자동 관리, 수동 편집 금지)
-6. **디렉터리 구조 요약**
-   - `src/routes/` (파일 기반 라우팅, `/audience`, `/presenter`, `/staff`, `/admin`)
-   - `src/components/confesta/`, `src/hooks/`, `src/lib/confesta/`, `src/integrations/supabase/`
-7. **배포**
-   - Lovable 에서 Publish (Preview / Published URL 예시 문구)
-8. **문서 링크**
-   - 상세 스펙: `./spec.md`
-   - 디자인 가이드: `./design.md`
-9. **라이선스/크레딧**
-   - Private 프로젝트 명시, "Built with Lovable" 배지 언급
+1. **상수 추가** — `src/lib/confesta/shared.ts`
+   - `MAX_SCOOPS = 3`은 그대로 둡니다.
+   - 새로 `MIN_SCOOPS_FOR_RECEIPT = 1` 상수를 추가합니다.
 
-## 스타일
-- 한국어 본문, 코드 블록은 영어
-- 이모지 없음(사용자 정책 존중), 간결한 마크다운
-- 길이: 약 120~180줄 목표
+2. **서버 검증 완화** — `src/lib/confesta/audience.functions.ts` (`generateReceipt`)
+   - 기존: `scoops.length < MAX_SCOOPS` (3스쿱 미만이면 거부)
+   - 변경: `scoops.length < MIN_SCOOPS_FOR_RECEIPT` (1스쿱 미만이면 거부)
+   - 안내 메시지도 "1스쿱 이상을 모아주세요"로 수정합니다.
 
-## 확인
-- 파일 생성 후 `bun run lint` 는 md 를 검사하지 않으므로 별도 명령 없이 종료. 빌드/타입 영향 없음.
+3. **클라이언트 UI 완화** — `src/components/confesta/ReceiptCard.tsx`
+   - `ready = scoops.length >= 3` → `ready = scoops.length >= MIN_SCOOPS_FOR_RECEIPT`
+   - "아직 영수증을 받을 수 없어요" 상태의 문구를 1스쿱 기준으로 변경합니다.
+   - "미리보기 — 3스쿱 완성 시" 문구도 1스쿱 기준으로 변경합니다.
+   - 현재 스쿱 수 표시 `현재 {scoops.length} / 3 스쿱`은 그대로 두어, 3스쿱까지 콘 용량을 안내합니다.
+
+## 부작용 검토
+
+### 1. 기능 오작동 가능성
+
+- **영수증 토큰 생성**: `makeReceiptToken(scoops)`는 1개 스쿱으로도 정상 작동합니다. 기존 로직과 동일하게 `scoop_ids`를 저장하고 토큰을 발급합니다.
+- **콘 시각화**: `IceCreamCone` 컴포넌트가 1개 또는 2개 스쿱을 정상적으로 렌더링하는지는 시각 확인이 필요합니다. 코드상 `scoops` 배열을 순회하므로 1~3개 모두 렌더링될 것으로 예상됩니다.
+- **Persona 도출**: `derivePersona(scoops)`는 수집한 스쿱 기준으로 계산되므로 1스쿱일 때 다른 페르소나가 나올 수 있습니다. 이는 의도된 동작이며 오작동은 아닙니다.
+- **영수증 중복 발급 방지**: `existing` receipt 확인 로직은 그대로 유지되므로, 1스쿱으로 발급된 후에도 2, 3스쿱을 더 쌓아도 추가 영수증이 발급되지 않습니다.
+- **데모 초기화**: `resetMyCone`은 scoops, receipts, orders를 모두 초기화하므로 정상 동작합니다.
+
+### 2. 서버비 과다 부과 가능성
+
+- **DB 쓰기**: 영수증 insert가 1개 스쿱 시점으로 앞당겨지지만, 한 디바이스당 최대 1회(또는 초기화 후 1회)입니다. 총 쓰기 횟수는 거의 변하지 않습니다.
+- **DB 읽기**: `generateReceipt`에서 `existing` 조회와 `scoops` 조회는 기존과 동일합니다. 비용 차이는 미미합니다.
+- **리소스 절약**: 일부 참가자가 1스쿱만 받고 영수증을 발급받은 뒤에 더 이상 스쿱을 수령하지 않을 수 있으나, 이는 스쿱 수령 쓰기를 줄이는 방향이므로 서버비에는 긍정적/중립적입니다.
+
+### 3. 다른 기능에 대한 영향
+
+- **수령 QR (pickupFromQR)**: `MAX_SCOOPS`를 그대로 사용하므로 3스쿱까지 수령 제한이 유지됩니다. 변경 없음.
+- **주문 제한 (placeOrderFromQR)**: 3개 세션까지 주문 가능한 로직 그대로 유지됩니다. 변경 없음.
+- **audience.tsx 콘 상태 표시**: `{scoops.length} / {MAX_SCOOPS_CONST} 스쿱`은 3스쿱 기준으로 계속 표시되므로, 참가자는 여전히 3스쿱까지 쌓을 수 있음을 알 수 있습니다. 변경 없음.
+- **관리자/발표자 통계**: 영수증 발급 시점이 빨라지므로 통계상 "영수증 발급 수"가 기존 3스쿱 시점보다 일찍 집계될 수 있습니다. 이는 데이터 정확성을 해치지 않으며, 오히려 실제 발급 시점을 반영합니다.
+
+### 4. 고려사항
+
+- **사용자 경험**: 1스쿱만 받고 영수증을 발급받은 후에도, 콘에는 최대 3스쿱까지 추가 수령 가능함을 명확히 전달해야 합니다. UI 문구에서 3스쿱 콘 용량은 그대로 안내하는 것이 좋습니다.
+- **Persona 변화**: 1스쿱으로 발급된 사용자는 아직 3스쿱 페르소나가 아닐 수 있으므로, 영수증 이미지에 표시되는 페르소나가 1스쿱 기준으로 결정됩니다. 이는 의도된 동작입니다.
+
+## 결론
+
+기능 오작동, 서버비 과다 부과, 다른 기능 악영화 우려는 **거의 없습니다**. 유일한 주의사항은 1스쿱 영수증 발급 후에도 콘 용량이 3스쿱까지 유지된다는 점을 사용자에게 계속 안내하는 것입니다.
+
+## 검증
+
+- `bun run build`로 TypeScript/빌드 오류 확인
+- audience 페이지에서 1스쿱 수령 후 영수증 탭이 자동 활성화되는지 확인
+- 0스쿱 상태에서 "아직 영수증을 받을 수 없어요" 문구 및 1스쿱 안내가 노출되는지 확인
+- 1스쿱 영수증 발급 후 콘에 2, 3스쿱 추가 수령이 여전히 가능한지 확인
