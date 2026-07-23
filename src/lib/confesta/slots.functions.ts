@@ -183,6 +183,38 @@ export const upsertSlotTitle = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+export const upsertSlotCategory = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        day: DaySchema,
+        period: PeriodSchema,
+        room: RoomSchema,
+        category: CategorySchema,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Ensure the row exists without clobbering title/QR fields.
+    await supabaseAdmin
+      .from("session_slots")
+      .upsert(
+        { day: data.day, period: data.period, room: data.room },
+        { onConflict: "day,period,room", ignoreDuplicates: true },
+      );
+    const { error } = await supabaseAdmin
+      .from("session_slots")
+      .update({ category: data.category })
+      .eq("day", data.day)
+      .eq("period", data.period)
+      .eq("room", data.room);
+    if (error) throw error;
+    return { ok: true as const };
+  });
+
+
 export const issueOrderQR = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
     z
