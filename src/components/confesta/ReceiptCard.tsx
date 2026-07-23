@@ -10,6 +10,7 @@ import { useAudience } from "@/hooks/use-audience";
 import { SESSIONS } from "@/lib/confesta/mockData";
 import { derivePersona, type Persona } from "@/lib/confesta/persona";
 import type { StackedScoop } from "@/lib/confesta/types";
+import { MIN_SCOOPS_FOR_RECEIPT } from "@/lib/confesta/shared";
 
 const sessionTitle = (sessionId: string) =>
   SESSIONS.find((s) => s.id === sessionId)?.title ?? sessionId;
