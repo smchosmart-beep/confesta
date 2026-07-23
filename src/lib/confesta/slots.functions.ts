@@ -39,6 +39,7 @@ export type SlotDTO = {
   period: Period;
   room: string;
   title: string;
+  category: CategoryKey | null;
   hasOrderQR: boolean;
   orderPayload: string | null;
   orderRotatedAt: number | null;
@@ -53,7 +54,8 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
   const [slotsRes, noncesRes, secretsRes] = await Promise.all([
     supabaseAdmin
       .from("session_slots")
-      .select("day, period, room, title")
+      .select("day, period, room, title, category")
+
       .eq("day", day)
       .eq("period", period),
     supabaseAdmin
