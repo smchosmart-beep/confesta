@@ -121,7 +121,9 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
         }
       : null,
     slotCategories: catMap,
+    slotTitles: Object.fromEntries(titleMap),
   };
+
 }
 
 
