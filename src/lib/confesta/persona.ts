@@ -9,44 +9,57 @@ export interface Persona {
 }
 
 const PERSONA_BY_CATEGORY: Record<CategoryKey, Persona> = {
-  "ai-math": {
-    title: "열정적인 프롬프트 탐험가",
-    emoji: "🧪",
-    tagline: "AI와 수학을 잇는 새 길을 끊임없이 시도하는 유형",
-    accent: "bg-grad-mint",
-  },
-  edutech: {
-    title: "디지털 도구 큐레이터",
-    emoji: "🛠️",
-    tagline: "수업에 꼭 맞는 에듀테크를 골라 쓰는 실용주의자",
-    accent: "bg-grad-blueberry",
-  },
-  pedagogy: {
-    title: "수업 설계 장인",
-    emoji: "🎨",
-    tagline: "배움의 흐름을 정교하게 설계하는 교수법 연구가",
+  "vision-keynote": {
+    title: "비전 얼리 캐처",
+    emoji: "🔭",
+    tagline: "새로운 교육의 방향을 가장 먼저 포착하는 참가자",
     accent: "bg-grad-strawberry",
   },
-  research: {
-    title: "현장 연구 기록자",
-    emoji: "🔬",
-    tagline: "수업 데이터에서 의미를 발굴하는 교사-연구자",
+  conference: {
+    title: "인사이트 수집가",
+    emoji: "📚",
+    tagline: "컨퍼런스에서 얻은 통찰을 차곡차곡 모으는 참가자",
+    accent: "bg-grad-blueberry",
+  },
+  "class-share": {
+    title: "수업 레시피 러버",
+    emoji: "🍯",
+    tagline: "다른 선생님의 수업 레시피를 내 것으로 만드는 참가자",
+    accent: "bg-grad-mint",
+  },
+  networking: {
+    title: "선도교사 네트워커",
+    emoji: "🤝",
+    tagline: "동료와 연결되며 함께 성장하는 참가자",
     accent: "bg-grad-mango",
   },
-  policy: {
-    title: "정책 인사이트 수집가",
-    emoji: "🗺️",
-    tagline: "큰 그림과 제도를 함께 읽는 교육 전략가",
-    accent: "bg-grad-sunset",
+  "leader-school": {
+    title: "선도학교 벤치마커",
+    emoji: "🏫",
+    tagline: "앞선 학교의 사례에서 우리 학교의 다음을 찾는 참가자",
+    accent: "bg-grad-chocolate",
+  },
+  parents: {
+    title: "가정-교실 브리지",
+    emoji: "🌉",
+    tagline: "가정과 교실을 잇는 배움을 고민하는 참가자",
+    accent: "bg-grad-strawberry",
+  },
+  hackathon: {
+    title: "직접 만들어보는 메이커",
+    emoji: "🛠️",
+    tagline: "듣기보다 손으로 만들며 배우는 실행형 참가자",
+    accent: "bg-grad-blueberry",
   },
 };
 
 const MIXED: Persona = {
-  title: "전방위 융합 러너",
+  title: "전방위 콘페스타 러너",
   emoji: "🌈",
-  tagline: "수학·정책·도구·연구를 가로지르는 통합형 교육자",
+  tagline: "비전·수업·네트워킹·해커톤을 넘나드는 통합형 참가자",
   accent: "bg-grad-sunset",
 };
+
 
 export function derivePersona(scoops: StackedScoop[]): Persona {
   if (scoops.length === 0) return MIXED;
