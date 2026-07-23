@@ -1027,6 +1027,12 @@ function VenueCard({
                 initial={slot?.title ?? ""}
                 placeholder={sub.sessionTitle ?? "행사명"}
               />
+              <SlotCategoryPicker
+                day={day}
+                period={period}
+                room={sub.label}
+                value={slot?.category ?? null}
+              />
               <SlotPresenterPasswordInput
                 day={day}
                 period={period}
@@ -1034,6 +1040,7 @@ function VenueCard({
                 hasPassword={!!slot?.hasPresenterPassword}
                 compact
               />
+
             </div>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center min-w-0">
               {/* 좌측: 수령률 원그래프 */}
