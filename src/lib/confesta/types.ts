@@ -6,11 +6,14 @@ export type ScoopFlavor =
   | "chocolate";
 
 export type CategoryKey =
-  | "ai-math"
-  | "edutech"
-  | "pedagogy"
-  | "research"
-  | "policy";
+  | "vision-keynote"
+  | "conference"
+  | "class-share"
+  | "networking"
+  | "leader-school"
+  | "parents"
+  | "hackathon";
+
 
 export interface Category {
   key: CategoryKey;
