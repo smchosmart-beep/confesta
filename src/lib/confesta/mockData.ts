@@ -1,26 +1,29 @@
 import type { Category, Session } from "./types";
 
 export const CATEGORIES: Category[] = [
-  { key: "ai-math", label: "AI × 수학", flavor: "mint" },
-  { key: "edutech", label: "에듀테크", flavor: "blueberry" },
-  { key: "pedagogy", label: "교수법", flavor: "strawberry" },
-  { key: "research", label: "연구사례", flavor: "mango" },
-  { key: "policy", label: "정책", flavor: "chocolate" },
+  { key: "vision-keynote", label: "비전특강 및 선포식", flavor: "strawberry" },
+  { key: "conference", label: "컨퍼런스", flavor: "blueberry" },
+  { key: "class-share", label: "수업나눔", flavor: "mint" },
+  { key: "networking", label: "네트워킹 (feat. 선도교사)", flavor: "mango" },
+  { key: "leader-school", label: "선도학교 공유회", flavor: "chocolate" },
+  { key: "parents", label: "학부모 대상 특강", flavor: "strawberry" },
+  { key: "hackathon", label: "누구나 개발자 해커톤", flavor: "blueberry" },
 ];
 
 export const getCategory = (key: string) =>
   CATEGORIES.find((c) => c.key === key) ?? CATEGORIES[0];
 
 export const SESSIONS: Session[] = [
-  { id: "s1", day: 1, title: "배수판별법으로 만나는 AI 수학 모델", presenter: "김민서 교수", room: "401-A", timeSlot: "10:00 - 10:50", category: "ai-math", capacity: 40 },
-  { id: "s2", day: 1, title: "초등 수학 수업을 바꾸는 생성형 AI", presenter: "이지윤 박사", room: "403-B", timeSlot: "11:00 - 11:50", category: "edutech", capacity: 60 },
-  { id: "s3", day: 1, title: "탐구 중심 교수-학습 모델 설계", presenter: "박서준 선생", room: "LEWEST Hall A", timeSlot: "13:00 - 13:50", category: "pedagogy", capacity: 120 },
-  { id: "s4", day: 1, title: "현장 연구 사례 발표", presenter: "정하늘 연구원", room: "402-A", timeSlot: "14:00 - 14:50", category: "research", capacity: 40 },
-  { id: "s5", day: 2, title: "디지털 교과서 정책 동향", presenter: "최정훈 과장", room: "LEWEST Hall B", timeSlot: "10:00 - 10:50", category: "policy", capacity: 120 },
-  { id: "s6", day: 2, title: "AI 튜터와 함께하는 개별화 학습", presenter: "한소영 교수", room: "404-B", timeSlot: "11:00 - 11:50", category: "ai-math", capacity: 60 },
-  { id: "s7", day: 2, title: "수업 데이터 시각화 워크숍", presenter: "오현우 박사", room: "401-C", timeSlot: "13:00 - 13:50", category: "edutech", capacity: 40 },
-  { id: "s8", day: 2, title: "교사 연구 공동체 운영 사례", presenter: "윤다은 교사", room: "LEWEST Hall C", timeSlot: "14:00 - 14:50", category: "pedagogy", capacity: 120 },
+  { id: "s1", day: 1, title: "AI 시대, 교육의 새 지평 (비전 선포)", presenter: "김민서 교수", room: "LEWEST Hall A", timeSlot: "10:00 - 10:50", category: "vision-keynote", capacity: 200 },
+  { id: "s2", day: 1, title: "AI × 교육 컨퍼런스: 미래 수업의 조건", presenter: "이지윤 박사", room: "LEWEST Hall B", timeSlot: "11:00 - 11:50", category: "conference", capacity: 200 },
+  { id: "s3", day: 1, title: "AI를 활용한 초등 수학 수업나눔", presenter: "박서준 선생", room: "401-A", timeSlot: "13:00 - 13:50", category: "class-share", capacity: 40 },
+  { id: "s4", day: 1, title: "선도교사와 함께하는 네트워킹", presenter: "정하늘 선도교사", room: "402-A", timeSlot: "14:00 - 14:50", category: "networking", capacity: 40 },
+  { id: "s5", day: 2, title: "선도학교 운영 사례 공유회", presenter: "최정훈 교장", room: "LEWEST Hall C", timeSlot: "10:00 - 10:50", category: "leader-school", capacity: 120 },
+  { id: "s6", day: 2, title: "가정에서 함께하는 AI 리터러시 (학부모 특강)", presenter: "한소영 교수", room: "404-B", timeSlot: "11:00 - 11:50", category: "parents", capacity: 60 },
+  { id: "s7", day: 2, title: "누구나 개발자 해커톤: 첫 프로토타입 만들기", presenter: "오현우 박사", room: "401-C", timeSlot: "13:00 - 16:00", category: "hackathon", capacity: 40 },
+  { id: "s8", day: 2, title: "선도학교 협력 수업나눔 세션", presenter: "윤다은 교사", room: "403-B", timeSlot: "14:00 - 14:50", category: "class-share", capacity: 60 },
 ];
+
 
 // 행사장 평면도 기반 공간 정의 (LEWEST 4층)
 export interface Venue {
