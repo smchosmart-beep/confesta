@@ -14,10 +14,14 @@ import { displayRoom, makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Pe
 import {
   listSlots,
   upsertSlotTitle,
+  upsertSlotCategory,
   issueOrderQR,
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { CATEGORIES } from "@/lib/confesta/mockData";
+import type { CategoryKey } from "@/lib/confesta/types";
+
 import { getSlotAggregates, resetSlotData } from "@/lib/confesta/admin.functions";
 import { verifyPin } from "@/lib/confesta/auth.functions";
 import {
