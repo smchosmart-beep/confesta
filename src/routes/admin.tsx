@@ -9,7 +9,7 @@ import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
 import { SlotQRModal } from "@/components/confesta/SlotQRModal";
 import { SlotToppingsModal } from "@/components/confesta/SlotToppingsModal";
-import { SESSIONS, VENUES, CATEGORIES as _CATEGORIES_UNUSED } from "@/lib/confesta/mockData";
+import { SESSIONS, VENUES } from "@/lib/confesta/mockData";
 import { displayRoom, makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Period } from "@/lib/confesta/shared";
 import {
   listSlots,
