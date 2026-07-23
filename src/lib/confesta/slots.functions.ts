@@ -83,7 +83,8 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
       period: s.period as Period,
       room: s.room,
       title: s.title ?? "",
-      category: ((s as { category?: string | null }).category ?? null) as CategoryKey | null,
+      category: (s.category ?? null) as CategoryKey | null,
+
 
       hasOrderQR: !!order,
       orderPayload: order ? makeOrderQR(key, order.nonce) : null,
