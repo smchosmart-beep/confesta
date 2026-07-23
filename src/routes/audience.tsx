@@ -336,9 +336,8 @@ function AudienceView() {
     <main className="min-h-screen pb-32">
       <RoleHeader
         role="청중 (Audience)"
-        description="세션 장소에서 주문 QR → 종료 직전 수령 QR — 콘에 스쿱을 차곡차곡"
         color="pink"
-        right={
+        titleTrailing={
           <button
             type="button"
             onClick={() => setShowRoleChange(true)}
@@ -346,7 +345,7 @@ function AudienceView() {
             aria-label="역할 변경"
             title="역할 변경"
           >
-            <RoleBadge role={currentRole} size="sm" />
+            <RoleBadge role={currentRole} size="sm" className="text-sm px-2.5 py-1" />
           </button>
         }
       />

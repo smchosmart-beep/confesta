@@ -8,6 +8,7 @@ interface Props {
   subtitle?: React.ReactNode;
   color: "pink" | "blue" | "mint" | "mango";
   right?: React.ReactNode;
+  titleTrailing?: React.ReactNode;
 }
 
 const ICON_GRAD: Record<Props["color"], string> = {
@@ -17,7 +18,7 @@ const ICON_GRAD: Record<Props["color"], string> = {
   mango: "bg-grad-mango",
 };
 
-export function RoleHeader({ role, description, subtitle, color, right }: Props) {
+export function RoleHeader({ role, description, subtitle, color, right, titleTrailing }: Props) {
   return (
     <header className="relative px-4 sm:px-6 pt-5 pb-4 overflow-hidden">
       <ToppingScatter density="low" seed={`hdr-${color}`} />
@@ -35,9 +36,12 @@ export function RoleHeader({ role, description, subtitle, color, right }: Props)
             <IceCream className="w-6 h-6 drop-shadow" />
           </span>
           <div className={`min-w-0 ${right ? "" : "flex-1"}`}>
-            <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
-              {role}
-            </h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
+                {role}
+              </h1>
+              {titleTrailing && <div className="shrink-0">{titleTrailing}</div>}
+            </div>
             {description && (
               <p className="text-sm text-muted-foreground truncate">{description}</p>
             )}
