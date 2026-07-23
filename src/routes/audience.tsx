@@ -41,6 +41,9 @@ import {
   selectTriggerCls,
   selectContentCls,
   selectItemCls,
+  sessionSelectTriggerCls,
+  sessionSelectContentCls,
+  sessionSelectItemCls,
 } from "@/lib/confesta/selectStyles";
 import {
   Camera,
@@ -515,15 +518,15 @@ function AudienceView() {
                       value={activeSessionId ?? undefined}
                       onValueChange={(v) => setSelectedSessionId(v)}
                     >
-                      <SelectTrigger className={selectTriggerCls}>
+                      <SelectTrigger className={sessionSelectTriggerCls}>
                         <SelectValue placeholder="세션을 선택하세요" />
                       </SelectTrigger>
-                      <SelectContent className={selectContentCls}>
+                      <SelectContent className={sessionSelectContentCls}>
                         {mySessionIds.map((id) => {
                           const label = labelForSessionId(id);
                           if (!label) return null;
                           return (
-                            <SelectItem key={id} value={id} className={selectItemCls}>
+                            <SelectItem key={id} value={id} className={sessionSelectItemCls}>
                               {label}
                             </SelectItem>
                           );
