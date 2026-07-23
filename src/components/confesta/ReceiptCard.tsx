@@ -89,9 +89,9 @@ export function ReceiptCard() {
     }
   };
 
-  const ready = scoops.length >= 3;
+  const ready = scoops.length >= MIN_SCOOPS_FOR_RECEIPT;
 
-  // Auto-issue receipt as soon as the third scoop arrives and no token exists.
+  // Auto-issue receipt as soon as the minimum scoop threshold is met and no token exists.
   useEffect(() => {
     if (ready && !token && !issuingReceipt) {
       void issueReceipt().catch((e) => console.error(e));
@@ -107,7 +107,7 @@ export function ReceiptCard() {
             <Ticket className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
             <h3 className="font-bold text-lg">아직 영수증을 받을 수 없어요</h3>
             <p className="text-sm text-muted-foreground mt-1">
-              3스쿱을 모두 모으면 디지털 보상 영수증이 자동으로 발급됩니다.
+              {MIN_SCOOPS_FOR_RECEIPT}스쿱 이상 모으면 디지털 보상 영수증이 자동으로 발급됩니다.
             </p>
             <p className="text-sm font-semibold mt-3">현재 {scoops.length} / 3 스쿱</p>
           </div>
@@ -115,7 +115,7 @@ export function ReceiptCard() {
 
         <div className="text-center">
           <span className="inline-block px-3 py-1 rounded-full bg-grad-mango/20 text-grad-mango text-xs font-bold">
-            🎟 미리보기 — 3스쿱 완성 시 이렇게 발급돼요
+            🎟 미리보기 — {MIN_SCOOPS_FOR_RECEIPT}스쿱 이상 모으면 이렇게 발급돼요
           </span>
         </div>
 
