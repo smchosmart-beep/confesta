@@ -102,6 +102,8 @@ export function useAudience() {
     scoops,
     receipt: state.receipt,
     slotCategories: state.slotCategories,
+    slotTitles: state.slotTitles,
+
     placeOrder: placeOrder.mutateAsync,
     pickup: pickup.mutateAsync,
     issueReceipt: issueReceipt.mutateAsync,
