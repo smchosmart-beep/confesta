@@ -239,20 +239,34 @@ export const pickupFromQR = createServerFn({ method: "POST" })
       return { ok: false, message: "콘이 이미 가득 찼어요 (최대 3스쿱)" };
     }
 
-    // resolve flavor: legacy mock SESSIONS first, then slot-key fallback (matches OrderCard)
+    // resolve flavor: prefer admin-configured slot category, then legacy mock, then hash fallback
     const { SESSIONS, getCategory, CATEGORIES } = await import("./mockData");
     const { parseSlotKey } = await import("./shared");
     let flavor: string | undefined;
-    const legacy = SESSIONS.find((s) => s.id === parsed.sessionId);
-    if (legacy) {
-      flavor = getCategory(legacy.category).flavor;
-    } else {
-      const slot = parseSlotKey(parsed.sessionId);
-      if (slot) {
-        const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
+    const slotParsed = parseSlotKey(parsed.sessionId);
+    if (slotParsed) {
+      const { data: slotRow } = await supabaseAdmin
+        .from("session_slots")
+        .select("category")
+        .eq("day", slotParsed.day)
+        .eq("period", slotParsed.period)
+        .eq("room", slotParsed.room)
+        .maybeSingle();
+      const cat = slotRow?.category ?? null;
+      if (cat) {
+        flavor = getCategory(cat).flavor;
+      }
+    }
+    if (!flavor) {
+      const legacy = SESSIONS.find((s) => s.id === parsed.sessionId);
+      if (legacy) {
+        flavor = getCategory(legacy.category).flavor;
+      } else if (slotParsed) {
+        const hash = [...slotParsed.room].reduce((a, c) => a + c.charCodeAt(0), 0);
         flavor = CATEGORIES[hash % CATEGORIES.length].flavor;
       }
     }
+
     if (!flavor) return { ok: false, message: "세션을 찾을 수 없어요" };
 
     const nowIso = new Date().toISOString();
