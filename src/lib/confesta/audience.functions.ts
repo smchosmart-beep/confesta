@@ -30,7 +30,9 @@ export type AudienceStateDTO = {
   orders: AudienceOrderDTO[];
   scoops: AudienceScoopDTO[];
   receipt: AudienceReceiptDTO;
+  slotCategories: Record<string, string | null>;
 };
+
 
 export type AudienceMutationResult = {
   ok: boolean;
