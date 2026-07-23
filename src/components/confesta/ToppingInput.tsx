@@ -103,13 +103,13 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
     {
       value: "question",
       label: "질문하기",
-      icon: <MessageSquare className="w-3.5 h-3.5" />,
+      icon: <MessageSquare className="w-4 h-4" />,
       hint: "발표자에게 궁금한 점을 물어보세요",
     },
     {
       value: "answer",
       label: "키워드 응답",
-      icon: <Hash className="w-3.5 h-3.5" />,
+      icon: <Hash className="w-4 h-4" />,
       hint: "발표자가 던진 질문에 짧게 답해보세요 (한 단어 추천)",
     },
   ];
