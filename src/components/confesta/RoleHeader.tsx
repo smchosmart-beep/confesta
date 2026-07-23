@@ -8,6 +8,7 @@ interface Props {
   subtitle?: React.ReactNode;
   color: "pink" | "blue" | "mint" | "mango";
   right?: React.ReactNode;
+  titleTrailing?: React.ReactNode;
 }
 
 const ICON_GRAD: Record<Props["color"], string> = {
@@ -17,7 +18,7 @@ const ICON_GRAD: Record<Props["color"], string> = {
   mango: "bg-grad-mango",
 };
 
-export function RoleHeader({ role, description, subtitle, color, right }: Props) {
+export function RoleHeader({ role, description, subtitle, color, right, titleTrailing }: Props) {
   return (
     <header className="relative px-4 sm:px-6 pt-5 pb-4 overflow-hidden">
       <ToppingScatter density="low" seed={`hdr-${color}`} />
