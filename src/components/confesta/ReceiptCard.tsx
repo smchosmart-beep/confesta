@@ -148,8 +148,6 @@ export function ReceiptCard() {
   }
 
 
-  const activeToken = token;
-
   return (
     <div className="relative mx-auto max-w-sm">
       <div ref={receiptRef} className="relative overflow-hidden bg-white text-foreground rounded-t-3xl zigzag-bottom pb-8 px-6 pt-8 shadow-pink">
@@ -169,7 +167,7 @@ export function ReceiptCard() {
           {scoops.map((s, i) => (
             <div key={s.id} className="flex justify-between gap-3">
               <span className="shrink-0">스쿱 #{i + 1}</span>
-              <span className="text-right truncate">{sessionTitle(s.sessionId)}</span>
+              <span className="text-right truncate">{resolveTitle(s.sessionId)}</span>
             </div>
           ))}
 
@@ -194,11 +192,7 @@ export function ReceiptCard() {
           </div>
         </div>
 
-        <div className="relative bg-white p-3 rounded-2xl border border-foreground/10 flex justify-center">
-          {activeToken && (
-            <QRCode value={activeToken} size={140} level="M" />
-          )}
-        </div>
+
 
         <div className="relative mt-4 flex justify-center">
           {redeemed ? (
