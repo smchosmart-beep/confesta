@@ -14,7 +14,7 @@ import {
 import type { Order, StackedScoop, ScoopFlavor } from "@/lib/confesta/types";
 import { useDeviceId } from "./use-device-id";
 
-const EMPTY_STATE: AudienceStateDTO = { orders: [], scoops: [], receipt: null, slotCategories: {} };
+const EMPTY_STATE: AudienceStateDTO = { orders: [], scoops: [], receipt: null, slotCategories: {}, slotTitles: {} };
 
 export function useAudience() {
   const deviceId = useDeviceId();
