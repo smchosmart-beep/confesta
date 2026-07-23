@@ -31,7 +31,9 @@ export type AudienceStateDTO = {
   scoops: AudienceScoopDTO[];
   receipt: AudienceReceiptDTO;
   slotCategories: Record<string, string | null>;
+  slotTitles: Record<string, string>;
 };
+
 
 
 export type AudienceMutationResult = {
