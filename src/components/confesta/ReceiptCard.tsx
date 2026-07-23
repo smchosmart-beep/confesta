@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import QRCode from "react-qr-code";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
 import { Download, Ticket } from "lucide-react";
@@ -12,8 +11,9 @@ import { derivePersona, type Persona } from "@/lib/confesta/persona";
 import type { StackedScoop } from "@/lib/confesta/types";
 import { MIN_SCOOPS_FOR_RECEIPT } from "@/lib/confesta/shared";
 
-const sessionTitle = (sessionId: string) =>
+const sampleSessionTitle = (sessionId: string) =>
   SESSIONS.find((s) => s.id === sessionId)?.title ?? sessionId;
+
 
 const SAMPLE_SCOOPS: StackedScoop[] = [
   { id: "sample-1", sessionId: "s1", flavor: "mint", stackedAt: 0 },
