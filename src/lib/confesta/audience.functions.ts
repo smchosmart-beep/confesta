@@ -118,8 +118,10 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
           status: receiptRes.data.status,
         }
       : null,
+    slotCategories: catMap,
   };
 }
+
 
 const TOUCH_THROTTLE_MS = 60_000;
 const lastTouched = new Map<string, number>();
