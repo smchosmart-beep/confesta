@@ -61,20 +61,34 @@ const MIXED: Persona = {
 };
 
 
-export function derivePersona(scoops: StackedScoop[]): Persona {
+export function derivePersona(
+  scoops: StackedScoop[],
+  slotCategories: Map<string, CategoryKey | null> = new Map(),
+): Persona {
   if (scoops.length === 0) return MIXED;
+
+  const resolveCategory = (sessionId: string): CategoryKey | null => {
+    // DB-provided slot category wins; fall back to mock SESSIONS.
+    const fromSlot = slotCategories.get(sessionId);
+    if (fromSlot) return fromSlot;
+    if (fromSlot === null) {
+      // explicitly stored as null → treat as unassigned
+    }
+    const session = SESSIONS.find((x) => x.id === sessionId);
+    return session?.category ?? null;
+  };
 
   const counts = new Map<CategoryKey, number>();
   for (const s of scoops) {
-    const session = SESSIONS.find((x) => x.id === s.sessionId);
-    const cat: CategoryKey = session?.category ?? "vision-keynote";
+    const cat = resolveCategory(s.sessionId);
+    if (!cat) continue; // skip scoops with no assigned category
     counts.set(cat, (counts.get(cat) ?? 0) + 1);
   }
 
+  if (counts.size === 0) return MIXED;
   if (counts.size >= 3) return MIXED;
 
-  let best: CategoryKey =
-    SESSIONS.find((x) => x.id === scoops[0].sessionId)?.category ?? "vision-keynote";
+  let best: CategoryKey | null = null;
   let bestCount = 0;
   for (const [cat, n] of counts) {
     if (n > bestCount) {
@@ -82,5 +96,6 @@ export function derivePersona(scoops: StackedScoop[]): Persona {
       bestCount = n;
     }
   }
-  return PERSONA_BY_CATEGORY[best] ?? MIXED;
+  return (best && PERSONA_BY_CATEGORY[best]) || MIXED;
 }
+

@@ -14,10 +14,14 @@ import { displayRoom, makeSlotKey, PERIODS, PERIOD_LABELS, PERIOD_SHORT, type Pe
 import {
   listSlots,
   upsertSlotTitle,
+  upsertSlotCategory,
   issueOrderQR,
   rotateOrderQR,
   type SlotDTO,
 } from "@/lib/confesta/slots.functions";
+import { CATEGORIES } from "@/lib/confesta/mockData";
+import type { CategoryKey } from "@/lib/confesta/types";
+
 import { getSlotAggregates, resetSlotData } from "@/lib/confesta/admin.functions";
 import { verifyPin } from "@/lib/confesta/auth.functions";
 import {
@@ -434,6 +438,65 @@ function SlotTitleInput({
     />
   );
 }
+
+// =========================
+// Slot Category Picker
+// =========================
+function SlotCategoryPicker({
+  day,
+  period,
+  room,
+  value,
+}: {
+  day: number;
+  period: Period;
+  room: string;
+  value: CategoryKey | null;
+}) {
+  const qc = useQueryClient();
+  const upsertFn = useServerFn(upsertSlotCategory);
+  const save = useMutation({
+    mutationFn: (category: CategoryKey | null) =>
+      upsertFn({ data: { day, period, room, category } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-slots", day, period] });
+      toast.success("카테고리 저장됨");
+    },
+    onError: () => toast.error("카테고리 저장 실패"),
+  });
+  return (
+    <Select
+      value={value ?? "__none__"}
+      onValueChange={(v) => save.mutate(v === "__none__" ? null : (v as CategoryKey))}
+    >
+      <SelectTrigger className={`${selectTriggerCls} h-7 text-[11px] px-2 py-0.5 rounded-md`}>
+        <SelectValue placeholder="카테고리 선택" />
+      </SelectTrigger>
+      <SelectContent className={selectContentCls}>
+        <SelectItem className={selectItemCls} value="__none__">
+          — 미지정 —
+        </SelectItem>
+        {_CATEGORY_OPTIONS.map((c) => (
+          <SelectItem key={c.key} className={selectItemCls} value={c.key}>
+            {c.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+const _CATEGORY_OPTIONS: { key: CategoryKey; label: string }[] = [
+  { key: "vision-keynote", label: "비전특강 및 선포식" },
+  { key: "conference", label: "컨퍼런스" },
+  { key: "class-share", label: "수업나눔" },
+  { key: "networking", label: "네트워킹 (feat. 선도교사)" },
+  { key: "leader-school", label: "선도학교 공유회" },
+  { key: "parents", label: "학부모 대상 특강" },
+  { key: "hackathon", label: "누구나 개발자 해커톤" },
+];
+
+
 
 // =========================
 // Presenter password input
@@ -964,6 +1027,12 @@ function VenueCard({
                 initial={slot?.title ?? ""}
                 placeholder={sub.sessionTitle ?? "행사명"}
               />
+              <SlotCategoryPicker
+                day={day}
+                period={period}
+                room={sub.label}
+                value={slot?.category ?? null}
+              />
               <SlotPresenterPasswordInput
                 day={day}
                 period={period}
@@ -971,6 +1040,7 @@ function VenueCard({
                 hasPassword={!!slot?.hasPresenterPassword}
                 compact
               />
+
             </div>
             <div className="grid grid-cols-2 gap-1.5 items-center justify-items-center min-w-0">
               {/* 좌측: 수령률 원그래프 */}
@@ -1165,6 +1235,12 @@ function MobileVenueCard({
                     initial={slot?.title ?? ""}
                     placeholder={sub.sessionTitle ?? "행사명"}
                   />
+                  <SlotCategoryPicker
+                    day={day}
+                    period={period}
+                    room={sub.label}
+                    value={slot?.category ?? null}
+                  />
                   <SlotPresenterPasswordInput
                     day={day}
                     period={period}
@@ -1172,6 +1248,7 @@ function MobileVenueCard({
                     hasPassword={!!slot?.hasPresenterPassword}
                     compact
                   />
+
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
                       주문 <span className="tabular-nums">{sub.orders}</span>

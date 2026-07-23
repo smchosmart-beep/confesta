@@ -14,7 +14,7 @@ import {
 import type { Order, StackedScoop, ScoopFlavor } from "@/lib/confesta/types";
 import { useDeviceId } from "./use-device-id";
 
-const EMPTY_STATE: AudienceStateDTO = { orders: [], scoops: [], receipt: null };
+const EMPTY_STATE: AudienceStateDTO = { orders: [], scoops: [], receipt: null, slotCategories: {} };
 
 export function useAudience() {
   const deviceId = useDeviceId();
@@ -101,6 +101,7 @@ export function useAudience() {
     orders,
     scoops,
     receipt: state.receipt,
+    slotCategories: state.slotCategories,
     placeOrder: placeOrder.mutateAsync,
     pickup: pickup.mutateAsync,
     issueReceipt: issueReceipt.mutateAsync,
@@ -109,3 +110,4 @@ export function useAudience() {
     issuingReceipt: issueReceipt.isPending,
   };
 }
+

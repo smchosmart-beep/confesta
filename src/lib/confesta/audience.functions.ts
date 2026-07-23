@@ -30,7 +30,9 @@ export type AudienceStateDTO = {
   orders: AudienceOrderDTO[];
   scoops: AudienceScoopDTO[];
   receipt: AudienceReceiptDTO;
+  slotCategories: Record<string, string | null>;
 };
+
 
 export type AudienceMutationResult = {
   ok: boolean;
@@ -65,25 +67,32 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
   if (scoopsRes.error) throw scoopsRes.error;
   if (receiptRes.error) throw receiptRes.error;
 
-  // Fetch slot titles for orders that use slot-key sessionIds
+  // Fetch slot titles + categories for orders / scoops that use slot-key sessionIds
   const { parseSlotKey } = await import("./shared");
   const titleMap = new Map<string, string>();
-  const slotKeys = (ordersRes.data ?? [])
-    .map((o) => ({ id: o.session_id, slot: parseSlotKey(o.session_id) }))
-    .filter((x) => x.slot);
-  if (slotKeys.length > 0) {
+  const catMap: Record<string, string | null> = {};
+  const sessionIds = new Set<string>();
+  (ordersRes.data ?? []).forEach((o) => sessionIds.add(o.session_id));
+  (scoopsRes.data ?? []).forEach((s) => sessionIds.add(s.session_id));
+  const slotSessionIds = [...sessionIds].filter((id) => parseSlotKey(id));
+  if (slotSessionIds.length > 0) {
     const { data: slotsRows } = await supabaseAdmin
       .from("session_slots")
-      .select("day, period, room, title");
-    const byKey = new Map<string, string>();
+      .select("day, period, room, title, category");
+    const titleByKey = new Map<string, string>();
+    const catByKey = new Map<string, string | null>();
     (slotsRows ?? []).forEach((r) => {
-      byKey.set(`${r.day}|${r.period}|${r.room}`, r.title ?? "");
+      const k = `${r.day}|${r.period}|${r.room}`;
+      titleByKey.set(k, r.title ?? "");
+      catByKey.set(k, (r.category ?? null) as string | null);
     });
-    slotKeys.forEach(({ id }) => {
-      const t = byKey.get(id);
+    slotSessionIds.forEach((id) => {
+      const t = titleByKey.get(id);
       if (t && t.trim().length > 0) titleMap.set(id, t);
+      if (catByKey.has(id)) catMap[id] = catByKey.get(id) ?? null;
     });
   }
+
 
   return {
     orders: (ordersRes.data ?? []).map((o) => ({
@@ -109,8 +118,10 @@ async function loadState(deviceId: string): Promise<AudienceStateDTO> {
           status: receiptRes.data.status,
         }
       : null,
+    slotCategories: catMap,
   };
 }
+
 
 const TOUCH_THROTTLE_MS = 60_000;
 const lastTouched = new Map<string, number>();
@@ -228,20 +239,34 @@ export const pickupFromQR = createServerFn({ method: "POST" })
       return { ok: false, message: "콘이 이미 가득 찼어요 (최대 3스쿱)" };
     }
 
-    // resolve flavor: legacy mock SESSIONS first, then slot-key fallback (matches OrderCard)
+    // resolve flavor: prefer admin-configured slot category, then legacy mock, then hash fallback
     const { SESSIONS, getCategory, CATEGORIES } = await import("./mockData");
     const { parseSlotKey } = await import("./shared");
     let flavor: string | undefined;
-    const legacy = SESSIONS.find((s) => s.id === parsed.sessionId);
-    if (legacy) {
-      flavor = getCategory(legacy.category).flavor;
-    } else {
-      const slot = parseSlotKey(parsed.sessionId);
-      if (slot) {
-        const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
+    const slotParsed = parseSlotKey(parsed.sessionId);
+    if (slotParsed) {
+      const { data: slotRow } = await supabaseAdmin
+        .from("session_slots")
+        .select("category")
+        .eq("day", slotParsed.day)
+        .eq("period", slotParsed.period)
+        .eq("room", slotParsed.room)
+        .maybeSingle();
+      const cat = slotRow?.category ?? null;
+      if (cat) {
+        flavor = getCategory(cat).flavor;
+      }
+    }
+    if (!flavor) {
+      const legacy = SESSIONS.find((s) => s.id === parsed.sessionId);
+      if (legacy) {
+        flavor = getCategory(legacy.category).flavor;
+      } else if (slotParsed) {
+        const hash = [...slotParsed.room].reduce((a, c) => a + c.charCodeAt(0), 0);
         flavor = CATEGORIES[hash % CATEGORIES.length].flavor;
       }
     }
+
     if (!flavor) return { ok: false, message: "세션을 찾을 수 없어요" };
 
     const nowIso = new Date().toISOString();

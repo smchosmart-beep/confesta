@@ -218,6 +218,7 @@ export type Database = {
       session_slots: {
         Row: {
           capacity: number | null
+          category: string | null
           day: number
           period: string
           room: string
@@ -226,6 +227,7 @@ export type Database = {
         }
         Insert: {
           capacity?: number | null
+          category?: string | null
           day: number
           period: string
           room: string
@@ -234,6 +236,7 @@ export type Database = {
         }
         Update: {
           capacity?: number | null
+          category?: string | null
           day?: number
           period?: string
           room?: string

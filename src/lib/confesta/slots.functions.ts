@@ -1,11 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { makeOrderQR, makePickupQR, makeSlotKey, type Period } from "./shared";
+import type { CategoryKey } from "./types";
+
+const CATEGORY_KEYS = [
+  "vision-keynote",
+  "conference",
+  "class-share",
+  "networking",
+  "leader-school",
+  "parents",
+  "hackathon",
+] as const;
+const CategorySchema = z.enum(CATEGORY_KEYS).nullable();
 
 const PeriodSchema = z.enum(["1000", "1320", "1530"]);
 const DaySchema = z.number().int().min(1).max(10);
 const RoomSchema = z.string().min(1).max(64);
 const TitleSchema = z.string().max(120);
+
 
 async function assertAdmin() {
   const { assertRole } = await import("./assertRole");
@@ -26,6 +39,7 @@ export type SlotDTO = {
   period: Period;
   room: string;
   title: string;
+  category: CategoryKey | null;
   hasOrderQR: boolean;
   orderPayload: string | null;
   orderRotatedAt: number | null;
@@ -40,7 +54,8 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
   const [slotsRes, noncesRes, secretsRes] = await Promise.all([
     supabaseAdmin
       .from("session_slots")
-      .select("day, period, room, title")
+      .select("day, period, room, title, category")
+
       .eq("day", day)
       .eq("period", period),
     supabaseAdmin
@@ -68,6 +83,9 @@ async function loadSlots(day: number, period: Period): Promise<SlotDTO[]> {
       period: s.period as Period,
       room: s.room,
       title: s.title ?? "",
+      category: (s.category ?? null) as CategoryKey | null,
+
+
       hasOrderQR: !!order,
       orderPayload: order ? makeOrderQR(key, order.nonce) : null,
       orderRotatedAt: order ? new Date(order.rotated_at).getTime() : null,
@@ -164,6 +182,38 @@ export const upsertSlotTitle = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true as const };
   });
+
+export const upsertSlotCategory = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        day: DaySchema,
+        period: PeriodSchema,
+        room: RoomSchema,
+        category: CategorySchema,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    await assertAdmin();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Ensure the row exists without clobbering title/QR fields.
+    await supabaseAdmin
+      .from("session_slots")
+      .upsert(
+        { day: data.day, period: data.period, room: data.room },
+        { onConflict: "day,period,room", ignoreDuplicates: true },
+      );
+    const { error } = await supabaseAdmin
+      .from("session_slots")
+      .update({ category: data.category })
+      .eq("day", data.day)
+      .eq("period", data.period)
+      .eq("room", data.room);
+    if (error) throw error;
+    return { ok: true as const };
+  });
+
 
 export const issueOrderQR = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
