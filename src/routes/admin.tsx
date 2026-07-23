@@ -1235,6 +1235,12 @@ function MobileVenueCard({
                     initial={slot?.title ?? ""}
                     placeholder={sub.sessionTitle ?? "행사명"}
                   />
+                  <SlotCategoryPicker
+                    day={day}
+                    period={period}
+                    room={sub.label}
+                    value={slot?.category ?? null}
+                  />
                   <SlotPresenterPasswordInput
                     day={day}
                     period={period}
@@ -1242,6 +1248,7 @@ function MobileVenueCard({
                     hasPassword={!!slot?.hasPresenterPassword}
                     compact
                   />
+
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="inline-flex items-center gap-0.5 rounded-full bg-grad-blueberry/15 border border-grad-blueberry/30 px-1.5 py-0.5 text-[10px] font-extrabold text-grad-blueberry">
                       주문 <span className="tabular-nums">{sub.orders}</span>
