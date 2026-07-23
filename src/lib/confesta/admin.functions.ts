@@ -24,49 +24,24 @@ export const getSlotAggregates = createServerFn({ method: "POST" })
     await assertRole("admin");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const prefix = `${data.day}|${data.period as Period}|`;
 
-    const [ordersRes, scoopsRes, toppingsRes] = await Promise.all([
-      supabaseAdmin
-        .from("orders")
-        .select("session_id, picked_up_at")
-        .like("session_id", `${prefix}%`),
-      supabaseAdmin
-        .from("scoops")
-        .select("session_id")
-        .like("session_id", `${prefix}%`),
-      supabaseAdmin
-        .from("toppings")
-        .select("session_id")
-        .like("session_id", `${prefix}%`),
-    ]);
-    if (ordersRes.error) throw ordersRes.error;
-    if (scoopsRes.error) throw scoopsRes.error;
-    if (toppingsRes.error) throw toppingsRes.error;
+    const { data: rows, error } = await supabaseAdmin.rpc("get_slot_aggregates", {
+      _day: data.day,
+      _period: data.period as Period,
+    });
+    if (error) throw error;
 
     const map: SlotAggregateMap = {};
-    const get = (key: string): SlotAggregate => {
-      let v = map[key];
-      if (!v) {
-        v = { orders: 0, pickups: 0, toppings: 0 };
-        map[key] = v;
-      }
-      return v;
-    };
-
-    for (const o of ordersRes.data ?? []) {
-      const agg = get(o.session_id);
-      agg.orders += 1;
-      if (o.picked_up_at) agg.pickups += 1;
+    for (const r of rows ?? []) {
+      map[r.session_id] = {
+        orders: r.orders ?? 0,
+        pickups: r.pickups ?? 0,
+        toppings: r.toppings ?? 0,
+      };
     }
-    for (const t of toppingsRes.data ?? []) {
-      get(t.session_id).toppings += 1;
-    }
-    // scoops are tracked but not used for pickup count (picked_up_at is source of truth).
-    void scoopsRes;
-
     return { aggregates: map };
   });
+
 
 export const resetSlotData = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
