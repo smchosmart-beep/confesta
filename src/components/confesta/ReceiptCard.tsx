@@ -209,7 +209,8 @@ export function ReceiptCard() {
           )}
         </div>
 
-        <PersonaBadge persona={derivePersona(scoops)} />
+        <PersonaBadge persona={derivePersona(scoops, slotCatMap)} />
+
       </div>
 
       <div className="mt-5 flex flex-col items-center gap-3">
