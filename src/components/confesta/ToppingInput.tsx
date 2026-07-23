@@ -130,7 +130,7 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="inline-flex self-start gap-1 p-1 bg-muted rounded-full shadow-cream">
+      <div className="flex w-full gap-1 p-1 bg-muted rounded-full shadow-cream">
         {tabs.map((t) => {
           const open = isOpen(t.value);
           const active = kind === t.value;
@@ -139,12 +139,12 @@ export function ToppingInput({ sessionId, kind: kindProp, onKindChange, disableA
               key={t.value}
               type="button"
               onClick={() => handleTabClick(t.value)}
-              className={`bounce-press inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+              className={`bounce-press flex-1 justify-center inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition ${
                 active ? "bg-primary text-primary-foreground shadow-pink" : "text-foreground/70"
               } ${!open ? "opacity-60" : ""}`}
               aria-pressed={active}
             >
-              {open ? t.icon : <Lock className="w-3.5 h-3.5" />}
+              {open ? t.icon : <Lock className="w-4 h-4" />}
               {t.label}
             </button>
           );
