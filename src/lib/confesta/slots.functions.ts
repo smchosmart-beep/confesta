@@ -1,11 +1,24 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { makeOrderQR, makePickupQR, makeSlotKey, type Period } from "./shared";
+import type { CategoryKey } from "./types";
+
+const CATEGORY_KEYS = [
+  "vision-keynote",
+  "conference",
+  "class-share",
+  "networking",
+  "leader-school",
+  "parents",
+  "hackathon",
+] as const;
+const CategorySchema = z.enum(CATEGORY_KEYS).nullable();
 
 const PeriodSchema = z.enum(["1000", "1320", "1530"]);
 const DaySchema = z.number().int().min(1).max(10);
 const RoomSchema = z.string().min(1).max(64);
 const TitleSchema = z.string().max(120);
+
 
 async function assertAdmin() {
   const { assertRole } = await import("./assertRole");
