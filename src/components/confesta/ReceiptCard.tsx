@@ -28,7 +28,13 @@ const SAMPLE_TOPPING_ENTRIES: { kind: "question" | "answer"; promptText?: string
 ];
 
 export function ReceiptCard() {
-  const { scoops, receipt, issueReceipt, reset, issuingReceipt } = useAudience();
+  const { scoops, receipt, issueReceipt, reset, issuingReceipt, slotCategories } = useAudience();
+  const slotCatMap = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const [k, v] of Object.entries(slotCategories ?? {})) m.set(k, v);
+    return m as Map<string, import("@/lib/confesta/types").CategoryKey | null>;
+  }, [slotCategories]);
+
   const token = receipt?.token ?? null;
   const redeemed = receipt?.redeemedAt ? { at: receipt.redeemedAt } : null;
   const { toppings: myToppingsAll } = useMyToppings();
