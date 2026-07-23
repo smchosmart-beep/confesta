@@ -63,8 +63,8 @@ function resolveSessionDisplay(order: Order, { slotCategories }: ResolveOptions)
 
 
 export function OrderCard({ order }: Props) {
-  const display = resolveSessionDisplay(order);
-  const { pickup, deleteOrder } = useAudience();
+  const { pickup, deleteOrder, slotCategories } = useAudience();
+  const display = resolveSessionDisplay(order, { slotCategories });
   const [scanning, setScanning] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(
     null,
