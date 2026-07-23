@@ -67,14 +67,14 @@ export function derivePersona(scoops: StackedScoop[]): Persona {
   const counts = new Map<CategoryKey, number>();
   for (const s of scoops) {
     const session = SESSIONS.find((x) => x.id === s.sessionId);
-    const cat: CategoryKey = session?.category ?? "ai-math";
+    const cat: CategoryKey = session?.category ?? "vision-keynote";
     counts.set(cat, (counts.get(cat) ?? 0) + 1);
   }
 
   if (counts.size >= 3) return MIXED;
 
   let best: CategoryKey =
-    SESSIONS.find((x) => x.id === scoops[0].sessionId)?.category ?? "ai-math";
+    SESSIONS.find((x) => x.id === scoops[0].sessionId)?.category ?? "vision-keynote";
   let bestCount = 0;
   for (const [cat, n] of counts) {
     if (n > bestCount) {
