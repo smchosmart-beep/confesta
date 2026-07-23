@@ -36,9 +36,12 @@ export function RoleHeader({ role, description, subtitle, color, right, titleTra
             <IceCream className="w-6 h-6 drop-shadow" />
           </span>
           <div className={`min-w-0 ${right ? "" : "flex-1"}`}>
-            <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
-              {role}
-            </h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-2xl font-extrabold truncate text-grad-sunset">
+                {role}
+              </h1>
+              {titleTrailing && <div className="shrink-0">{titleTrailing}</div>}
+            </div>
             {description && (
               <p className="text-sm text-muted-foreground truncate">{description}</p>
             )}
