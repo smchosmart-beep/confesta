@@ -27,8 +27,12 @@ function fmtTime(ts: number) {
   });
 }
 
+interface ResolveOptions {
+  slotCategories: Record<string, string | null>;
+}
+
 // Resolve display info from either legacy SESSIONS id or new slot-key session_id.
-function resolveSessionDisplay(order: Order) {
+function resolveSessionDisplay(order: Order, { slotCategories }: ResolveOptions) {
   const sessionId = order.sessionId;
   const legacy = SESSIONS.find((s) => s.id === sessionId);
   if (legacy) {
@@ -41,10 +45,12 @@ function resolveSessionDisplay(order: Order) {
   }
   const slot = parseSlotKey(sessionId);
   if (slot) {
-    const hash = [...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0);
-    const cat = CATEGORIES[hash % CATEGORIES.length];
     const adminTitle = (order.sessionTitle ?? "").trim();
     const roomLabel = displayRoom(slot.room);
+    const dbCatKey = slotCategories[sessionId];
+    const cat = dbCatKey
+      ? getCategory(dbCatKey)
+      : CATEGORIES[[...slot.room].reduce((a, c) => a + c.charCodeAt(0), 0) % CATEGORIES.length];
     return {
       title: adminTitle.length > 0 ? adminTitle : roomLabel,
       chips: [`Day ${slot.day}`, PERIOD_SHORT[slot.period], roomLabel],
@@ -57,8 +63,8 @@ function resolveSessionDisplay(order: Order) {
 
 
 export function OrderCard({ order }: Props) {
-  const display = resolveSessionDisplay(order);
-  const { pickup, deleteOrder } = useAudience();
+  const { pickup, deleteOrder, slotCategories } = useAudience();
+  const display = resolveSessionDisplay(order, { slotCategories });
   const [scanning, setScanning] = useState(false);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(
     null,
