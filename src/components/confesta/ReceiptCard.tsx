@@ -220,15 +220,6 @@ export function ReceiptCard() {
           <Download className="w-4 h-4" />
           {saving ? "저장 중..." : "이미지로 저장"}
         </button>
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("스쿱 기록을 초기화하시겠어요?")) reset();
-          }}
-          className="text-xs text-muted-foreground underline"
-        >
-          데모 초기화
-        </button>
       </div>
     </div>
   );
@@ -298,7 +289,7 @@ function PersonaBadge({ persona }: { persona: Persona }) {
         오늘 당신의 AI 교육자 유형
       </p>
       <div
-        className={`mt-2 mx-auto max-w-[260px] rounded-2xl px-4 py-3 text-white text-center shadow-pink ${persona.accent}`}
+        className={`mt-2 w-full rounded-2xl px-4 py-3 text-white text-center shadow-pink ${persona.accent}`}
       >
         <div className="text-2xl leading-none">{persona.emoji}</div>
         <div className="mt-1 font-extrabold text-base leading-tight">
