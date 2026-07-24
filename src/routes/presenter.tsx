@@ -18,7 +18,6 @@ import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import {
   issuePickupQR,
   listIssuedSlots,
-  rotatePickupQR,
   getOrderQRForPresenter,
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
@@ -73,7 +72,6 @@ export const Route = createFileRoute("/presenter")({
   component: PresenterPage,
 });
 
-const QR_INTERVAL_MS = 300_000;
 const LAST_SLOT_KEY = "confesta:presenter:last-slot";
 
 function PresenterPage() {
@@ -512,25 +510,18 @@ function UnlockedSlotView({
   onLock: () => void;
 }) {
   const issueFn = useServerFn(issuePickupQR);
-  const rotateFn = useServerFn(rotatePickupQR);
   const getOrderFn = useServerFn(getOrderQRForPresenter);
 
   useSessionBootstrap(sessionId);
 
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
-  const [progress, setProgress] = useState(100);
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderPayload, setOrderPayload] = useState<string | null>(null);
 
   const issue = useMutation({
     mutationFn: () =>
       issueFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
-    onSuccess: (r) => setPickupPayload(r.payload),
-  });
-  const rotate = useMutation({
-    mutationFn: () =>
-      rotateFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
     onSuccess: (r) => setPickupPayload(r.payload),
   });
   const fetchOrder = useMutation({
@@ -555,19 +546,6 @@ function UnlockedSlotView({
   useEffect(() => {
     if (!pickupOpen) return;
     issue.mutate();
-    setProgress(100);
-    const start = Date.now();
-    const tickId = window.setInterval(() => {
-      const elapsed = (Date.now() - start) % QR_INTERVAL_MS;
-      setProgress(100 - (elapsed / QR_INTERVAL_MS) * 100);
-    }, 100);
-    const rotateId = window.setInterval(() => {
-      rotate.mutate();
-    }, QR_INTERVAL_MS);
-    return () => {
-      window.clearInterval(tickId);
-      window.clearInterval(rotateId);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickupOpen]);
 
@@ -679,16 +657,13 @@ function UnlockedSlotView({
               <X className="w-5 h-5 text-foreground" />
             </button>
             <div className="relative">
-              <div className="flex items-center justify-between mb-3">
+              <div className="mb-3">
                 <h3 className="text-lg font-extrabold bg-clip-text text-transparent bg-grad-sunset">
                   수령 QR
                 </h3>
-                <span className="text-xs bg-grad-strawberry text-white font-bold px-2.5 py-1 rounded-full shadow-pink">
-                  5분마다 갱신
-                </span>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mb-4">
-                세션 <strong className="text-foreground">종료 직전</strong>에만 잠깐 띄워서 청중이 스캔하도록 하세요.
+                세션 <strong className="text-foreground">종료 직전</strong>에 띄워서 청중이 스캔하면 스쿱이 적립돼요.
               </p>
               <div className="bg-white p-5 sm:p-6 rounded-2xl flex justify-center border-2 border-white shadow-cream">
                 {pickupPayload ? (
@@ -702,15 +677,6 @@ function UnlockedSlotView({
                   <div className="text-sm text-muted-foreground py-12">발급 중…</div>
                 )}
               </div>
-              <div className="mt-4 h-3 rounded-full bg-white/60 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-[width] duration-100 ease-linear bg-grad-sunset"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-center mt-2 text-xs text-muted-foreground font-mono">
-                다음 갱신까지 약 {Math.ceil((progress / 100) * 300)}초
-              </p>
             </div>
           </div>
         </div>
