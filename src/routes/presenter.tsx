@@ -510,25 +510,18 @@ function UnlockedSlotView({
   onLock: () => void;
 }) {
   const issueFn = useServerFn(issuePickupQR);
-  const rotateFn = useServerFn(rotatePickupQR);
   const getOrderFn = useServerFn(getOrderQRForPresenter);
 
   useSessionBootstrap(sessionId);
 
   const [pickupOpen, setPickupOpen] = useState(false);
   const [pickupPayload, setPickupPayload] = useState<string>("");
-  const [progress, setProgress] = useState(100);
   const [orderOpen, setOrderOpen] = useState(false);
   const [orderPayload, setOrderPayload] = useState<string | null>(null);
 
   const issue = useMutation({
     mutationFn: () =>
       issueFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
-    onSuccess: (r) => setPickupPayload(r.payload),
-  });
-  const rotate = useMutation({
-    mutationFn: () =>
-      rotateFn({ data: { day: slot.day, period: slot.period, room: slot.room } }),
     onSuccess: (r) => setPickupPayload(r.payload),
   });
   const fetchOrder = useMutation({
@@ -553,19 +546,6 @@ function UnlockedSlotView({
   useEffect(() => {
     if (!pickupOpen) return;
     issue.mutate();
-    setProgress(100);
-    const start = Date.now();
-    const tickId = window.setInterval(() => {
-      const elapsed = (Date.now() - start) % QR_INTERVAL_MS;
-      setProgress(100 - (elapsed / QR_INTERVAL_MS) * 100);
-    }, 100);
-    const rotateId = window.setInterval(() => {
-      rotate.mutate();
-    }, QR_INTERVAL_MS);
-    return () => {
-      window.clearInterval(tickId);
-      window.clearInterval(rotateId);
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pickupOpen]);
 
