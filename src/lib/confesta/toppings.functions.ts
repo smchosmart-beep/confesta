@@ -468,8 +468,9 @@ export const toggleAddressedTopping = createServerFn({ method: "POST" })
 /**
  * 발표자 또는 관리자가 특정 토핑을 삭제.
  * - 권한: admin PIN 쿠키 또는 해당 세션의 presenter slot 쿠키 중 하나
- * - 삭제 순서(수동): topping_likes → topping_gates → toppings
- *   (topping_comments는 FK ON DELETE CASCADE로 자동 정리)
+ * - 삭제 순서(수동): topping_likes → toppings
+ *   (topping_comments는 FK ON DELETE CASCADE로 자동 정리,
+ *    topping_gates는 세션 단위 설정이라 무관)
  * - session_id 이중 검증으로 다른 세션의 토핑 오삭제 방지
  */
 export const deleteToppingAsStaff = createServerFn({ method: "POST" })
