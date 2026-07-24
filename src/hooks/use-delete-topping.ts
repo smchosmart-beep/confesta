@@ -38,6 +38,7 @@ export function useDeleteTopping() {
             k === "toppings-presenter" ||
             k === "toppings" ||
             k === "toppings-admin" ||
+            k === "admin-toppings" ||
             k === "slot-toppings" ||
             k === "slot-aggregates" ||
             k === "comment-counts"
