@@ -464,3 +464,67 @@ export const toggleAddressedTopping = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true as const, addressed: next };
   });
+
+/**
+ * 발표자 또는 관리자가 특정 토핑을 삭제.
+ * - 권한: admin PIN 쿠키 또는 해당 세션의 presenter slot 쿠키 중 하나
+ * - 삭제 순서(수동): topping_likes → toppings
+ *   (topping_comments는 FK ON DELETE CASCADE로 자동 정리,
+ *    topping_gates는 세션 단위 설정이라 무관)
+ * - session_id 이중 검증으로 다른 세션의 토핑 오삭제 방지
+ */
+export const deleteToppingAsStaff = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        sessionId: SessionIdSchema,
+        toppingId: ToppingIdSchema,
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { assertRole, assertPresenterSlot } = await import("./assertRole");
+    let authorized = false;
+    try {
+      await assertRole("admin");
+      authorized = true;
+    } catch {
+      // fall through to presenter check
+    }
+    if (!authorized) {
+      await assertPresenterSlot(data.sessionId);
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // 세션 소속 이중 검증
+    const { data: cur, error: selErr } = await supabaseAdmin
+      .from("toppings")
+      .select("id, session_id")
+      .eq("id", data.toppingId)
+      .maybeSingle();
+    if (selErr) throw selErr;
+    if (!cur || cur.session_id !== data.sessionId) {
+      return { ok: false as const, message: "토핑을 찾을 수 없어요" };
+    }
+
+    // 1) likes
+    const { error: likesErr } = await supabaseAdmin
+      .from("topping_likes")
+      .delete()
+      .eq("topping_id", data.toppingId);
+    if (likesErr) throw likesErr;
+
+
+
+
+    // 3) toppings (comments는 CASCADE로 자동 삭제)
+    const { error: delErr } = await supabaseAdmin
+      .from("toppings")
+      .delete()
+      .eq("id", data.toppingId)
+      .eq("session_id", data.sessionId);
+    if (delErr) throw delErr;
+
+    return { ok: true as const, toppingId: data.toppingId };
+  });
