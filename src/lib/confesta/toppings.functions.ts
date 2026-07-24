@@ -515,12 +515,8 @@ export const deleteToppingAsStaff = createServerFn({ method: "POST" })
       .eq("topping_id", data.toppingId);
     if (likesErr) throw likesErr;
 
-    // 2) gates
-    const { error: gatesErr } = await supabaseAdmin
-      .from("topping_gates")
-      .delete()
-      .eq("topping_id", data.toppingId);
-    if (gatesErr) throw gatesErr;
+
+
 
     // 3) toppings (comments는 CASCADE로 자동 삭제)
     const { error: delErr } = await supabaseAdmin
