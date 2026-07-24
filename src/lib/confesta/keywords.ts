@@ -65,6 +65,8 @@ export function extractKeywords(texts: string[]): { word: string; count: number 
       .map((w) => w.trim())
       .filter(Boolean);
 
+    const isSingleToken = raw.length === 1;
+
     for (const r of raw) {
       if (isPredicate(r)) continue;
       let w = HANGUL_RE.test(r) ? stripParticles(r) : r;
@@ -72,11 +74,13 @@ export function extractKeywords(texts: string[]): { word: string; count: number 
       if (isPredicate(w)) continue;
       const low = w.toLowerCase();
       if (STOP.has(low)) continue;
-      // 길이 필터
-      if (ASCII_ONLY_RE.test(w)) {
-        if (w.length < 3) continue;
-      } else {
-        if (w.length < 2) continue;
+      // 길이 필터: 단일 토큰 응답은 짧아도 키워드로 인정
+      if (!isSingleToken) {
+        if (ASCII_ONLY_RE.test(w)) {
+          if (w.length < 3) continue;
+        } else {
+          if (w.length < 2) continue;
+        }
       }
       counts.set(w, (counts.get(w) ?? 0) + 1);
     }
