@@ -73,7 +73,7 @@ export const Route = createFileRoute("/presenter")({
   component: PresenterPage,
 });
 
-const QR_INTERVAL_MS = 15_000;
+const QR_INTERVAL_MS = 300_000;
 const LAST_SLOT_KEY = "confesta:presenter:last-slot";
 
 function PresenterPage() {
@@ -684,7 +684,7 @@ function UnlockedSlotView({
                   수령 QR
                 </h3>
                 <span className="text-xs bg-grad-strawberry text-white font-bold px-2.5 py-1 rounded-full shadow-pink">
-                  15초마다 갱신
+                  5분마다 갱신
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mb-4">
@@ -709,7 +709,7 @@ function UnlockedSlotView({
                 />
               </div>
               <p className="text-center mt-2 text-xs text-muted-foreground font-mono">
-                다음 갱신까지 약 {Math.ceil((progress / 100) * 15)}초
+                다음 갱신까지 약 {Math.ceil((progress / 100) * 300)}초
               </p>
             </div>
           </div>
