@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +9,18 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { listAllToppingsAdmin } from "@/lib/confesta/toppings.functions";
+import { useDeleteTopping } from "@/hooks/use-delete-topping";
 import { AnswerPie } from "./AnswerPie";
 import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
 
@@ -29,6 +41,9 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
     staleTime: 15_000,
   });
   const toppings: ToppingDTO[] = data?.toppings ?? [];
+
+  const [pendingId, setPendingId] = useState<string | null>(null);
+  const del = useDeleteTopping();
 
   const questions = useMemo(
     () =>
@@ -68,7 +83,16 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
 
   const totalToppings = questions.length + answerGroups.reduce((s, g) => s + g.items.length, 0);
 
+  const confirmDelete = () => {
+    if (!pendingId) return;
+    del.mutate(
+      { sessionId, toppingId: pendingId },
+      { onSettled: () => setPendingId(null) },
+    );
+  };
+
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       <DialogContent className="max-w-screen-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -124,6 +148,14 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
                           )}
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setPendingId(q.id)}
+                        aria-label="질문 삭제"
+                        className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -160,13 +192,23 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
                           {g.items.map((a) => (
                             <li
                               key={a.id}
-                              className="text-xs rounded-md bg-muted/50 px-2 py-1.5"
+                              className="group text-xs rounded-md bg-muted/50 px-2 py-1.5 flex items-start gap-2"
                             >
-                              <span className="font-semibold text-muted-foreground">
-                                {g.promptText ?? "응답"}
-                              </span>{" "}
-                              <span className="text-muted-foreground">-</span>{" "}
-                              <span className="whitespace-pre-wrap break-words">{a.text}</span>
+                              <div className="flex-1 min-w-0">
+                                <span className="font-semibold text-muted-foreground">
+                                  {g.promptText ?? "응답"}
+                                </span>{" "}
+                                <span className="text-muted-foreground">-</span>{" "}
+                                <span className="whitespace-pre-wrap break-words">{a.text}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPendingId(a.id)}
+                                aria-label="응답 삭제"
+                                className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-opacity opacity-0 group-hover:opacity-100 focus-within:opacity-100 focus:opacity-100"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
                             </li>
                           ))}
                         </ul>
@@ -189,5 +231,34 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
         )}
       </DialogContent>
     </Dialog>
+
+    <AlertDialog
+      open={pendingId !== null}
+      onOpenChange={(o) => {
+        if (!o && !del.isPending) setPendingId(null);
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>이 토핑을 삭제할까요?</AlertDialogTitle>
+          <AlertDialogDescription>
+            삭제 후에는 되돌릴 수 없어요. 청중/발표자 화면에서도 즉시 사라집니다.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={del.isPending}>취소</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={(e) => {
+              e.preventDefault();
+              confirmDelete();
+            }}
+            disabled={del.isPending}
+          >
+            {del.isPending ? "삭제 중…" : "삭제"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
