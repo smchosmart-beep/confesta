@@ -18,7 +18,6 @@ import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import {
   issuePickupQR,
   listIssuedSlots,
-  rotatePickupQR,
   getOrderQRForPresenter,
   type IssuedSlotDTO,
 } from "@/lib/confesta/slots.functions";
