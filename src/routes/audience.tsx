@@ -29,6 +29,7 @@ import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import { useToppingCommentCounts } from "@/hooks/use-topping-comments";
 import type { ToppingKind } from "@/lib/confesta/types";
 import { useAudienceRole } from "@/hooks/use-audience-role";
+import { useDisclaimerShown } from "@/hooks/use-disclaimer-shown";
 import { playBeep } from "@/lib/confesta/beep";
 import {
   Select,
