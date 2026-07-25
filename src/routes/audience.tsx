@@ -93,6 +93,7 @@ type Section = "orders" | "live" | "topping" | "receipt";
 function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
   const { state: roleState, setRole } = useAudienceRole();
+  const { shown: disclaimerShown, markShown: markDisclaimerShown } = useDisclaimerShown();
   const [showRoleChange, setShowRoleChange] = useState(false);
 
   // Server-backed audience state (orders, scoops, receipt)
