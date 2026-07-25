@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { toast } from "sonner";
-import { Download, Ticket } from "lucide-react";
+import { Download, Ticket, RotateCcw } from "lucide-react";
 import { IceCreamCone } from "./IceCreamCone";
 import { useMyToppings } from "@/hooks/use-my-toppings";
 import { useAudience } from "@/hooks/use-audience";
@@ -219,6 +219,14 @@ export function ReceiptCard() {
         >
           <Download className="w-4 h-4" />
           {saving ? "저장 중..." : "이미지로 저장"}
+        </button>
+        <button
+          type="button"
+          onClick={() => reset().catch((e) => console.error(e))}
+          className="bounce-press inline-flex items-center gap-2 rounded-full border border-input bg-background px-5 py-2.5 text-sm font-bold text-foreground transition-colors hover:bg-accent"
+        >
+          <RotateCcw className="w-4 h-4" />
+          데모 초기화
         </button>
       </div>
     </div>
