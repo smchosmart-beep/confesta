@@ -29,6 +29,7 @@ import { useSessionBootstrap } from "@/hooks/use-session-bootstrap";
 import { useToppingCommentCounts } from "@/hooks/use-topping-comments";
 import type { ToppingKind } from "@/lib/confesta/types";
 import { useAudienceRole } from "@/hooks/use-audience-role";
+import { useDisclaimerShown } from "@/hooks/use-disclaimer-shown";
 import { playBeep } from "@/lib/confesta/beep";
 import {
   Select,
@@ -92,6 +93,7 @@ type Section = "orders" | "live" | "topping" | "receipt";
 function AudienceView() {
   const [section, setSection] = useState<Section>("orders");
   const { state: roleState, setRole } = useAudienceRole();
+  const { shown: disclaimerShown, markShown: markDisclaimerShown } = useDisclaimerShown();
   const [showRoleChange, setShowRoleChange] = useState(false);
 
   // Server-backed audience state (orders, scoops, receipt)
@@ -323,13 +325,30 @@ function AudienceView() {
   }
   if (roleState === "none" || showRoleChange) {
     return (
-      <AudienceRoleGate
-        onPick={(r) => {
-          setRole(r);
-          setShowRoleChange(false);
-        }}
-        onCancel={showRoleChange ? () => setShowRoleChange(false) : undefined}
-      />
+      <>
+        <AlertDialog open={!disclaimerShown}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>안내</AlertDialogTitle>
+              <AlertDialogDescription>
+                해당 앱은 직무연수 이수 등과 관련이 없는 질문을 하기위한 도구일 뿐이니 착오없으시기 바랍니다.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={markDisclaimerShown}>
+                확인
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        <AudienceRoleGate
+          onPick={(r) => {
+            setRole(r);
+            setShowRoleChange(false);
+          }}
+          onCancel={showRoleChange ? () => setShowRoleChange(false) : undefined}
+        />
+      </>
     );
   }
 
