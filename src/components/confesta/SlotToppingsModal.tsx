@@ -23,8 +23,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { listAllToppingsAdmin } from "@/lib/confesta/toppings.functions";
 import { useDeleteTopping } from "@/hooks/use-delete-topping";
+import {
+  downloadToppingsWorkbook,
+  safeFileNamePart,
+  todayStamp,
+} from "@/lib/confesta/excel";
 import { AnswerPie } from "./AnswerPie";
 import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
+
 
 interface Props {
   open: boolean;
