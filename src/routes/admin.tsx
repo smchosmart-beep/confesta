@@ -240,6 +240,11 @@ function AdminView() {
       />
 
       <section className="px-4 sm:px-6 max-w-[1500px] mx-auto">
+        {/* 전체 데이터 내보내기 */}
+        <div className="flex justify-end mb-3">
+          <ExportAllButton />
+        </div>
+
         {/* 전체 합계 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
           <TotalCard
@@ -255,6 +260,7 @@ function AdminView() {
             grad="bg-grad-strawberry"
           />
         </div>
+
 
         {/* 평면도 배치 */}
         <div className="flex items-center justify-between mb-3">
