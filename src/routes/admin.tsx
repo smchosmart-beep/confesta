@@ -3,7 +3,7 @@ import type React from "react";
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { QrCode, Plus, RotateCcw } from "lucide-react";
+import { QrCode, Plus, RotateCcw, Download } from "lucide-react";
 import { RoleHeader } from "@/components/confesta/RoleHeader";
 import { ToppingScatter } from "@/components/confesta/ToppingDecor";
 import { AdminAuthGate } from "@/components/confesta/AdminAuthGate";
@@ -23,6 +23,9 @@ import { CATEGORIES } from "@/lib/confesta/mockData";
 import type { CategoryKey } from "@/lib/confesta/types";
 
 import { getSlotAggregates, resetSlotData } from "@/lib/confesta/admin.functions";
+import { exportAllToppings } from "@/lib/confesta/export.functions";
+import { downloadToppingsWorkbook, todayStamp } from "@/lib/confesta/excel";
+
 import { verifyPin } from "@/lib/confesta/auth.functions";
 import {
   Dialog,
@@ -59,6 +62,47 @@ const periodOf = (s: { timeSlot: string }): Period => {
   return "1530";
 };
 
+function ExportAllButton() {
+  const exportFn = useServerFn(exportAllToppings);
+  const [busy, setBusy] = useState(false);
+
+  const handle = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const payload = await exportFn({ data: undefined as never });
+      const meta = new Map(
+        payload.slots.map((s) => [
+          s.sessionId,
+          { title: s.title || s.sessionId, category: s.category },
+        ]),
+      );
+      await downloadToppingsWorkbook({
+        fileName: `confesta_전체_${todayStamp()}.xlsx`,
+        toppings: payload.toppings,
+        prompts: payload.prompts,
+        meta,
+      });
+      toast.success("엑셀 파일을 내려받았어요");
+    } catch {
+      toast.error("전체 엑셀 다운로드에 실패했어요");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      disabled={busy}
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-extrabold hover:bg-muted disabled:opacity-50"
+    >
+      <Download className="w-4 h-4" />
+      {busy ? "생성 중…" : "전체 엑셀 다운로드"}
+    </button>
+  );
+}
 
 
 export const Route = createFileRoute("/admin")({
@@ -240,6 +284,11 @@ function AdminView() {
       />
 
       <section className="px-4 sm:px-6 max-w-[1500px] mx-auto">
+        {/* 전체 데이터 내보내기 */}
+        <div className="flex justify-end mb-3">
+          <ExportAllButton />
+        </div>
+
         {/* 전체 합계 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
           <TotalCard
@@ -255,6 +304,7 @@ function AdminView() {
             grad="bg-grad-strawberry"
           />
         </div>
+
 
         {/* 평면도 배치 */}
         <div className="flex items-center justify-between mb-3">

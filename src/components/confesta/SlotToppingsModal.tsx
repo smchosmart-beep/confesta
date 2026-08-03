@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download } from "lucide-react";
+import { toast } from "sonner";
+
 import {
   Dialog,
   DialogContent,
@@ -21,8 +23,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { listAllToppingsAdmin } from "@/lib/confesta/toppings.functions";
 import { useDeleteTopping } from "@/hooks/use-delete-topping";
+import {
+  downloadToppingsWorkbook,
+  safeFileNamePart,
+  todayStamp,
+} from "@/lib/confesta/excel";
 import { AnswerPie } from "./AnswerPie";
 import type { ToppingDTO } from "@/lib/confesta/toppings.functions";
+
 
 interface Props {
   open: boolean;
@@ -91,6 +99,32 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
     );
   };
 
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const prompts = answerGroups
+        .filter((g) => g.promptId)
+        .map((g) => ({
+          id: g.promptId!,
+          sessionId,
+          text: g.promptText ?? "",
+          createdAt: g.items[g.items.length - 1]?.createdAt ?? Date.now(),
+        }));
+      await downloadToppingsWorkbook({
+        fileName: `confesta_${safeFileNamePart(title)}_${todayStamp()}.xlsx`,
+        toppings,
+        prompts,
+        meta: new Map([[sessionId, { title, category: null }]]),
+      });
+    } catch {
+      toast.error("엑셀 다운로드에 실패했어요");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
@@ -101,11 +135,21 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
             <span className="text-xs font-bold rounded-full bg-grad-mango/20 text-grad-mango px-2 py-0.5">
               토핑 {totalToppings}
             </span>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting || totalToppings === 0}
+              className="ml-auto mr-6 inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-bold hover:bg-muted disabled:opacity-50"
+            >
+              <Download className="w-3.5 h-3.5" />
+              {exporting ? "생성 중…" : "엑셀 다운로드"}
+            </button>
           </DialogTitle>
           <DialogDescription>
             이 공간에 도착한 질문과 키워드 응답을 한눈에 확인할 수 있어요.
           </DialogDescription>
         </DialogHeader>
+
 
         {totalToppings === 0 ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
