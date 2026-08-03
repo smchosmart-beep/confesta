@@ -68,7 +68,7 @@ export async function downloadToppingsWorkbook({
   prompts = [],
   meta,
 }: WorkbookInput) {
-  const { default: writeXlsxFile } = await import("write-excel-file");
+  const { default: writeXlsxFile } = await import("write-excel-file/browser");
 
   const titleOf = (sid: string) => meta?.get(sid)?.title || sid;
   const catOf = (sid: string) => categoryLabel(meta?.get(sid)?.category);
