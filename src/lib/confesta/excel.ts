@@ -136,13 +136,10 @@ export async function downloadToppingsWorkbook({
 
   const widths = (ws: number[]) => ws.map((width) => ({ width }));
 
-  await writeXlsxFile([sheet1, sheet2, sheet3] as never, {
-    sheets: ["질문", "키워드응답", "발문목록"],
-    columns: [
-      widths([28, 16, 18, 10, 60, 9, 7, 10]),
-      widths([28, 16, 18, 10, 40, 40]),
-      widths([28, 16, 50, 18, 10]),
-    ],
-    fileName,
-  });
+  await writeXlsxFile([
+    { sheet: "질문", data: sheet1 as never, columns: widths([28, 16, 18, 10, 60, 9, 7, 10]) },
+    { sheet: "키워드응답", data: sheet2 as never, columns: widths([28, 16, 18, 10, 40, 40]) },
+    { sheet: "발문목록", data: sheet3 as never, columns: widths([28, 16, 50, 18, 10]) },
+  ]).toFile(fileName);
 }
+
