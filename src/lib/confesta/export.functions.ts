@@ -91,7 +91,31 @@ export const exportAllToppings = createServerFn({ method: "POST" }).handler(
       .select("day, period, room, title, category");
     if (sErr) throw sErr;
 
+    const comments: ExportCommentRow[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabaseAdmin
+        .from("topping_comments")
+        .select("id, topping_id, session_id, text, role, author_kind, created_at")
+        .order("created_at", { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      const rows = data ?? [];
+      for (const r of rows) {
+        comments.push({
+          id: r.id,
+          toppingId: r.topping_id,
+          sessionId: r.session_id,
+          text: r.text,
+          role: r.role,
+          authorKind: r.author_kind === "presenter" ? "presenter" : "audience",
+          createdAt: new Date(r.created_at).getTime(),
+        });
+      }
+      if (rows.length < PAGE) break;
+    }
+
     return {
+      comments,
       toppings,
       prompts: (promptRows ?? []).map((p) => ({
         id: p.id,
