@@ -81,6 +81,7 @@ function ExportAllButton() {
         fileName: `confesta_전체_${todayStamp()}.xlsx`,
         toppings: payload.toppings,
         prompts: payload.prompts,
+        comments: payload.comments,
         meta,
       });
       toast.success("엑셀 파일을 내려받았어요");
