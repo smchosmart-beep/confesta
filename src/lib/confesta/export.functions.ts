@@ -28,10 +28,21 @@ export type ExportSlotRow = {
   category: string | null;
 };
 
+export type ExportCommentRow = {
+  id: string;
+  toppingId: string;
+  sessionId: string;
+  text: string;
+  role: AudienceRole | null;
+  authorKind: "audience" | "presenter";
+  createdAt: number;
+};
+
 export type ExportAllPayload = {
   toppings: ExportToppingRow[];
   prompts: ExportPromptRow[];
   slots: ExportSlotRow[];
+  comments: ExportCommentRow[];
 };
 
 const PAGE = 1000;
