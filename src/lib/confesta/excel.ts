@@ -21,6 +21,16 @@ export type ExcelPrompt = {
   createdAt: number;
 };
 
+export type ExcelComment = {
+  id: string;
+  toppingId: string;
+  sessionId: string;
+  text: string;
+  role: AudienceRole | null;
+  authorKind: "audience" | "presenter";
+  createdAt: number;
+};
+
 export type SessionMeta = {
   title: string;
   category: string | null;
