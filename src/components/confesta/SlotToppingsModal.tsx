@@ -100,6 +100,7 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
   };
 
   const [exporting, setExporting] = useState(false);
+  const commentsFn = useServerFn(listToppingComments);
   const handleExport = async () => {
     if (exporting) return;
     setExporting(true);
@@ -112,10 +113,12 @@ export function SlotToppingsModal({ open, onClose, sessionId, title }: Props) {
           text: g.promptText ?? "",
           createdAt: g.items[g.items.length - 1]?.createdAt ?? Date.now(),
         }));
+      const { comments } = await commentsFn({ data: { sessionId } });
       await downloadToppingsWorkbook({
         fileName: `confesta_${safeFileNamePart(title)}_${todayStamp()}.xlsx`,
         toppings,
         prompts,
+        comments,
         meta: new Map([[sessionId, { title, category: null }]]),
       });
     } catch {
