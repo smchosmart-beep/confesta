@@ -2,6 +2,7 @@ import { roleLabel, type AudienceRole } from "./audienceRole";
 import { CATEGORIES } from "./mockData";
 
 export type ExcelTopping = {
+  id?: string;
   sessionId: string;
   text: string;
   kind: "question" | "answer";
