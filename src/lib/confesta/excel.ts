@@ -68,15 +68,17 @@ export interface WorkbookInput {
   fileName: string;
   toppings: ExcelTopping[];
   prompts?: ExcelPrompt[];
+  comments?: ExcelComment[];
   /** sessionId → 제목/카테고리 */
   meta?: Map<string, SessionMeta>;
 }
 
-/** 질문 / 키워드응답 / 발문목록 3개 시트를 담은 xlsx를 브라우저에서 다운로드. */
+/** 질문 / 키워드응답 / 댓글 / 발문목록 시트를 담은 xlsx를 브라우저에서 다운로드. */
 export async function downloadToppingsWorkbook({
   fileName,
   toppings,
   prompts = [],
+  comments = [],
   meta,
 }: WorkbookInput) {
   const { default: writeXlsxFile } = await import("write-excel-file/browser");
