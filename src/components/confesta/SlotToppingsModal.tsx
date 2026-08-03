@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { listAllToppingsAdmin } from "@/lib/confesta/toppings.functions";
+import { listToppingComments } from "@/lib/confesta/comments.functions";
 import { useDeleteTopping } from "@/hooks/use-delete-topping";
 import {
   downloadToppingsWorkbook,
