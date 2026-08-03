@@ -59,6 +59,47 @@ const periodOf = (s: { timeSlot: string }): Period => {
   return "1530";
 };
 
+function ExportAllButton() {
+  const exportFn = useServerFn(exportAllToppings);
+  const [busy, setBusy] = useState(false);
+
+  const handle = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const payload = await exportFn({ data: undefined as never });
+      const meta = new Map(
+        payload.slots.map((s) => [
+          s.sessionId,
+          { title: s.title || s.sessionId, category: s.category },
+        ]),
+      );
+      await downloadToppingsWorkbook({
+        fileName: `confesta_전체_${todayStamp()}.xlsx`,
+        toppings: payload.toppings,
+        prompts: payload.prompts,
+        meta,
+      });
+      toast.success("엑셀 파일을 내려받았어요");
+    } catch {
+      toast.error("전체 엑셀 다운로드에 실패했어요");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      disabled={busy}
+      className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-extrabold hover:bg-muted disabled:opacity-50"
+    >
+      <Download className="w-4 h-4" />
+      {busy ? "생성 중…" : "전체 엑셀 다운로드"}
+    </button>
+  );
+}
 
 
 export const Route = createFileRoute("/admin")({
